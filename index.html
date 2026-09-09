@@ -1247,7 +1247,7 @@ function renderParticipantList() {
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">被试编号</th>' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">进度</th>' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">最近更新</th>' +
-    '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:80px;"></th>' +
+    '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:160px;"></th>' +
     '</tr></thead><tbody>';
 
   summaries.forEach(s => {
@@ -1267,7 +1267,8 @@ function renderParticipantList() {
         </div>
       </td>
       <td style="padding:10px 14px;color:#64748b;font-size:12px;">${dateStr}</td>
-      <td style="padding:10px 14px;text-align:right;">
+      <td style="padding:10px 14px;text-align:right;white-space:nowrap;">
+        <button onclick="viewParticipantReport('${s.id}')" title="查看该被试的综合认知报告" style="background:none;border:1px solid #bfdbfe;color:#2563eb;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s;margin-right:8px;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">报告</button>
         <button onclick="deleteParticipant('${s.id}')" style="background:none;border:1px solid #fecaca;color:#ef4444;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
       </td>
     </tr>`;
@@ -1276,6 +1277,10 @@ function renderParticipantList() {
   html += '</tbody></table></div>';
   html += '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">⚠️ 删除被试将清除其所有测验数据，不可恢复</div>';
   content.innerHTML = html;
+}
+
+function viewParticipantReport(cohortId) {
+  window.location.href = 'comprehensive-report.html?p=' + encodeURIComponent(cohortId);
 }
 
 function deleteParticipant(cohortId) {
