@@ -1,0 +1,68 @@
+CONTINUOUS PERFORMANCE TEST - 3 DIGIT IDENTICAL PAIRS (CPT-IP)
+
+Date: 11/25/2024 13:15:19
+Tester: FirstName LastName
+Seq File: E:\MATRICS_CPT-IP\CPT-IP\MATRICSCPT\IPFiles\MATRICS-Chinese-Simplified.sav
+Stim Dur: 50
+Resp Pol: Down
+Subj Code: 24112502
+Age: 37
+Sex: M
+Ses Num: 1
+Comments: 
+
+
+PRACTICE BLOCK (10 Trials)
+
+                                                    REACTION
+                TOTAL      ACTUAL                     TIME
+                NUMBER    NUMBER OF    REACTION       MEAN     STANDARD
+               POSSIBLE   RESPONSES   PROPORTIONS     (ms)     DEVIATION
+HITS                2          2        1.0000       468.5000    31.5000
+FALSE ALARMS        2          0        0.0000         0.0000     0.0000
+RANDOMS             6          0        0.0000      
+
+
+DPRIME (USING FALSE ALARMS) = 1.3484
+
+
+2-Digit Numbers (150 Trials)
+
+                                                    REACTION
+                TOTAL      ACTUAL                     TIME
+                NUMBER    NUMBER OF    REACTION       MEAN     STANDARD
+               POSSIBLE   RESPONSES   PROPORTIONS     (ms)     DEVIATION
+HITS               30         28        0.9333       596.1429   131.5495
+FALSE ALARMS       30          0        0.0000         0.0000     0.0000
+RANDOMS            90          0        0.0000      
+
+
+DPRIME (USING FALSE ALARMS) = 3.6193
+
+
+3-Digit Numbers (150 Trials)
+
+                                                    REACTION
+                TOTAL      ACTUAL                     TIME
+                NUMBER    NUMBER OF    REACTION       MEAN     STANDARD
+               POSSIBLE   RESPONSES   PROPORTIONS     (ms)     DEVIATION
+HITS               30         22        0.7333       579.3182   101.8160
+FALSE ALARMS       30          0        0.0000         0.0000     0.0000
+RANDOMS            90          0        0.0000      
+
+
+DPRIME (USING FALSE ALARMS) = 2.7421
+
+
+4-Digit Numbers (150 Trials)
+
+                                                    REACTION
+                TOTAL      ACTUAL                     TIME
+                NUMBER    NUMBER OF    REACTION       MEAN     STANDARD
+               POSSIBLE   RESPONSES   PROPORTIONS     (ms)     DEVIATION
+HITS               30         22        0.7333       565.8182   126.9583
+FALSE ALARMS       30          2        0.0667       569.0000     8.0000
+RANDOMS            90          0        0.0000      
+
+
+DPRIME (USING FALSE ALARMS) = 2.1204

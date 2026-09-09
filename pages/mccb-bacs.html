@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MCCB BACS 符号编码测验 (Symbol Coding)</title>
+<link rel="stylesheet" href="../mccb-common.css">
+<script src="../mccb-participant.js"></script>
+<style>
+  /* Test page */
+  #page-test { flex-direction: column; padding: 1rem; gap: 0.75rem; justify-content: flex-start; }
+
+  /* Key legend */
+  .key-legend {
+    display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center;
+    background: var(--bg-card); border-radius: 0.75rem; padding: 0.75rem 1rem;
+    box-shadow: var(--shadow-sm-alt);
+    width: 100%; max-width: 42.5rem;
+  }
+  .key-item {
+    display: flex; align-items: center; gap: 0.25rem;
+    padding: 0.25rem 0.5rem; border-radius: 0.375rem; background: var(--bg-hover);
+    font-size: 0.9375rem;
+  }
+  .key-item .ksym { font-size: 1.375rem; }
+  .key-item .knum {
+    font-family: var(--font-mono);
+    font-weight: 700; color: var(--accent-blue); font-size: 1rem;
+  }
+  .key-item .karrow { color: var(--text-muted); font-size: 0.875rem; }
+
+  .timer-section {
+    width: 100%; max-width: 42.5rem;
+    display: flex; align-items: center; gap: 0.875rem;
+  }
+  .timer-text {
+    font-family: var(--font-mono);
+    font-size: 1.25rem; font-weight: 700; min-width: 3rem; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-text.warn { color: var(--color-warning-hover); }
+  .timer-text.danger { color: var(--color-danger-hover); animation: pulse 0.6s infinite; }
+  .counter-text { font-size: 0.875rem; color: var(--text-secondary); white-space: nowrap; }
+  .counter-text span { color: var(--accent-blue); font-weight: 700; }
+
+  /* Grid */
+  .grid-container {
+    background: var(--bg-card); border-radius: 0.75rem; padding: 0.75rem;
+    box-shadow: var(--shadow-sm-alt);
+    width: 100%; max-width: 42.5rem;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 0.25rem;
+    max-height: 23.75rem;
+    overflow-y: auto;
+  }
+  .grid-cell {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0.1875rem 0;
+    border-radius: 0.375rem;
+    background: var(--bg-export);
+    min-height: 3rem;
+  }
+  .grid-cell .gsym { font-size: 1.125rem; height: 1.5rem; display: flex; align-items: center; }
+  .grid-cell input {
+    width: 2.75rem; height: 2.75rem;
+    border: 2px solid var(--border-light);
+    border-radius: 0.375rem;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s, background 0.15s;
+    margin-top: 2px;
+  }
+  .grid-cell input:focus-visible { border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(52,152,219,0.15); }
+  .grid-cell input.correct { border-color: var(--color-success); background: var(--color-success-bg); }
+  .grid-cell input.wrong { border-color: var(--color-danger); background: var(--color-danger-bg); }
+  .grid-cell input:disabled { cursor: not-allowed; }
+
+  .option-btn:focus-visible,
+  .spatial-block:focus-visible, .pool-shape:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+/* Wide mode: BACS */
+body.wide-mode .grid-container { max-width: 55rem; width: 100%; }
+body.wide-mode .grid-container .spatial-block { width: 2.75rem; height: 2.75rem; font-size: 0.9rem; }
+body.wide-mode #page-test { padding: 1.5rem 3rem; }
+body.wide-mode .input-row { max-width: 40rem; }
+
+</style>
+</head>
+<body>
+<main id="app">
+  <!-- Welcome -->
+  <section id="page-welcome" class="page active">
+    <header>
+      <div class="logo">🔣</div>
+      <h2>符号编码测验</h2>
+    </header>
+    <p class="subtitle">
+      BACS Symbol Coding — 下方有一个<strong>符号-数字对照表</strong>。
+      请在 <strong>90 秒</strong> 内尽量快速准确地将每个符号对应的数字填入格子中。
+    </p>
+    <div class="inst-box" id="instBox">
+      <strong>规则：</strong>根据对照表，在每一格填入对应数字（1-9）。填入后自动跳到下一格。
+      <span id="devHintBacs">错误的格子会标记为红色，正确为绿色。</span>时间到自动停止。
+    </div>
+    <footer>
+      <button type="button" class="btn btn-primary" onclick="startTest()" style="margin-top:4px;">开始测验</button>
+    </footer>
+  </section>
+
+  <!-- Test -->
+  <section id="page-test" class="page">
+    <div class="key-legend" id="keyLegend"></div>
+    <div class="timer-section">
+      <div class="timer-text" id="timerDisplay">90</div>
+      <span style="color:var(--text-muted);font-size:12px;">s</span>
+      <div class="timer-bar"><div class="fill" id="timerFill" style="width:100%"></div></div>
+      <div class="counter-text" id="counterText">正确数 <span id="correctCount">0</span></div>
+    </div>
+    <div class="grid-container" id="grid"></div>
+  </section>
+
+  <!-- Result -->
+  <section id="page-result" class="page page-result">
+    <h2>📊 测验完成</h2>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="ri-label">正确编码数</div>
+        <div class="ri-value" id="resultCorrect">0</div>
+      </div>
+      <div class="result-item">
+        <div class="ri-label">尝试总数</div>
+        <div class="ri-value" id="resultTotal">0</div>
+      </div>
+      <div class="result-item">
+        <div class="ri-label">错误数</div>
+        <div class="ri-value" id="resultErrors">0</div>
+      </div>
+      <div class="result-item">
+        <div class="ri-label">正确率</div>
+        <div class="ri-value" id="resultAccuracy">0%</div>
+      </div>
+    </div>
+    <aside class="norm-ref" id="normRef">
+      <strong>参考解释：</strong><span id="normInterpretation">完成测试后查看参考解释</span>
+    </aside>
+    <footer class="result-actions">
+      <button type="button" class="btn btn-primary" onclick="showExport()">导出数据</button>
+      <button type="button" class="btn btn-outline" onclick="backToWelcome()">返回首页</button>
+    </footer>
+  
+  <p style="text-align:center;margin-top:20px;"><a href="../index.html" class="btn btn-outline" style="display:inline-block;padding:10px 28px;text-decoration:none;">← 返回测验中心</a></p></section>
+
+  <!-- Overlay -->
+  <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+    <div class="modal">
+      <h3 id="modalTitle">提示</h3>
+      <p id="modalBody">内容</p>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+'use strict';
+
+// === Mode (DEV / USER) ===
+const urlParams = new URLSearchParams(window.location.search);
+const MODE = urlParams.get('mode') || 'dev';
+const IS_DEV = MODE === 'dev';
+
+function applyModeStyles() {
+  if (!IS_DEV) {
+    const devEls = document.querySelectorAll('.count-badge, .feedback-area, .dev-hint, .progress-text, .quick-fb, #counterText, #devHintBacs');
+    devEls.forEach(el => el.style.display = 'none');
+  }
+}
+
+// 9 symbols and their mapping
+const SYMBOLS = ['△','○','◇','☆','☐','☺','♠','♣','♥'];
+const KEY_MAP = { 0:1, 1:2, 2:3, 3:4, 4:5, 5:6, 6:7, 7:8, 8:9 };
+const TOTAL_CELLS = 110;
+const COLS = 12;
+
+const STATE = {
+  symbols: [],
+  answers: [],       // user's input (or null)
+  correctFlags: [],  // true/false per cell
+  currentIndex: 0,
+  timer: 90,
+  timerInterval: null,
+  isRunning: false,
+  correct: 0,
+  attempted: 0,
+};
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showOverlay(title, bodyText, actions) {
+  const ov = document.getElementById('overlay');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = bodyText;
+  const ac = document.getElementById('modalActions');
+  ac.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = `btn ${a.cls || 'btn-primary'}`;
+    btn.textContent = a.label;
+    btn.onclick = () => { hideOverlay(); if (a.cb) a.cb(); };
+    ac.appendChild(btn);
+  });
+  ov.classList.add('show');
+  setTimeout(() => trapFocus(ov), 100);
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); document.querySelector('.btn, button:not(#overlay button)')?.focus(); }
+
+function backToWelcome() {
+  document.body.classList.remove('testing-active');
+  stopTimer();
+  STATE.isRunning = false;
+  navigateTo('page-welcome');
+}
+
+function startTest() {
+  document.body.classList.add('testing-active');
+  if (STATE.isRunning) return;
+  // Generate random symbol sequence
+  STATE.symbols = [];
+  for (let i = 0; i < TOTAL_CELLS; i++) {
+    STATE.symbols.push(Math.floor(Math.random() * 9));
+  }
+  STATE.answers = new Array(TOTAL_CELLS).fill(null);
+  STATE.correctFlags = new Array(TOTAL_CELLS).fill(false);
+  STATE.currentIndex = 0;
+  STATE.timer = 90;
+  STATE.correct = 0;
+  STATE.attempted = 0;
+  STATE.isRunning = false;
+
+  document.getElementById('correctCount').textContent = '0';
+  renderKeyLegend();
+  renderGrid();
+  applyModeStyles();
+    ParticipantManager.initFromUrl(); ParticipantManager.markInProgress('bacs');
+  updateTimerDisplay();
+  navigateTo('page-test');
+  setTimeout(() => {
+    startTimer();
+    focusCurrentCell();
+  }, 400);
+}
+
+function renderKeyLegend() {
+  const el = document.getElementById('keyLegend');
+  el.innerHTML = SYMBOLS.map((sym, i) =>
+    `<span class="key-item"><span class="ksym">${sym}</span><span class="karrow">→</span><span class="knum">${i+1}</span></span>`
+  ).join('');
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < TOTAL_CELLS; i++) {
+    const sym = SYMBOLS[STATE.symbols[i]];
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell';
+    cell.innerHTML = `<span class="gsym">${sym}</span><input type="text" maxlength="1" data-index="${i}" inputmode="numeric" pattern="[1-9]">`;
+    grid.appendChild(cell);
+  }
+
+  // Attach input handler
+  grid.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', onGridInput);
+    inp.addEventListener('focus', e => {
+      STATE.currentIndex = parseInt(e.target.dataset.index);
+    });
+  });
+}
+
+function focusCurrentCell() {
+  const inputs = document.querySelectorAll('#grid input');
+  if (STATE.currentIndex < inputs.length) {
+    inputs[STATE.currentIndex].focus();
+  }
+}
+
+function onGridInput(e) {
+  if (!STATE.isRunning) return;
+  const inp = e.target;
+  const idx = parseInt(inp.dataset.index);
+  const val = inp.value;
+
+  if (val === '') return;
+
+  // Only accept 1-9
+  if (!/^[1-9]$/.test(val)) {
+    inp.value = '';
+    return;
+  }
+
+  const correct = parseInt(val) === KEY_MAP[STATE.symbols[idx]];
+  STATE.answers[idx] = parseInt(val);
+  STATE.correctFlags[idx] = correct;
+  STATE.attempted++;
+  if (correct) STATE.correct++;
+
+  inp.className = IS_DEV ? (correct ? 'correct' : 'wrong') : '';
+  inp.disabled = true;
+  document.getElementById('correctCount').textContent = STATE.correct;
+
+  // Auto advance to next empty cell
+  autoAdvance();
+}
+
+function autoAdvance() {
+  const inputs = document.querySelectorAll('#grid input:not(:disabled)');
+  if (inputs.length > 0) {
+    inputs[0].focus();
+    STATE.currentIndex = parseInt(inputs[0].dataset.index);
+  }
+}
+
+function startTimer() {
+  STATE.isRunning = true;
+  STATE.timerInterval = setInterval(() => {
+    STATE.timer--;
+    updateTimerDisplay();
+    if (STATE.timer <= 0) endTest();
+  }, 1000);
+}
+
+function stopTimer() {
+  if (STATE.timerInterval) {
+    clearInterval(STATE.timerInterval);
+    STATE.timerInterval = null;
+  }
+  STATE.isRunning = false;
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  const fill = document.getElementById('timerFill');
+  el.textContent = STATE.timer;
+  const pct = (STATE.timer / 90) * 100;
+  fill.style.width = Math.max(pct, 0) + '%';
+  el.className = 'timer-text';
+  fill.className = 'fill';
+  if (STATE.timer <= 10) {
+    el.classList.add('danger');
+    fill.classList.add('danger');
+  } else if (STATE.timer <= 20) {
+    el.classList.add('warn');
+    fill.classList.add('warn');
+  }
+}
+
+function endTest() {
+  document.body.classList.remove('testing-active');
+  stopTimer();
+  // Disable all inputs
+  document.querySelectorAll('#grid input').forEach(inp => { inp.disabled = true; });
+
+  const errors = STATE.attempted - STATE.correct;
+  document.getElementById('resultCorrect').textContent = STATE.correct;
+  document.getElementById('resultTotal').textContent = STATE.attempted;
+  document.getElementById('resultErrors').textContent = errors;
+  const acc = STATE.attempted > 0 ? Math.round((STATE.correct / STATE.attempted) * 100) : 0;
+  document.getElementById('resultAccuracy').textContent = acc + '%';
+
+  // Interpretation
+  let level;
+  let cls;
+  if (STATE.correct >= 60) { cls = 'good'; level = '优秀（≥60）'; }
+  else if (STATE.correct >= 40) { cls = 'good'; level = '正常范围（40-59）'; }
+  else if (STATE.correct >= 25) { cls = 'warn'; level = '偏慢（25-39），提示处理速度偏低'; }
+  else { cls = 'bad'; level = '明显偏慢（<25），建议进一步评估'; }
+  document.getElementById('resultCorrect').className = 'ri-value ' + cls;
+  const interpEl = document.getElementById('normInterpretation');
+  interpEl.textContent = '';
+  const strong = document.createElement('strong');
+  strong.textContent = STATE.correct;
+  interpEl.appendChild(document.createTextNode(`您正确编码了 `));
+  interpEl.appendChild(strong);
+  interpEl.appendChild(document.createTextNode(` 个符号（尝试 ${STATE.attempted} 个，正确率 ${acc}%）。${level}`));
+
+  saveToLocalStorage();
+  navigateTo('page-result');
+}
+
+function saveToLocalStorage() {
+  const gridData = STATE.symbols.map((s, i) => ({
+    symbol: SYMBOLS[s],
+    correctAnswer: KEY_MAP[s],
+    userAnswer: STATE.answers[i],
+    isCorrect: STATE.correctFlags[i],
+  }));
+  const data = {
+    test: 'MCCB BACS Symbol Coding',
+    date: new Date().toISOString(),
+    correct: STATE.correct,
+    attempted: STATE.attempted,
+    grid: gridData,
+  };
+  try { localStorage.setItem('mccb-bacs-result', JSON.stringify(data)); } catch(e) {}
+  ParticipantManager.saveResult('bacs', data);
+}
+
+function showExport() {
+  const gridData = STATE.symbols.map((s, i) => ({
+    symbol: SYMBOLS[s],
+    correctAnswer: KEY_MAP[s],
+    userAnswer: STATE.answers[i],
+    isCorrect: STATE.correctFlags[i],
+  }));
+  const data = {
+    test: 'MCCB BACS Symbol Coding',
+    date: new Date().toISOString(),
+    correct: STATE.correct,
+    attempted: STATE.attempted,
+    grid: gridData,
+  };
+  showOverlay('导出数据',
+    `<div class="export-area">${JSON.stringify(data, null, 2)}</div>` +
+    '<p style="font-size:13px;color:var(--text-muted);">可复制上述 JSON 数据保存或分享</p>',
+    [{ label: '关闭', cls: 'btn-outline' },
+     { label: '复制', cls: 'btn-primary', cb: () => {
+       navigator.clipboard.writeText(JSON.stringify(data, null, 2)).catch(()=>{});
+     }}
+    ]
+  );
+}
+
+// Init mode
+if (!IS_DEV) {
+  document.getElementById('devHintBacs').style.display = 'none';
+}
+
+// === 页面离开保护 ===
+window.addEventListener('beforeunload', function(e) {
+  if (STATE.isRunning) {
+    e.preventDefault();
+    e.returnValue = '测试正在进行中，确定要离开吗？';
+  }
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && STATE.isRunning) {
+    endTest();
+  }
+});
+
+// === 模态框焦点陷阱 ===
+function trapFocus(container) {
+  const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  container.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape') {
+      hideOverlay();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+// === Wide Mode Toggle ===
+(function(){try{if(window.ParticipantManager)ParticipantManager.initFromUrl();}catch(e){}var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
+b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
+if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
+b.onclick=function(){document.body.classList.toggle('wide-mode');
+b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
+document.body.classList.contains('wide-mode')?'1':'0');};
+document.body.appendChild(b);})();
+</script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MCCB HVLT-R 言语学习测验</title>
+<link rel="stylesheet" href="../mccb-common.css">
+<script src="../mccb-participant.js"></script>
+<style>
+  /* Study phase */
+  #page-study { flex-direction: column; gap: 1.5rem; text-align: center; padding: 2.5rem 1.5rem; }
+  .study-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
+  .study-timer {
+    font-family: var(--font-mono);
+    font-size: 1.75rem; font-weight: 700; color: var(--text-primary);
+  }
+  .study-timer.warn { color: var(--color-warning-hover); }
+  .study-timer.danger { color: var(--color-danger-hover); animation: pulse 0.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .study-bar { width: 100%; max-width: 28.75rem; height: 0.5rem; background: var(--border-light); border-radius: 0.375rem; overflow: hidden; }
+  .study-bar .fill { height: 100%; border-radius: 0.375rem; background: linear-gradient(90deg,var(--accent-inst-border),#10b981); transition: width 0.3s; }
+
+  .word-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0.625rem; max-width: 28.75rem; width: 100%;
+  }
+  .word-grid .wg-item {
+    background: var(--bg-card); padding: 0.75rem; border-radius: 0.625rem;
+    font-size: 1.125rem; font-weight: 600; color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--border-light);
+  }
+
+  /* Recall phase */
+  #page-recall { flex-direction: column; gap: 1.25rem; text-align: center; padding: 2.5rem 1.5rem; }
+  .recall-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
+  .recall-input-row { display: flex; gap: 0.625rem; width: 100%; max-width: 28.75rem; }
+  .recall-input-row input {
+    flex: 1; padding: 0.625rem 0.875rem; border: 2px solid var(--border-light); border-radius: 0.625rem;
+    font-size: 1rem; outline: none; font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  .recall-input-row input:focus-visible { border-color: var(--accent-blue); }
+  .recall-list {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+    max-width: 32.5rem; padding: 0.875rem; background: var(--bg-card);
+    border-radius: 0.75rem; box-shadow: var(--shadow-sm-alt); width: 100%;
+    min-height: 3.75rem; max-height: 12.5rem; overflow-y: auto;
+  }
+  .recall-list .rl-item {
+    background: var(--bg-inst); color: var(--text-primary); padding: 0.375rem 0.875rem;
+    border-radius: 1rem; font-size: 0.875rem; font-weight: 500;
+  }
+  .recall-count { font-size: 0.875rem; color: var(--text-secondary); }
+  .recall-count span { font-weight: 700; color: var(--accent-blue); }
+
+  /* Break page */
+  #page-break { flex-direction: column; gap: 1.5rem; text-align: center; padding: 3.75rem 1.5rem; }
+  #page-break h2 { font-size: 1.5rem; }
+  #page-break p { color: var(--text-secondary); font-size: 1rem; max-width: 28.75rem; line-height: 1.8; }
+
+/* Wide mode: HVLT-R */
+body.wide-mode .recall-grid { max-width: 40rem; }
+body.wide-mode .recall-input-row { max-width: 40rem; }
+body.wide-mode #page-break p { max-width: 40rem; }
+body.wide-mode #page-test { font-size: 110%; padding: 1.5rem 2.5rem; }
+body.wide-mode .study-bar { max-width: 40rem; }
+
+</style>
+</head>
+<body>
+<main id="app">
+  <!-- Welcome -->
+  <section id="page-welcome" class="page active">
+    <header>
+      <div class="logo">📖</div>
+      <h2>HVLT-R 言语学习测验</h2>
+    </header>
+    <p class="subtitle">
+      Hopkins Verbal Learning Test — Revised<br>
+      您将学习一个包含 <strong>12 个词语</strong> 的列表，通过学习-回忆（共 3 轮）
+      和延迟回忆，评估言语学习和记忆能力。
+    </p>
+    <div class="inst-box">
+      <strong>流程：</strong><br>
+      ① 每轮学习：词语列表显示 <strong>30 秒</strong>，请尽量记住<br>
+      ② 回忆阶段：输入您记住的词语（不限顺序）<br>
+      ③ 共进行 <strong>3 轮学习-回忆</strong>，最后有一轮延迟回忆
+    </div>
+    <footer>
+      <button type="button" class="btn btn-primary" onclick="startTrial(1)" style="margin-top:4px;">开始第 1 轮学习</button>
+    </footer>
+  </section>
+
+  <!-- Study -->
+  <section id="page-study" class="page">
+    <div class="study-title" id="studyTitle">第 1 轮学习</div>
+    <div class="study-timer" id="studyTimer">30</div>
+    <div class="study-bar"><div class="fill" id="studyFill" style="width:100%"></div></div>
+    <p style="color:var(--text-secondary);font-size:13px;">请记住以下词语：</p>
+    <div class="word-grid" id="wordGrid"></div>
+  </section>
+
+  <!-- Recall -->
+  <section id="page-recall" class="page">
+    <div class="recall-title" id="recallTitle">第 1 轮回忆</div>
+    <p style="color:var(--text-secondary);font-size:14px;">输入您记住的所有词语（不限顺序）：</p>
+    <div class="recall-input-row">
+      <input type="text" id="recallInput" placeholder="输入词语..." maxlength="20" autocomplete="off">
+      <button type="button" class="btn btn-success btn-sm" onclick="addRecall()">添加</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="finishRecall()">完成回忆</button>
+    </div>
+    <div class="recall-count">已回忆 <span id="recallCount">0</span> 个</div>
+    <div class="recall-list" id="recallList"></div>
+  </section>
+
+  <!-- Break page (before delayed recall) -->
+  <section id="page-break" class="page">
+    <h2>⏳ 延迟回忆准备</h2>
+    <p>
+      前方还有几分钟的间隔时间（可在本页面休息片刻）。<br>
+      准备就绪后，点击下方按钮开始 <strong>延迟回忆</strong>。
+    </p>
+    <p style="font-size:14px;color:var(--text-muted);">
+      提示：请尝试回忆最初学习的 12 个词语，不要重新学习。
+    </p>
+    <button type="button" class="btn btn-primary" onclick="startDelayedRecall()">开始延迟回忆</button>
+  </section>
+
+  <!-- Result -->
+  <section id="page-result" class="page page-result">
+    <h2>📊 测验完成</h2>
+    <div class="result-grid">
+      <div class="result-item"><div class="ri-label">Trial 1</div><div class="ri-value" id="resT1">0</div></div>
+      <div class="result-item"><div class="ri-label">Trial 2</div><div class="ri-value" id="resT2">0</div></div>
+      <div class="result-item"><div class="ri-label">Trial 3</div><div class="ri-value" id="resT3">0</div></div>
+      <div class="result-item"><div class="ri-label">延迟回忆</div><div class="ri-value" id="resDelayed">0</div></div>
+      <div class="result-item"><div class="ri-label">总学习量</div><div class="ri-value" id="resTotal">0</div></div>
+      <div class="result-item"><div class="ri-label">保持率</div><div class="ri-value" id="resRetention">0%</div></div>
+    </div>
+    <aside class="norm-ref" id="normRef">
+      <strong>参考解释：</strong><span id="normInterpretation">完成测试后查看参考解释</span>
+    </aside>
+    <footer class="result-actions">
+      <button type="button" class="btn btn-primary" onclick="showExport()">导出数据</button>
+      <button type="button" class="btn btn-outline" onclick="backToWelcome()">返回首页</button>
+    </footer>
+  
+  <p style="text-align:center;margin-top:20px;"><a href="../index.html" class="btn btn-outline" style="display:inline-block;padding:10px 28px;text-decoration:none;">← 返回测验中心</a></p></section>
+
+  <!-- Overlay -->
+  <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+    <div class="modal">
+      <h3 id="modalTitle">提示</h3>
+      <p id="modalBody">内容</p>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+'use strict';
+
+// === Mode (DEV / USER) ===
+const urlParams = new URLSearchParams(window.location.search);
+const MODE = urlParams.get('mode') || 'dev';
+const IS_DEV = MODE === 'dev';
+function applyModeStyles() {
+  if (!IS_DEV) {
+    const devEls = document.querySelectorAll('.count-badge, .feedback-area, .dev-hint, .progress-text, .quick-fb, #counterText, #devHintBacs');
+    devEls.forEach(el => el.style.display = 'none');
+  }
+}
+
+// Standard HVLT-R word list (Chinese version, 4 from each of 3 categories)
+// Category A (乐器): 唢呐, 二胡, 萧, 笛子
+// Category B (燃料/材料): 木炭, 煤油, 木头, 汽油
+// Category C (调味品): 糖, 大蒜, 味精, 桂皮
+const WORD_LIST = [
+  '糖', '唢呐', '二胡', '木炭',
+  '大蒜', '煤油', '味精', '木头',
+  '萧', '笛子', '桂皮', '汽油'
+];
+
+const STATE = {
+  currentTrial: 1,     // 1-3, then 'delayed'
+  studyTimer: 30,
+  studyInterval: null,
+  isStudying: false,
+  recalled: [],
+  results: { t1: 0, t2: 0, t3: 0, delayed: 0 },
+};
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showOverlay(title, bodyText, actions) {
+  const ov = document.getElementById('overlay');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = bodyText;
+  const ac = document.getElementById('modalActions');
+  ac.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = `btn ${a.cls || 'btn-primary'}`;
+    btn.textContent = a.label;
+    btn.onclick = () => { hideOverlay(); if (a.cb) a.cb(); };
+    ac.appendChild(btn);
+  });
+  ov.classList.add('show');
+  setTimeout(() => trapFocus(ov), 100);
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); document.querySelector('.btn, button:not(#overlay button)')?.focus(); }
+
+function backToWelcome() {
+  document.body.classList.remove('testing-active');
+  stopStudyTimer();
+  navigateTo('page-welcome');
+}
+
+// ===== Study Phase =====
+function startTrial(trialNum) {
+  document.body.classList.add('testing-active');
+  if (STATE.studyInterval) return;
+  STATE.currentTrial = trialNum;
+  if (trialNum === 1) STATE.results = { t1: 0, t2: 0, t3: 0, delayed: 0 };
+  STATE.recalled = [];
+  STATE.studyTimer = 30;
+  const label = trialNum === 1 ? '第 1 轮学习' : trialNum === 2 ? '第 2 轮学习' : '第 3 轮学习';
+  document.getElementById('studyTitle').textContent = label;
+  document.getElementById('studyTimer').textContent = '30';
+  document.getElementById('studyTimer').className = 'study-timer';
+
+  // Render word grid
+  const grid = document.getElementById('wordGrid');
+  grid.innerHTML = WORD_LIST.map(w => `<div class="wg-item">${w}</div>`).join('');
+
+  navigateTo('page-study');
+  startStudyTimer();
+}
+
+function startStudyTimer() {
+  STATE.isStudying = true;
+  STATE.studyInterval = setInterval(() => {
+    STATE.studyTimer--;
+    updateStudyTimer();
+    if (STATE.studyTimer <= 0) {
+      stopStudyTimer();
+      startRecall(TRIAL_LABELS[STATE.currentTrial === 'delayed' ? 'delayed' : STATE.currentTrial]);
+    }
+  }, 1000);
+}
+
+function stopStudyTimer() {
+  if (STATE.studyInterval) {
+    clearInterval(STATE.studyInterval);
+    STATE.studyInterval = null;
+  }
+  STATE.isStudying = false;
+}
+
+function updateStudyTimer() {
+  const el = document.getElementById('studyTimer');
+  const fill = document.getElementById('studyFill');
+  el.textContent = STATE.studyTimer;
+  fill.style.width = (STATE.studyTimer / 30) * 100 + '%';
+  el.className = 'study-timer';
+  if (STATE.studyTimer <= 5) el.classList.add('danger');
+  else if (STATE.studyTimer <= 10) el.classList.add('warn');
+}
+
+const TRIAL_LABELS = { 1: '第 1 轮回忆', 2: '第 2 轮回忆', 3: '第 3 轮回忆', delayed: '延迟回忆' };
+
+// ===== Recall Phase =====
+function startRecall(label) {
+  STATE.recalled = [];
+  document.getElementById('recallInput').value = '';
+  document.getElementById('recallTitle').textContent = label;
+  document.getElementById('recallList').innerHTML = '';
+  document.getElementById('recallCount').textContent = '0';
+  navigateTo('page-recall');
+  setTimeout(() => document.getElementById('recallInput').focus(), 300);
+}
+
+function addRecall() {
+  const input = document.getElementById('recallInput');
+  const word = input.value.trim();
+  if (!word) return;
+
+  // Check duplicate (case-insensitive)
+  if (STATE.recalled.some(w => w.toLowerCase() === word.toLowerCase())) return;
+
+  STATE.recalled.push(word);
+  input.value = '';
+  input.focus();
+  renderRecallList();
+}
+
+function renderRecallList() {
+  const list = document.getElementById('recallList');
+  list.innerHTML = STATE.recalled.map(w =>
+    `<span class="rl-item">${w}</span>`
+  ).join('');
+  document.getElementById('recallCount').textContent = STATE.recalled.length;
+}
+
+function finishRecall() {
+  // Count how many are correct matches (case-insensitive)
+  const correct = STATE.recalled.filter(r =>
+    WORD_LIST.some(w => w.toLowerCase() === r.toLowerCase())
+  ).length;
+
+  const trial = STATE.currentTrial;
+  if (trial === 1) STATE.results.t1 = correct;
+  else if (trial === 2) STATE.results.t2 = correct;
+  else if (trial === 3) STATE.results.t3 = correct;
+  else if (trial === 'delayed') STATE.results.delayed = correct;
+
+  if (trial === 1) {
+    startTrial(2);
+  } else if (trial === 2) {
+    startTrial(3);
+  } else if (trial === 3) {
+    navigateTo('page-break');
+  } else {
+    showResults();
+  }
+}
+
+function startDelayedRecall() {
+  STATE.currentTrial = 'delayed';
+  startRecall('延迟回忆');
+}
+
+// ===== Results =====
+function showResults() {
+  document.body.classList.remove('testing-active');
+  const r = STATE.results;
+  const total = r.t1 + r.t2 + r.t3;
+  const retention = r.t3 > 0 ? Math.round((r.delayed / r.t3) * 100) : 0;
+
+  document.getElementById('resT1').textContent = r.t1;
+  document.getElementById('resT2').textContent = r.t2;
+  document.getElementById('resT3').textContent = r.t3;
+  document.getElementById('resDelayed').textContent = r.delayed;
+  document.getElementById('resTotal').textContent = total;
+  document.getElementById('resRetention').textContent = retention + '%';
+
+  // Interpretation
+  let cls, level;
+  if (total >= 28) { cls = 'good'; level = '优秀（总学习≥28）'; }
+  else if (total >= 21) { cls = 'good'; level = '正常范围（总学习21-27）'; }
+  else if (total >= 15) { cls = 'warn'; level = '偏低（总学习15-20），提示言语学习效率偏低'; }
+  else { cls = 'bad'; level = '明显偏低（总学习<15），建议进一步评估'; }
+  document.getElementById('resTotal').className = 'ri-value ' + cls;
+  const interpEl = document.getElementById('normInterpretation');
+  interpEl.textContent = '';
+  const strong = document.createElement('strong');
+  strong.textContent = total;
+  interpEl.appendChild(document.createTextNode('三轮总学习量：'));
+  interpEl.appendChild(strong);
+  interpEl.appendChild(document.createTextNode(` / 36（T1:${r.t1} / T2:${r.t2} / T3:${r.t3}），延迟回忆：${r.delayed} / 12（保持率 ${retention}%）。${level}`));
+
+  saveToLocalStorage();
+  navigateTo('page-result');
+}
+
+function saveToLocalStorage() {
+  const r = STATE.results;
+  const data = {
+    test: 'MCCB HVLT-R Verbal Learning',
+    date: new Date().toISOString(),
+    wordList: WORD_LIST,
+    trial1: r.t1,
+    trial2: r.t2,
+    trial3: r.t3,
+    delayedRecall: r.delayed,
+  };
+  try { localStorage.setItem('mccb-hvlt-result', JSON.stringify(data)); } catch(e) {}
+  ParticipantManager.saveResult('hvlt', data);
+}
+
+function showExport() {
+  const data = {
+    test: 'MCCB HVLT-R',
+    date: new Date().toISOString(),
+    wordList: WORD_LIST,
+    trial1: STATE.results.t1,
+    trial2: STATE.results.t2,
+    trial3: STATE.results.t3,
+    delayedRecall: STATE.results.delayed,
+  };
+  showOverlay('导出数据',
+    `<div class="export-area">${JSON.stringify(data, null, 2)}</div>` +
+    '<p style="font-size:13px;color:var(--text-muted);">可复制上述 JSON 数据保存或分享</p>',
+    [{ label: '关闭', cls: 'btn-outline' },
+     { label: '复制', cls: 'btn-primary', cb: () => {
+       navigator.clipboard.writeText(JSON.stringify(data, null, 2)).catch(()=>{});
+     }}
+    ]
+  );
+}
+
+// Enter key for recall
+document.addEventListener('DOMContentLoaded', () => {
+  applyModeStyles();
+    ParticipantManager.initFromUrl(); ParticipantManager.markInProgress('hvlt');
+  document.getElementById('recallInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addRecall(); }
+  });
+});
+
+// === 页面离开保护 ===
+function isTestActive() {
+  return STATE.isStudying ||
+         document.getElementById('page-study').classList.contains('active') ||
+         document.getElementById('page-recall').classList.contains('active');
+}
+window.addEventListener('beforeunload', function(e) {
+  if (isTestActive()) {
+    e.preventDefault();
+    e.returnValue = '测试正在进行中，确定要离开吗？';
+  }
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && isTestActive()) {
+    stopStudyTimer();
+    backToWelcome();
+  }
+});
+
+// === 模态框焦点陷阱 ===
+function trapFocus(container) {
+  const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  container.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape') {
+      hideOverlay();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+// === Wide Mode Toggle ===
+(function(){try{if(window.ParticipantManager)ParticipantManager.initFromUrl();}catch(e){}var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
+b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
+if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
+b.onclick=function(){document.body.classList.toggle('wide-mode');
+b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
+document.body.classList.contains('wide-mode')?'1':'0');};
+document.body.appendChild(b);})();
+</script>
+</body>
+</html>

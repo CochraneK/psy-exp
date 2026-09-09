@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MCCB MSCEIT 情绪管理测验</title>
+<link rel="stylesheet" href="../mccb-common.css">
+<script src="../mccb-participant.js"></script>
+<style>
+  /* ===== 页面特有样式 ===== */
+
+  /* Welcome — 自定义配色（覆盖 common.css 的蓝绿主题为橙红主题） */
+  #page-welcome .logo {
+    width: 5rem; height: 5rem;
+    background: linear-gradient(135deg, var(--color-warning), var(--color-danger));
+    border-radius: 1.375rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.25rem; color: var(--text-on-accent);
+    box-shadow: 0 8px 24px rgba(245,158,11,0.2);
+  }
+  #page-welcome .subtitle { max-width: 33.75rem; }
+  .inst-box {
+    background: var(--color-warning-bg); border-left: 0.25rem solid var(--color-warning);
+    padding: 1rem 1.25rem; border-radius: 0.625rem; font-size: 0.875rem;
+    color: var(--text-primary); text-align: left; max-width: 33.75rem; line-height: 1.7;
+  }
+
+  /* Test page — 卡片布局 */
+  #page-test {
+    flex-direction: column; padding: 1.25rem; gap: 1rem; justify-content: flex-start;
+  }
+  .test-card-container {
+    background: var(--bg-card); border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    width: 100%; max-width: 40rem;
+    overflow: hidden;
+  }
+  .test-header-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.875rem 1.25rem; background: var(--bg-hover);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .test-header-bar .th-progress { font-size: 0.875rem; font-weight: 600; color: var(--text-primary); }
+  .test-header-bar .th-progress span { color: var(--color-warning); }
+  .test-header-bar .th-counter { font-size: 0.8125rem; color: var(--text-muted); }
+
+  .scenario-area { padding: 1.75rem 1.5rem 0.75rem; }
+  .scenario-area .scenario-label {
+    font-size: 0.75rem; font-weight: 600; color: var(--color-warning); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 0.625rem;
+  }
+  .scenario-area .scenario-text { font-size: 1rem; line-height: 1.8; color: var(--text-primary); }
+  .question-area { padding: 0 1.5rem 0.5rem; }
+  .question-area .question-label { font-size: 0.875rem; font-weight: 600; color: var(--text-body); margin-bottom: 0.25rem; }
+  .question-area .question-text { font-size: 0.9375rem; line-height: 1.7; color: var(--text-primary); }
+
+  .options-area {
+    padding: 0.5rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .option-btn {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-light);
+    border-radius: 0.75rem;
+    background: var(--bg-export);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    text-align: left;
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    width: 100%;
+  }
+  @media (hover: hover) {
+    .option-btn:hover { border-color: var(--color-warning); background: var(--color-warning-bg); }
+  }
+  .option-btn.selected {
+    border-color: var(--color-warning);
+    background: var(--color-warning-bg);
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+  }
+  .option-btn .opt-letter {
+    flex-shrink: 0;
+    width: 1.625rem; height: 1.625rem;
+    border-radius: 50%;
+    background: var(--border-light);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.8125rem; color: var(--text-secondary);
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .option-btn.selected .opt-letter { background: var(--color-warning); color: var(--text-on-accent); }
+  .option-btn.answered { cursor: default; }
+  .option-btn.correct-answer { border-color: #22c55e; background: #f0fdf4; }
+  .option-btn.correct-answer .opt-letter { background: #22c55e; color: var(--text-on-accent); }
+  .option-btn.wrong-answer { border-color: var(--color-danger); background: var(--color-danger-bg); }
+  .option-btn.wrong-answer .opt-letter { background: var(--color-danger); color: var(--text-on-accent); }
+
+  .feedback-area { padding: 0 1.5rem 1.25rem; font-size: 0.875rem; line-height: 1.7; color: var(--text-secondary); min-height: 1.875rem; }
+  .feedback-area .fb-title { font-weight: 600; color: var(--text-primary); }
+
+  .action-area { padding: 0 1.5rem 1.5rem; display: flex; gap: 0.625rem; }
+
+  /* 按钮悬停覆盖 — btn-success hover 颜色与 common.css 不同，btn-outline hover 使用橙色主题 */
+  @media (hover: hover) {
+    .btn-success:hover:not(:disabled) { background: #1e8449; }
+    .btn-outline:hover:not(:disabled) { border-color: var(--color-warning); color: var(--color-warning); }
+  }
+  .btn:focus-visible, .option-btn:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+/* Wide mode: MSCEIT */
+body.wide-mode .test-card-container { max-width: 70rem; }
+body.wide-mode .scenario-area .scenario-text { font-size: 1.15rem; }
+body.wide-mode .options-area { max-width: 50rem; align-self: center; width: 100%; }
+body.wide-mode #page-test { padding: 1.75rem 2.5rem; }
+
+</style>
+</head>
+<body>
+<main id="app">
+  <!-- Welcome -->
+  <section id="page-welcome" class="page active">
+    <header>
+      <div class="logo">🤝</div>
+      <h2>MSCEIT 情绪管理测验</h2>
+    </header>
+    <p class="subtitle">
+      Mayer-Salovey-Caruso 情绪智力测验 — 管理情绪分支。<br>
+      阅读每个情境描述，从选项中<strong>选择你认为最有效的情绪管理策略</strong>。
+    </p>
+    <div class="inst-box">
+      <strong>规则：</strong>共 12 个情境。每个情境描述一个人物面临的情绪挑战，<br>
+      你需要选择最有效的情绪管理方式。选择后无法更改，但会看到反馈解释。
+    </div>
+    <footer>
+      <button type="button" class="btn btn-success" onclick="startTest()" style="margin-top:4px;">开始测验</button>
+    </footer>
+  </section>
+
+  <!-- Test -->
+  <section id="page-test" class="page">
+    <div class="test-card-container">
+      <div class="test-header-bar">
+        <div class="th-progress">情境 <span id="progressNum">1</span> / 12</div>
+        <div class="th-counter">已答: <span id="answeredCount">0</span></div>
+      </div>
+      <div class="scenario-area">
+        <div class="scenario-label">情境描述</div>
+        <div class="scenario-text" id="scenarioText">加载中...</div>
+      </div>
+      <div class="question-area">
+        <div class="question-label">❓ 最有效的做法是：</div>
+        <div class="question-text" id="questionText">加载中...</div>
+      </div>
+      <div class="options-area" id="optionsArea"></div>
+      <div class="feedback-area" id="feedbackArea"></div>
+      <footer class="action-area" id="actionArea">
+        <button type="button" class="btn btn-primary" id="btnNext" onclick="nextScenario()" disabled>下一题</button>
+      </footer>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section id="page-result" class="page page-result">
+    <h2>📊 测验完成</h2>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="ri-label">正确数</div>
+        <div class="ri-value" id="resultCorrect">0</div>
+      </div>
+      <div class="result-item">
+        <div class="ri-label">正确率</div>
+        <div class="ri-value" id="resultAccuracy">0%</div>
+      </div>
+      <div class="result-item">
+        <div class="ri-label">错误数</div>
+        <div class="ri-value" id="resultErrors">0</div>
+      </div>
+      <div class="result-item full">
+        <div class="ri-label">用时</div>
+        <div class="ri-value" id="resultTime">0s</div>
+      </div>
+    </div>
+    <aside class="norm-ref" id="normRef">
+      <strong>参考解释：</strong><span id="normInterpretation">完成测试后查看参考解释</span>
+    </aside>
+    <footer class="result-actions" id="resultActions">
+      <button type="button" class="btn btn-primary" onclick="showExport()">导出数据</button>
+      <button type="button" class="btn btn-outline" onclick="backToWelcome()">返回首页</button>
+    </footer>
+  
+  <p style="text-align:center;margin-top:20px;"><a href="../index.html" class="btn btn-outline" style="display:inline-block;padding:10px 28px;text-decoration:none;">← 返回测验中心</a></p></section>
+
+  <!-- Overlay -->
+  <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+    <div class="modal">
+      <h3 id="modalTitle">提示</h3>
+      <p id="modalBody">内容</p>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+</main>
+<script>
+'use strict';
+
+// === Mode (DEV / USER) ===
+const urlParams = new URLSearchParams(window.location.search);
+const MODE = urlParams.get('mode') || 'dev';
+const IS_DEV = MODE === 'dev';
+function applyModeStyles() {
+  if (!IS_DEV) {
+    const devEls = document.querySelectorAll('.count-badge, .feedback-area, .dev-hint, .progress-text, .quick-fb, #counterText, #devHintBacs');
+    devEls.forEach(el => el.style.display = 'none');
+  }
+}
+
+// ===================== SCENARIO DEFINITIONS =====================
+const SCENARIOS = [
+  {
+    scenario: "小王刚刚在工作中犯了一个严重错误，导致项目延期。他的上司在团队会议上公开批评了他。小王感到非常沮丧和羞愧。",
+    question: "小王最应该怎么做来调节自己的情绪？",
+    options: [
+      "立刻向上司解释自己的理由，为自己辩护",
+      "深呼吸冷静下来，先接受批评，私下再找上司沟通改进方案",
+      "告诉自己\"这没什么大不了的\"，忽视自己的感受",
+      "下班后去喝酒，暂时忘掉这件事"
+    ],
+    correct: 1,
+    explanation: "接受批评、冷静下来并主动寻求改进方案是最有效的情绪调节策略。它结合了情绪调节（冷静）和问题解决（改进方案）两个方面。"
+  },
+  {
+    scenario: "小丽的好朋友突然搬到另一个城市生活。她们曾经每天都见面，现在她感到非常孤独和失落。",
+    question: "小丽最有效的应对方式是什么？",
+    options: [
+      "试图说服朋友不要搬走",
+      "把自己关在家里，沉浸在这种失落感中",
+      "定期与朋友视频通话，同时主动结识新朋友、参加社交活动",
+      "告诉自己要坚强，不应该感到难过"
+    ],
+    correct: 2,
+    explanation: "保持与朋友的联系（维持重要关系）的同时主动拓展新的社交圈，既承认了失落感的合理性，又采取了积极的应对措施，是最全面的情绪管理策略。"
+  },
+  {
+    scenario: "张先生开车上班时遭遇严重堵车，他眼看就要迟到了一个重要的会议。他感到越来越焦虑和愤怒。",
+    question: "张先生可以怎样最有效地管理他的情绪？",
+    options: [
+      "不停地按喇叭发泄愤怒",
+      "打电话给同事说明情况并安排会议调整，同时听一些轻松的音乐或播客",
+      "把车停在路边，决定不去开会了",
+      "越想越生气，反复抱怨交通状况"
+    ],
+    correct: 1,
+    explanation: "主动解决问题（联系同事调整安排）同时分散注意力（听音乐/播客）来降低焦虑水平，是结合问题解决与情绪调节的最优策略。"
+  },
+  {
+    scenario: "小美参加了一场重要的面试，面试官看起来对她不太感兴趣，问的问题也很刁钻。面试结束后，她感到非常沮丧和自卑。",
+    question: "小美接下来最应该怎么做？",
+    options: [
+      "完全否定自己，认为自己永远找不到好工作",
+      "客观回顾面试过程，总结经验教训，同时提醒自己一次面试不代表全部",
+      "给面试官发邮件抱怨他的态度",
+      "立刻报名所有能报的面试，用忙碌麻痹自己"
+    ],
+    correct: 1,
+    explanation: "客观反思（认知评价）与自我肯定（防止过度泛化）相结合，是最有利于从挫折中恢复并改进的策略。"
+  },
+  {
+    scenario: "老李退休后感到生活失去了意义，每天无所事事，情绪越来越低落。",
+    question: "老李最有效的情绪改善策略是什么？",
+    options: [
+      "整天待在家里回忆过去的辉煌",
+      "向家人抱怨退休生活的无聊",
+      "培养新的兴趣爱好，参加社区活动，建立退休后的新生活节奏",
+      "认为退休后的人生就没有价值了，接受这种低落"
+    ],
+    correct: 2,
+    explanation: "寻找新的生活目标和意义（行为激活）是应对角色转变期情绪低落的循证有效策略，有助于重建幸福感和生活满意度。"
+  },
+  {
+    scenario: "小陈收到了年终绩效评估，评分低于他的预期。他感到失望和不公平，因为他认为自己这一年非常努力。",
+    question: "小陈最有效的应对方式是什么？",
+    options: [
+      "立刻辞职以示抗议",
+      "质问上司为什么给自己低分，要求重新评估",
+      "消化失望情绪后，主动与上司讨论具体的改进方向和目标",
+      "告诉自己绩效评分不重要，然后不去想它"
+    ],
+    correct: 2,
+    explanation: "先处理情绪再处理问题——消化失望后寻求建设性反馈，将负面评价转化为成长机会，是最成熟的情绪管理方式。"
+  },
+  {
+    scenario: "妈妈在超市排队结账时，她的孩子开始大声哭闹，周围的顾客都在看她们。妈妈感到非常尴尬和烦躁。",
+    question: "妈妈最应该怎么做？",
+    options: [
+      "大声呵斥孩子让他安静下来",
+      "忽视孩子的哭闹，继续排队",
+      "深呼吸保持冷静，先安抚孩子的情绪，同时告诉自己其他顾客的反应是可以理解的",
+      "放弃结账，抱着孩子离开超市"
+    ],
+    correct: 2,
+    explanation: "情绪调节策略——深呼吸保持冷静并同时兼顾安抚孩子和调整自己的认知（理解他人反应），是双管齐下的有效方法。"
+  },
+  {
+    scenario: "小赵和交往多年的恋人分手了。他感到心碎、迷茫，觉得生活失去了色彩。",
+    question: "小赵最健康的应对方式是什么？",
+    options: [
+      "立即开始一段新恋情来填补空虚",
+      "允许自己悲伤一段时间，同时寻求朋友和家人的支持，逐步重建日常生活",
+      "删除所有联系方式，假装这个人从未存在过",
+      "不断给前任打电话发信息，试图挽回"
+    ],
+    correct: 1,
+    explanation: "允许悲伤（情绪接纳）+ 寻求社会支持 + 重建生活节奏，这三者结合是应对重大情感失落的健康模式。"
+  },
+  {
+    scenario: "王经理带领的团队连续加班一个月终于完成了一个大项目，但老板在总结会上只表扬了自己，没有提到团队的贡献。王经理感到非常愤怒和不公平。",
+    question: "王经理最应该怎么做？",
+    options: [
+      "在会议上当场揭穿老板抢功",
+      "在团队成员面前批评老板的行为",
+      "冷静下来后，私下与老板沟通团队的贡献，同时为团队争取合理的奖励或认可",
+      "忍气吞声，什么也不说，但内心充满怨恨"
+    ],
+    correct: 2,
+    explanation: "维护团队利益需要有技巧的沟通——冷静后用事实沟通而不是情绪对抗，既保护了团队也维护了工作关系。"
+  },
+  {
+    scenario: "大学生小刘在期末考试前一周发现自己可能无法通过某门课程。他感到巨大的压力和恐慌。",
+    question: "小刘最有效的应对策略是什么？",
+    options: [
+      "熬夜通宵复习，焦虑地不断刷题",
+      "制定一个详细的冲刺复习计划，划分优先级，每天安排适当的休息时间",
+      "考虑作弊来通过考试",
+      "放弃复习，接受不及格的事实"
+    ],
+    correct: 1,
+    explanation: "结构化计划（制定计划、划分优先级）+ 自我照顾（适当休息）比单纯增加学习时间更有效，也兼顾了压力管理。"
+  },
+  {
+    scenario: "姐姐和妹妹因为家务分配问题发生了激烈争吵。姐姐觉得妹妹总是逃避责任，妹妹觉得姐姐太控制欲强。",
+    question: "妹妹最应该怎样管理自己的情绪并推进问题解决？",
+    options: [
+      "大声喊回去，列出所有姐姐不公平的地方",
+      "摔门进房间，拒绝再和姐姐说话",
+      "先暂停对话，深呼吸冷静下来，然后提议一起制定一个公平的家务轮值表",
+      "去找父母告状，让父母来教训姐姐"
+    ],
+    correct: 2,
+    explanation: "暂停避免冲突升级（情绪调节）+ 提出建设性方案（问题解决），是最有利于关系修复和问题解决的方式。"
+  },
+  {
+    scenario: "小何期待已久的旅行因为突发天气原因被取消了。她已经在机场，被告知航班取消且无法改签。",
+    question: "小何最有效的情绪管理策略是什么？",
+    options: [
+      "在机场大发雷霆，与工作人员争吵",
+      "接受无法改变的事实，询问其他替代方案（如其他交通方式或改目的地），尽量在这段意外空闲中找一些积极的事情做",
+      "取消一切计划，闷闷不乐地回家",
+      "告诉自己反正旅行也没什么意思"
+    ],
+    correct: 1,
+    explanation: "接纳不可控因素（情绪弹性）+ 寻找替代方案（问题解决）+ 重新框架（寻找积极面），是最全面的应对意外挫折的策略组合。"
+  }
+];
+
+const STATE = {
+  currentIndex: 0,
+  answers: [],       // index of selected option
+  results: [],       // true/false per item
+  startTime: null,
+  endTime: null,
+  answered: false,
+};
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showOverlay(title, bodyText, actions) {
+  const ov = document.getElementById('overlay');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = bodyText;
+  const ac = document.getElementById('modalActions');
+  ac.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = `btn ${a.cls || 'btn-primary'}`;
+    btn.textContent = a.label;
+    btn.onclick = () => { hideOverlay(); if (a.cb) a.cb(); };
+    ac.appendChild(btn);
+  });
+  ov.classList.add('show');
+  setTimeout(() => trapFocus(ov), 100);
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); document.querySelector('.btn, button:not(#overlay button)')?.focus(); }
+
+function backToWelcome() {
+  STATE.currentIndex = 0;
+  navigateTo('page-welcome');
+}
+
+function startTest() {
+  document.body.classList.add('testing-active');
+  if (STATE.currentIndex > 0) return;  // 防抖保护：防止重复点击
+  applyModeStyles();
+    ParticipantManager.initFromUrl(); ParticipantManager.markInProgress('msceit');
+  STATE.currentIndex = 0;
+  STATE.answers = [];
+  STATE.results = [];
+  STATE.startTime = Date.now();
+  STATE.endTime = null;
+  STATE.answered = false;
+  navigateTo('page-test');
+  renderScenario(0);
+}
+
+function renderScenario(index) {
+  STATE.answered = false;
+  const s = SCENARIOS[index];
+
+  document.getElementById('progressNum').textContent = index + 1;
+  document.getElementById('answeredCount').textContent = STATE.results.filter(r => r !== undefined).length;
+  document.getElementById('scenarioText').textContent = s.scenario;
+  document.getElementById('questionText').textContent = s.question;
+  document.getElementById('feedbackArea').innerHTML = '';
+  document.getElementById('btnNext').disabled = true;
+
+  const letters = ['A', 'B', 'C', 'D'];
+  const optArea = document.getElementById('optionsArea');
+  optArea.innerHTML = '';
+  s.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectOption(i);
+    btn.dataset.index = i;
+    optArea.appendChild(btn);
+  });
+}
+
+function selectOption(index) {
+  if (STATE.answered) return;
+  STATE.answered = true;
+
+  const s = SCENARIOS[STATE.currentIndex];
+  STATE.answers[STATE.currentIndex] = index;
+  const isCorrect = index === s.correct;
+  STATE.results[STATE.currentIndex] = isCorrect;
+
+  // Visual feedback on buttons
+  const buttons = document.querySelectorAll('#optionsArea .option-btn');
+  buttons.forEach((btn, i) => {
+    btn.classList.add('answered');
+    if (IS_DEV) {
+      if (i === s.correct) {
+        btn.classList.add('correct-answer');
+      } else if (i === index && !isCorrect) {
+        btn.classList.add('wrong-answer');
+      }
+    }
+    if (i === index) {
+      btn.classList.add('selected');
+    }
+    btn.onclick = null; // disable further clicks
+  });
+
+  // Show feedback
+  if (IS_DEV) {
+    const fb = document.getElementById('feedbackArea');
+    const icon = isCorrect ? '✅ 正确' : '❌ 不正确';
+    fb.innerHTML = `<div class="fb-title">${icon}</div><div>${s.explanation}</div>`;
+  }
+
+  document.getElementById('answeredCount').textContent = STATE.results.filter(r => r !== undefined).length;
+  document.getElementById('btnNext').disabled = false;
+}
+
+function nextScenario() {
+  const next = STATE.currentIndex + 1;
+  if (next >= SCENARIOS.length) {
+    endTest();
+  } else {
+    STATE.currentIndex = next;
+    renderScenario(next);
+  }
+}
+
+function endTest() {
+  document.body.classList.remove('testing-active');
+  STATE.endTime = Date.now();
+  navigateTo('page-result');
+
+  const total = SCENARIOS.length;
+  const correct = STATE.results.filter(r => r === true).length;
+  const errors = total - correct;
+  const acc = Math.round((correct / total) * 100);
+  const elapsed = Math.round((STATE.endTime - STATE.startTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+
+  document.getElementById('resultCorrect').textContent = correct + '/' + total;
+  document.getElementById('resultAccuracy').textContent = acc + '%';
+  document.getElementById('resultErrors').textContent = errors;
+  document.getElementById('resultTime').textContent = mins > 0 ? `${mins}分${secs}秒` : `${secs}秒`;
+
+  let cls, level;
+  if (correct >= 10) { cls = 'good'; level = '优秀（≥10/12），情绪理解和情绪管理能力良好'; }
+  else if (correct >= 7) { cls = 'good'; level = '正常范围（7-9/12）'; }
+  else if (correct >= 4) { cls = 'warn'; level = '偏弱（4-6/12），提示社会认知能力可能需要关注'; }
+  else { cls = 'bad'; level = '明显偏弱（<4/12），建议进一步评估'; }
+  document.getElementById('resultCorrect').className = 'ri-value ' + cls;
+  const interpEl = document.getElementById('normInterpretation');
+  interpEl.textContent = '';
+  const strong = document.createElement('strong');
+  strong.textContent = `${correct}/${total}`;
+  interpEl.appendChild(document.createTextNode('您答对了 '));
+  interpEl.appendChild(strong);
+  interpEl.appendChild(document.createTextNode(`（正确率 ${acc}%），用时 ${mins>0?mins+'分':''}${secs}秒。${level}`));
+  saveToLocalStorage();
+}
+
+function saveToLocalStorage() {
+  const data = {
+    test: 'MCCB MSCEIT Managing Emotions',
+    date: new Date().toISOString(),
+    total: SCENARIOS.length,
+    correct: STATE.results.filter(r => r === true).length,
+    elapsed: Math.round((STATE.endTime - STATE.startTime) / 1000),
+    responses: SCENARIOS.map((s, i) => ({
+      scenario: s.scenario.substring(0, 60),
+      selectedOption: STATE.answers[i],
+      correctOption: s.correct,
+      isCorrect: STATE.results[i],
+    })),
+  };
+  try { localStorage.setItem('mccb-msceit-result', JSON.stringify(data)); } catch(e) {}
+  ParticipantManager.saveResult('msceit', data);
+}
+
+function showExport() {
+  const data = {
+    test: 'MCCB MSCEIT Managing Emotions',
+    date: new Date().toISOString(),
+    total: SCENARIOS.length,
+    correct: STATE.results.filter(r => r === true).length,
+    elapsed: Math.round((STATE.endTime - STATE.startTime) / 1000),
+    responses: SCENARIOS.map((s, i) => ({
+      scenario: s.scenario.substring(0, 40) + '...',
+      selectedOption: STATE.answers[i],
+      correctOption: s.correct,
+      isCorrect: STATE.results[i],
+    })),
+  };
+  showOverlay('导出数据',
+    `<div class="export-area">${JSON.stringify(data, null, 2)}</div>` +
+    '<p style="font-size:13px;color:var(--text-muted);">可复制上述 JSON 数据保存或分享</p>',
+    [{ label: '关闭', cls: 'btn-outline' },
+     { label: '复制', cls: 'btn-primary', cb: () => {
+       navigator.clipboard.writeText(JSON.stringify(data, null, 2)).catch(()=>{});
+     }}
+    ]
+  );
+}
+
+// === 页面离开保护 ===
+window.addEventListener('beforeunload', function(e) {
+  if (document.getElementById('page-test').classList.contains('active')) {
+    e.preventDefault();
+    e.returnValue = '测试正在进行中，确定要离开吗？';
+  }
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && document.getElementById('page-test').classList.contains('active')) {
+    endTest();
+  }
+});
+
+// === 模态框焦点陷阱 ===
+function trapFocus(container) {
+  const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  container.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape') {
+      hideOverlay();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+// === Wide Mode Toggle ===
+(function(){try{if(window.ParticipantManager)ParticipantManager.initFromUrl();}catch(e){}var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
+b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
+if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
+b.onclick=function(){document.body.classList.toggle('wide-mode');
+b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
+document.body.classList.contains('wide-mode')?'1':'0');};
+document.body.appendChild(b);})();
+</script>
+</body>
+</html>

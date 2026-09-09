@@ -1,0 +1,15 @@
+# ---- 运行产物 / 可再生输出（不入库） ----
+# CPT HTML 报告可由 tests/cpt_report.py --all 重新生成
+data/cpt-reports/*.html
+# 自动化测试报表（data/autotest）可由 tests/full-battery.cjs 重新生成
+data/autotest/*.json
+data/autotest/*.html
+
+# ---- 环境 / 系统杂项 ----
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+
+# ---- 保留 ----
+# data/cpt-results/ 下的原始 `.rep`/`.dat`/`.raw`/`.trep` 是被试源数据（不可再生），入库保留

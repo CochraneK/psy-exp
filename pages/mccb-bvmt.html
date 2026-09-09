@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MCCB BVMT-R 视觉空间记忆测验</title>
+<link rel="stylesheet" href="../mccb-common.css">
+<script src="../mccb-participant.js"></script>
+<style>
+  /* Welcome */
+  #page-welcome .logo {
+    width: 5rem; height: 5rem;
+    background: linear-gradient(135deg, #16a34a, #06b6d4);
+    border-radius: 1.375rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.25rem; color: var(--text-on-accent);
+    box-shadow: 0 8px 24px rgba(22,163,74,0.2);
+  }
+
+  /* Learning phase - show shapes */
+  #page-learn { flex-direction: column; gap: 1.25rem; padding: 1.5rem; }
+  .trial-badge {
+    font-size: 1rem; font-weight: 700; color: var(--accent-blue);
+    background: var(--bg-inst); padding: 0.5rem 1.25rem; border-radius: 1.25rem;
+  }
+  .grid-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    max-width: 26.25rem; width: 90vw;
+  }
+  .grid-cell {
+    position: relative;
+    background: var(--bg-card);
+    border: 2px solid var(--border-light);
+    border-radius: 0.875rem;
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 6.25rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: default;
+  }
+  .grid-cell.empty { border-style: dashed; border-color: var(--border-outline); background: var(--bg-hover); }
+  .grid-cell.placed { border-color: var(--accent-blue); background: var(--bg-inst); }
+  .grid-cell.correct { border-color: var(--color-success); background: var(--color-success-bg); }
+  .grid-cell.incorrect { border-color: var(--color-danger); background: var(--color-danger-bg); }
+  .grid-cell.selected-target { border-color: var(--color-warning); box-shadow: 0 0 0 0.1875rem rgba(245,158,11,0.3); }
+  .grid-cell .cell-label {
+    position: absolute; top: 0.375rem; left: 0.5rem;
+    font-size: 0.6875rem; color: var(--text-muted); font-weight: 500;
+  }
+  /* Shape rendering */
+  .shape-svg { width: 70%; height: 70%; }
+
+  /* Recall phase */
+  #page-recall { flex-direction: column; gap: 1rem; padding: 1rem 1.5rem; }
+  .recall-layout { display: flex; flex-direction: column; align-items: center; gap: 1rem; width: 100%; }
+  .shape-pool {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+    max-width: 32.5rem;
+    background: var(--bg-card); padding: 0.75rem; border-radius: 0.875rem;
+    box-shadow: var(--shadow-sm-alt);
+  }
+  .pool-shape {
+    width: 3.75rem; height: 3.75rem;
+    border: 2px solid var(--border-light); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    background: var(--bg-hover);
+  }
+  @media (hover: hover) {
+    .pool-shape:hover { border-color: var(--accent-blue); transform: scale(1.08); }
+    .pool-shape.used:hover { border-color: var(--border-light); transform: none; }
+  }
+  .pool-shape svg { width: 2.5rem; height: 2.5rem; }
+
+  .recall-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    max-width: 25rem; width: 85vw;
+  }
+  .recall-cell {
+    position: relative;
+    background: var(--bg-card);
+    border: 2px dashed var(--border-outline);
+    border-radius: 0.75rem;
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 5rem;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    cursor: pointer;
+  }
+  @media (hover: hover) {
+    .recall-cell:hover:not(.placed):not(.locked) { border-color: var(--accent-blue); background: #f0f7ff; }
+  }
+  .recall-cell.placed { border-style: solid; border-color: var(--accent-blue); background: var(--bg-inst); }
+  .recall-cell.locked { border-style: solid; cursor: default; }
+  .recall-cell.locked.correct { border-color: var(--color-success); background: var(--color-success-bg); }
+  .recall-cell.locked.incorrect { border-color: var(--color-danger); background: var(--color-danger-bg); }
+  .recall-cell.locked.wrong-pos { border-color: var(--color-warning); background: var(--color-warning-bg); }
+  .recall-cell .cell-label {
+    position: absolute; top: 0.25rem; left: 0.375rem;
+    font-size: 0.625rem; color: var(--text-muted); font-weight: 500;
+  }
+  .recall-cell svg { width: 60%; height: 60%; }
+
+  /* Rest between trials */
+  #page-rest { flex-direction: column; gap: 1.25rem; text-align: center; padding: 2.5rem 1.5rem; }
+  #page-rest h2 { font-size: 1.5rem; color: var(--text-primary); }
+  #page-rest p { color: var(--text-secondary); font-size: 0.9375rem; max-width: 25rem; line-height: 1.8; }
+
+  .btn-warning { background: var(--color-warning); color: var(--text-on-accent); }
+  @media (hover: hover) {
+    .btn-warning:hover:not(:disabled) { background: var(--color-warning-hover); }
+  }
+
+  .trial-scores { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+  .ts-item {
+    padding: 0.5rem 1rem; border-radius: 0.625rem; font-size: 0.875rem; font-weight: 500;
+    background: var(--bg-disabled); color: var(--text-body);
+  }
+
+  .pool-shape:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+  @media (max-width: 30rem) {
+    .grid-area { gap: 0.625rem; }
+    .recall-grid { gap: 0.5rem; }
+    .pool-shape { width: 2.75rem; height: 2.75rem; }
+  }
+
+/* Wide mode: BVMT-R */
+body.wide-mode .canvas-wrapper { max-width: 40rem; width: 90vw; }
+body.wide-mode #page-test { font-size: 110%; }
+body.wide-mode .recall-grid { gap: 0.875rem; }
+
+</style>
+</head>
+<body>
+<main id="app">
+  <!-- Welcome -->
+  <section id="page-welcome" class="page active">
+    <header>
+      <div class="logo">👁️</div>
+      <h2>BVMT-R 视觉空间记忆测验</h2>
+    </header>
+    <p class="subtitle">
+      Brief Visuospatial Memory Test — Revised<br>
+      屏幕将显示 <strong>6 个几何图形</strong> 的排列。请记住每个图形及其位置。
+      有 <strong>3 轮学习 + 延迟回忆</strong>。
+    </p>
+    <div class="inst-box">
+      <strong>流程：</strong>每轮先展示 10 秒 → 图形消失 → 从下方图形池中选择图形点击放置到对应位置。
+      第 3 轮结束后休息约 3 分钟，然后进行延迟回忆。
+    </div>
+    <footer>
+      <button type="button" class="btn btn-primary" onclick="startTest()" style="margin-top:4px;">开始测验</button>
+    </footer>
+  </section>
+
+  <!-- Learn (show shapes) -->
+  <section id="page-learn" class="page">
+    <div class="trial-badge" id="learnBadge">第 1/3 轮 — 记忆图形</div>
+    <div class="grid-area" id="learnGrid"></div>
+    <div style="font-size:15px;color:var(--text-secondary);" id="learnTimer">⏱ 10 秒</div>
+  </section>
+
+  <!-- Recall -->
+  <section id="page-recall" class="page">
+    <div class="trial-badge" id="recallBadge">第 1/3 轮 — 回忆图形</div>
+    <div class="recall-layout">
+      <div class="shape-pool" id="shapePool"></div>
+      <div class="recall-grid" id="recallGrid"></div>
+      <div>
+        <button type="button" class="btn btn-warning" id="clearRecallBtn" onclick="clearRecall()">清空重选</button>
+        <button type="button" class="btn btn-success" id="submitRecallBtn" onclick="submitRecall()" disabled>提交答案</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rest (between trials) -->
+  <section id="page-rest" class="page">
+    <h2>🧘 休息</h2>
+    <p>本轮学习结束。请稍作休息，准备下一轮学习。</p>
+    <button type="button" class="btn btn-warning" id="continueBtn" onclick="continueToNext()">继续下一轮</button>
+  </section>
+
+  <!-- Result -->
+  <section id="page-result" class="page">
+    <h2>📊 测验完成</h2>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="ri-label">总学习分</div>
+        <div class="ri-value" id="resultTotal">0</div>
+      </div>
+      <div class="result-item">
+        <div class="ri-label">延迟回忆分</div>
+        <div class="ri-value" id="resultDelayed">0</div>
+      </div>
+      <div class="result-item full">
+        <div class="ri-label">各轮得分 (形状正确+位置正确)</div>
+        <div class="trial-scores" id="resultTrials"></div>
+      </div>
+    </div>
+    <aside class="norm-ref" id="normRef">
+      <strong>参考解释：</strong><span id="normInterpretation">完成测试后查看参考解释</span>
+    </aside>
+    <footer class="result-actions">
+      <button type="button" class="btn btn-primary" onclick="showExport()">导出数据</button>
+      <button type="button" class="btn btn-outline" onclick="backToWelcome()">返回首页</button>
+    </footer>
+  
+  <p style="text-align:center;margin-top:20px;"><a href="../index.html" class="btn btn-outline" style="display:inline-block;padding:10px 28px;text-decoration:none;">← 返回测验中心</a></p></section>
+
+  <!-- Overlay -->
+  <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+    <div class="modal">
+      <h3 id="modalTitle">提示</h3>
+      <p id="modalBody">内容</p>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+'use strict';
+
+// === Mode (DEV / USER) ===
+const urlParams = new URLSearchParams(window.location.search);
+const MODE = urlParams.get('mode') || 'dev';
+const IS_DEV = MODE === 'dev';
+function applyModeStyles() {
+  if (!IS_DEV) {
+    const devEls = document.querySelectorAll('.count-badge, .feedback-area, .dev-hint, .progress-text, .quick-fb, #counterText, #devHintBacs');
+    devEls.forEach(el => el.style.display = 'none');
+  }
+}
+
+// ========== Shape definitions (SVG paths) ==========
+const SHAPES = {
+  // Target shapes (indices 0-5)
+  0: { path: 'M50,10 L80,40 L70,80 L30,80 L20,40 Z', fill: '#3498db', label: '五边形' },
+  1: { path: 'M30,20 L70,20 L85,50 L70,80 L30,80 L15,50 Z', fill: '#e74c3c', label: '六边形' },
+  2: { path: 'M50,5 C70,5 85,20 85,40 C85,60 70,75 50,75 C30,75 15,60 15,40 C15,20 30,5 50,5 Z', fill: '#8e44ad', label: '圆形' },
+  3: { path: 'M50,10 L90,50 L50,90 L10,50 Z', fill: '#27ae60', label: '菱形' },
+  4: { path: 'M25,15 L50,5 L75,15 L75,45 L50,55 L25,45 Z', fill: '#e67e22', label: '六边形横' },
+  5: { path: 'M20,10 L50,10 L50,40 L20,40 Z M55,55 L85,55 L85,85 L55,85 Z', fill: '#2c3e50', label: '双矩形' },
+  // Distractor shapes (indices 6-11)
+  6: { path: 'M50,10 L95,30 L95,70 L50,90 L5,70 L5,30 Z', fill: '#1abc9c', label: '六边形_2' },
+  7: { path: 'M50,15 L75,40 L75,70 L50,85 L25,70 L25,40 Z', fill: '#f39c12', label: '六边形_3' },
+  8: { path: 'M10,10 L90,10 L90,50 L10,50 Z', fill: '#9b59b6', label: '矩形' },
+  9: { path: 'M50,10 C20,10 10,50 50,90 C90,50 80,10 50,10 Z', fill: '#16a085', label: '水滴' },
+  10: { path: 'M20,20 L50,20 L50,50 L20,50 Z M50,50 L80,50 L80,80 L50,80 Z', fill: '#c0392b', label: 'L形' },
+  11: { path: 'M50,15 L85,50 L50,85 L15,50 Z', fill: '#2980b9', label: '旋转菱形' },
+};
+
+// Target grid positions: [row, col] 0-indexed for 2x3 grid
+// Grid layout: cell 0=top-left, 1=top-right, 2=middle-left, 3=middle-right, 4=bottom-left, 5=bottom-right
+const TARGETS = [0, 1, 4, 5, 2, 3];  // shape ids 0-5 placed at grid positions 0-5
+
+// Which shapes are targets vs distractors
+const TARGET_IDS = [0,1,2,3,4,5];
+const DISTRACTOR_IDS = [6,7,8,9,10,11];
+
+const STATE = {
+  trial: 0,           // 0,1,2 (learning trials), 3 = delayed recall
+  selectedShape: null, // id of shape selected from pool
+  placements: {},      // gridIdx -> shapeId
+  isLearning: false,
+  timerId: null,
+  trialScores: [],     // scores per trial
+  delayedScore: null,
+};
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showOverlay(title, bodyText, actions) {
+  const ov = document.getElementById('overlay');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = bodyText;
+  const ac = document.getElementById('modalActions');
+  ac.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = `btn ${a.cls || 'btn-primary'}`;
+    btn.textContent = a.label;
+    btn.onclick = () => { hideOverlay(); if (a.cb) a.cb(); };
+    ac.appendChild(btn);
+  });
+  ov.classList.add('show');
+  setTimeout(() => trapFocus(ov), 100);
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); document.querySelector('.btn, button:not(#overlay button)')?.focus(); }
+
+function backToWelcome() {
+  document.body.classList.remove('testing-active');
+  if (STATE.timerId) clearInterval(STATE.timerId);
+  STATE.timerId = null;
+  navigateTo('page-welcome');
+}
+
+function shapeSVG(id, size = '100%') {
+  const s = SHAPES[id];
+  if (!s) return '';
+  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><path d="${s.path}" fill="${s.fill}" stroke="#1e293b" stroke-width="2" opacity="0.9"/></svg>`;
+}
+
+// ====== START TEST ======
+function startTest() {
+  document.body.classList.add('testing-active');
+  if (STATE.timerId) return;  // 防抖保护：防止重复点击
+  applyModeStyles();
+    ParticipantManager.initFromUrl(); ParticipantManager.markInProgress('bvmt');
+  STATE.trial = 0;
+  STATE.selectedShape = null;
+  STATE.placements = {};
+  STATE.trialScores = [];
+  STATE.delayedScore = null;
+  navigateTo('page-welcome');
+  setTimeout(() => {
+    showLearningPhase();
+  }, 100);
+}
+
+// ====== LEARNING PHASE ======
+function showLearningPhase() {
+  const trialNum = STATE.trial + 1;
+  const isDelayed = STATE.trial === 3;
+
+  document.getElementById('learnBadge').textContent =
+    isDelayed ? '延迟回忆 — 记忆图形' : `第 ${trialNum}/3 轮 — 记忆图形`;
+
+  // Render the grid with target shapes
+  const grid = document.getElementById('learnGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell';
+    const shapeId = TARGETS[i];
+    cell.innerHTML = `<span class="cell-label">${i + 1}</span>${shapeSVG(shapeId)}`;
+    grid.appendChild(cell);
+  }
+
+  // Show timer
+  const timerEl = document.getElementById('learnTimer');
+  timerEl.textContent = '⏱ 10 秒';
+
+  navigateTo('page-learn');
+
+  // Countdown from 10
+  let count = 10;
+  STATE.timerId = setInterval(() => {
+    count--;
+    timerEl.textContent = `⏱ ${count} 秒`;
+    if (count <= 0) {
+      clearInterval(STATE.timerId);
+      STATE.timerId = null;
+      // Transition to recall phase (or delayed recall)
+      if (isDelayed) {
+        showDelayedRecallPhase();
+      } else {
+        showRecallPhase();
+      }
+    }
+  }, 1000);
+}
+
+// ====== RECALL PHASE (learning trials) ======
+function showRecallPhase() {
+  const trialNum = STATE.trial + 1;
+  document.getElementById('recallBadge').textContent =
+    `第 ${trialNum}/3 轮 — 回忆图形（点击图形 → 点击格子放置）`;
+
+  STATE.selectedShape = null;
+  STATE.placements = {};
+
+  // Shape pool: targets + distractors, shuffled
+  const poolIds = [...TARGET_IDS, ...DISTRACTOR_IDS];
+  shuffle(poolIds);
+
+  const poolEl = document.getElementById('shapePool');
+  poolEl.innerHTML = '';
+  poolIds.forEach(id => {
+    const div = document.createElement('div');
+    div.className = 'pool-shape';
+    div.dataset.shapeId = id;
+    div.setAttribute('role', 'button');
+    div.setAttribute('tabindex', '0');
+    div.innerHTML = shapeSVG(id, '40px');
+    div.addEventListener('click', () => selectPoolShape(id));
+    div.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.click();
+      }
+    });
+    poolEl.appendChild(div);
+  });
+
+  // Recall grid
+  const grid = document.getElementById('recallGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'recall-cell';
+    cell.dataset.gridIdx = i;
+    cell.innerHTML = `<span class="cell-label">${i + 1}</span>`;
+    cell.addEventListener('click', () => placeShape(i));
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('submitRecallBtn').disabled = true;
+  document.getElementById('clearRecallBtn').disabled = false;
+
+  navigateTo('page-recall');
+}
+
+// ====== DELAYED RECALL ======
+function showDelayedRecallPhase() {
+  document.getElementById('recallBadge').textContent = '延迟回忆 — 回忆图形';
+  STATE.selectedShape = null;
+  STATE.placements = {};
+
+  const poolIds = [...TARGET_IDS, ...DISTRACTOR_IDS];
+  shuffle(poolIds);
+
+  const poolEl = document.getElementById('shapePool');
+  poolEl.innerHTML = '';
+  poolIds.forEach(id => {
+    const div = document.createElement('div');
+    div.className = 'pool-shape';
+    div.dataset.shapeId = id;
+    div.setAttribute('role', 'button');
+    div.setAttribute('tabindex', '0');
+    div.innerHTML = shapeSVG(id, '40px');
+    div.addEventListener('click', () => selectPoolShape(id));
+    div.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.click();
+      }
+    });
+    poolEl.appendChild(div);
+  });
+
+  const grid = document.getElementById('recallGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'recall-cell';
+    cell.dataset.gridIdx = i;
+    cell.innerHTML = `<span class="cell-label">${i + 1}</span>`;
+    cell.addEventListener('click', () => placeShape(i));
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('submitRecallBtn').disabled = true;
+  document.getElementById('clearRecallBtn').disabled = false;
+
+  navigateTo('page-recall');
+}
+
+// ====== INTERACTIONS ======
+function selectPoolShape(id) {
+  if (STATE.trial >= 4) return; // safety
+  // Check if this shape already placed
+  const placed = Object.values(STATE.placements);
+  if (placed.includes(id)) return;
+
+  STATE.selectedShape = id;
+  document.querySelectorAll('.pool-shape').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.shapeId) === id);
+  });
+}
+
+function placeShape(gridIdx) {
+  if (STATE.selectedShape === null) return;
+
+  // If cell already has a shape, return it to pool
+  if (STATE.placements[gridIdx] !== undefined) {
+    returnPoolShape(STATE.placements[gridIdx]);
+  }
+
+  STATE.placements[gridIdx] = STATE.selectedShape;
+
+  // Update pool - mark as used
+  document.querySelectorAll('.pool-shape').forEach(el => {
+    const sid = parseInt(el.dataset.shapeId);
+    el.classList.remove('selected');
+    if (Object.values(STATE.placements).includes(sid)) {
+      el.classList.add('used');
+    }
+  });
+  STATE.selectedShape = null;
+
+  // Update grid cell
+  const cell = document.querySelector(`.recall-cell[data-grid-idx="${gridIdx}"]`);
+  cell.innerHTML = `<span class="cell-label">${parseInt(gridIdx) + 1}</span>${shapeSVG(STATE.placements[gridIdx])}`;
+  cell.classList.add('placed');
+  cell.classList.remove('incorrect', 'correct');
+
+  // Enable submit if all 6 placed
+  if (Object.keys(STATE.placements).length >= 6) {
+    document.getElementById('submitRecallBtn').disabled = false;
+  }
+}
+
+function returnPoolShape(shapeId) {
+  const poolEl = document.querySelector(`.pool-shape[data-shape-id="${shapeId}"]`);
+  if (poolEl) poolEl.classList.remove('used');
+}
+
+function clearRecall() {
+  // Return all placed shapes to pool
+  Object.values(STATE.placements).forEach(id => {
+    const poolEl = document.querySelector(`.pool-shape[data-shape-id="${id}"]`);
+    if (poolEl) poolEl.classList.remove('used');
+  });
+  STATE.placements = {};
+  STATE.selectedShape = null;
+
+  // Reset grid
+  document.querySelectorAll('.recall-cell').forEach(cell => {
+    const idx = cell.dataset.gridIdx;
+    cell.innerHTML = `<span class="cell-label">${parseInt(idx) + 1}</span>`;
+    cell.classList.remove('placed', 'correct', 'incorrect');
+  });
+
+  document.querySelectorAll('.pool-shape').forEach(el => el.classList.remove('selected'));
+  document.getElementById('submitRecallBtn').disabled = true;
+}
+
+function submitRecall() {
+  const isDelayed = STATE.trial === 3;
+  const placements = STATE.placements;
+  const expected = {};
+  TARGETS.forEach((shapeId, gridIdx) => { expected[gridIdx] = shapeId; });
+
+  let shapeCorrect = 0;
+  let posCorrect = 0;
+
+  // Score
+  Object.keys(placements).forEach(gridIdx => {
+    const placedId = placements[gridIdx];
+    const expectedId = expected[gridIdx];
+    const cell = document.querySelector(`.recall-cell[data-grid-idx="${gridIdx}"]`);
+    cell.classList.remove('placed');
+    cell.classList.add('locked');
+
+    if (placedId === expectedId) {
+      posCorrect++;
+      shapeCorrect++;
+      if (IS_DEV) cell.classList.add('correct');
+    } else {
+      // Check if shape is in the wrong position
+      const correctPos = Object.keys(expected).find(k => expected[k] === placedId);
+      if (correctPos !== undefined) {
+        shapeCorrect++; // correct shape, wrong position
+        if (IS_DEV) cell.classList.add('wrong-pos');
+      } else {
+        if (IS_DEV) cell.classList.add('incorrect');
+      }
+    }
+  });
+
+  // Score: 1 point for correct shape, 1 extra for correct position
+  const score = shapeCorrect + posCorrect;
+
+  if (isDelayed) {
+    STATE.delayedScore = { shapeCorrect, posCorrect, score };
+  } else {
+    STATE.trialScores.push({ trial: STATE.trial + 1, shapeCorrect, posCorrect, score, placements: {...placements} });
+  }
+
+  // Disable buttons
+  document.getElementById('submitRecallBtn').disabled = true;
+  document.getElementById('clearRecallBtn').disabled = true;
+  document.querySelectorAll('.pool-shape').forEach(el => { el.style.cursor = 'default'; });
+
+  // Show score briefly, then proceed
+  const badge = document.getElementById('recallBadge');
+  if (IS_DEV) {
+    badge.textContent = `得分：形状 ${shapeCorrect}/6 · 位置 ${posCorrect}/6 · 总分 ${score}/12`;
+  } else {
+    badge.textContent = '✅ 已提交，请稍候...';
+  }
+
+  if (isDelayed) {
+    setTimeout(() => endTest(), 2000);
+  } else if (STATE.trial < 2) {
+    // Show rest page
+    setTimeout(() => {
+      STATE.trial++;
+      navigateTo('page-rest');
+    }, 2000);
+  } else {
+    // After trial 3, show result
+    setTimeout(() => {
+      // Show delayed recall instructions
+      STATE.trial = 3; // Delayed recall marker
+      showDelayedRecallPhase();
+    }, 2000);
+  }
+}
+
+function continueToNext() {
+  // User clicks to continue to next learning trial
+  showLearningPhase();
+}
+
+function endTest() {
+  document.body.classList.remove('testing-active');
+  const isDelayed = STATE.delayedScore !== null;
+
+  // Calculate total learning score (trials 1-3)
+  let totalScore = 0;
+  const trialsHtml = STATE.trialScores.map((ts, i) => {
+    totalScore += ts.score;
+    return `<span class="ts-item">T${i + 1}: ${ts.score}/12</span>`;
+  }).join('');
+
+  const delayedHtml = isDelayed ?
+    `<span class="ts-item" style="background:var(--bg-inst);">延迟: ${STATE.delayedScore.score}/12</span>` : '';
+
+  document.getElementById('resultTotal').textContent = `${totalScore}/36`;
+  const totalCls = totalScore >= 24 ? 'good' : totalScore >= 16 ? 'warn' : 'bad';
+  document.getElementById('resultTotal').className = 'ri-value ' + totalCls;
+
+  const delayedScore = isDelayed ? STATE.delayedScore.score : '—';
+  const delayedEl = document.getElementById('resultDelayed');
+  delayedEl.textContent = isDelayed ? `${delayedScore}/12` : '跳过';
+  if (isDelayed) {
+    const dCls = delayedScore >= 10 ? 'good' : delayedScore >= 7 ? 'warn' : 'bad';
+    delayedEl.className = 'ri-value ' + dCls;
+  }
+
+  document.getElementById('resultTrials').innerHTML = trialsHtml + delayedHtml;
+
+  let interpretation;
+  if (totalScore >= 24) {
+    interpretation = '学习能力正常范围。';
+  } else if (totalScore >= 16) {
+    interpretation = '学习能力偏低，提示视觉空间记忆可能存在轻度下降。';
+  } else {
+    interpretation = '学习能力明显偏低，建议进一步评估。';
+  }
+  if (isDelayed) {
+    const keepRate = STATE.trialScores.length > 0 ?
+      ((STATE.delayedScore.score / STATE.trialScores[2].score) * 100).toFixed(0) : '—';
+    interpretation += ` 延迟保持率：${keepRate}%。`;
+  }
+
+  document.getElementById('normInterpretation').textContent = interpretation;
+  saveToLocalStorage();
+  navigateTo('page-result');
+}
+
+function saveToLocalStorage() {
+  const data = {
+    test: 'MCCB BVMT-R Visual Memory',
+    date: new Date().toISOString(),
+    trials: STATE.trialScores,
+    delayedRecall: STATE.delayedScore,
+    totalLearningScore: STATE.trialScores.reduce((s, t) => s + t.score, 0),
+  };
+  try { localStorage.setItem('mccb-bvmt-result', JSON.stringify(data)); } catch(e) {}
+  ParticipantManager.saveResult('bvmt', data);
+}
+
+function showExport() {
+  const data = {
+    test: 'MCCB BVMT-R Visual Memory',
+    date: new Date().toISOString(),
+    trials: STATE.trialScores,
+    delayedRecall: STATE.delayedScore,
+    totalLearningScore: STATE.trialScores.reduce((s, t) => s + t.score, 0),
+  };
+  showOverlay('导出数据',
+    `<div class="export-area">${JSON.stringify(data, null, 2)}</div>` +
+    '<p style="font-size:13px;color:var(--text-muted);">可复制上述 JSON 数据保存或分享</p>',
+    [{ label: '关闭', cls: 'btn-outline' },
+     { label: '复制', cls: 'btn-primary', cb: () => {
+       navigator.clipboard.writeText(JSON.stringify(data, null, 2)).catch(()=>{});
+     }}
+    ]
+  );
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// Initialize: pass start function for restart
+
+// === 页面离开保护 ===
+window.addEventListener('beforeunload', function(e) {
+  if (document.querySelector('#page-learn.active, #page-recall.active, #page-rest.active')) {
+    e.preventDefault();
+    e.returnValue = '测试正在进行中，确定要离开吗？';
+  }
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && document.querySelector('#page-learn.active, #page-recall.active, #page-rest.active')) {
+    endTest();
+  }
+});
+
+// === 模态框焦点陷阱 ===
+function trapFocus(container) {
+  const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  container.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape') {
+      hideOverlay();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+// === Wide Mode Toggle ===
+(function(){try{if(window.ParticipantManager)ParticipantManager.initFromUrl();}catch(e){}var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
+b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
+if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
+b.onclick=function(){document.body.classList.toggle('wide-mode');
+b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
+document.body.classList.contains('wide-mode')?'1':'0');};
+document.body.appendChild(b);})();
+</script>
+</body>
+</html>

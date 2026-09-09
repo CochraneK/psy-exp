@@ -1,0 +1,4 @@
+# 统一 LF 行尾（尤其在 Windows 上避免 CRLF 混乱）
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

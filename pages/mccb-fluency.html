@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MCCB 语义流畅性测验 (Category Fluency)</title>
+<link rel="stylesheet" href="../mccb-common.css">
+<script src="../mccb-participant.js"></script>
+<style>
+  #page-test { flex-direction: column; gap: 1.25rem; padding: 3.75rem 1.5rem 2.5rem; justify-content: flex-start; }
+
+/* Wide mode: Fluency */
+body.wide-mode #page-test { font-size: 110%; padding: 3rem; }
+body.wide-mode .fluency-grid { gap: 0.75rem; }
+
+</style>
+</head>
+<body>
+<main id="app">
+  <!-- Welcome -->
+  <section id="page-welcome" class="page active">
+    <header>
+      <div class="logo">🐾</div>
+      <h2>语义流畅性测验</h2>
+    </header>
+    <p class="subtitle">
+      Category Fluency: Animal Naming — 请在 <strong>60 秒</strong> 内尽可能多地说出动物的名称。
+      输入后按回车键或点击"添加"按钮记录。
+    </p>
+    <div class="inst-box">
+      <strong>规则：</strong>任何动物均可（如狗、猫、大象、鲸鱼）。请尽可能快速回答，不要使用同一个动物的不同名称（如"狗"和"小狗"算重复）。<br>
+      时间结束后测验自动停止。
+    </div>
+    <footer>
+      <button type="button" class="btn btn-primary" onclick="startTest()" style="margin-top:4px;">开始测验</button>
+    </footer>
+  </section>
+
+  <!-- Test -->
+  <section id="page-test" class="page">
+    <div class="test-status">⏱ 剩余时间</div>
+    <div class="timer-display" id="timerDisplay">60</div>
+    <div class="timer-bar"><div class="fill" id="timerFill" style="width:100%"></div></div>
+    <div class="count-badge">已记录：<span id="wordCount">0</span> 个动物</div>
+    <div class="input-row">
+      <input type="text" id="animalInput" placeholder="输入动物名称..." autocomplete="off" maxlength="20">
+      <button type="button" class="btn btn-success" id="addBtn" onclick="addAnimal()">添加</button>
+    </div>
+    <div class="word-list" id="wordList"></div>
+  </section>
+
+  <!-- Result -->
+  <section id="page-result" class="page page-result">
+    <h2>📊 测验完成</h2>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="ri-label">有效动物总数</div>
+        <div class="ri-value" id="resultTotal">0</div>
+      </div>
+      <div class="result-item">
+        <div class="ri-label">去重后有效数</div>
+        <div class="ri-value" id="resultUnique">0</div>
+      </div>
+      <div class="result-item full">
+        <div class="ri-label">列举的动物</div>
+        <div id="resultList" style="font-size:14px;color:var(--text-secondary);margin-top:6px;line-height:2;">—</div>
+      </div>
+    </div>
+    <aside class="norm-ref" id="normRef">
+      <strong>参考解释：</strong><span id="normInterpretation">完成测试后查看参考解释</span>
+    </aside>
+    <footer class="result-actions">
+      <button type="button" class="btn btn-primary" onclick="showExport()">导出数据</button>
+      <button type="button" class="btn btn-outline" onclick="backToWelcome()">返回首页</button>
+    </footer>
+  
+  <p style="text-align:center;margin-top:20px;"><a href="../index.html" class="btn btn-outline" style="display:inline-block;padding:10px 28px;text-decoration:none;">← 返回测验中心</a></p></section>
+
+  <!-- Overlay -->
+  <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+    <div class="modal">
+      <h3 id="modalTitle">提示</h3>
+      <p id="modalBody">内容</p>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+'use strict';
+
+// === Mode (DEV / USER) ===
+const urlParams = new URLSearchParams(window.location.search);
+const MODE = urlParams.get('mode') || 'dev';
+const IS_DEV = MODE === 'dev';
+function applyModeStyles() {
+  if (!IS_DEV) {
+    const devEls = document.querySelectorAll('.count-badge, .feedback-area, .dev-hint, .progress-text, .quick-fb, #counterText, #devHintBacs');
+    devEls.forEach(el => el.style.display = 'none');
+  }
+}
+
+const STATE = {
+  animals: [],
+  timer: 60,
+  timerInterval: null,
+  isRunning: false,
+};
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showOverlay(title, bodyText, actions) {
+  const ov = document.getElementById('overlay');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = bodyText;
+  const ac = document.getElementById('modalActions');
+  ac.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = `btn ${a.cls || 'btn-primary'}`;
+    btn.textContent = a.label;
+    btn.onclick = () => { hideOverlay(); if (a.cb) a.cb(); };
+    ac.appendChild(btn);
+  });
+  ov.classList.add('show');
+  setTimeout(() => trapFocus(ov), 100);
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); document.querySelector('.btn, button:not(#overlay button)')?.focus(); }
+
+function backToWelcome() {
+  document.body.classList.remove('testing-active');
+  stopTimer();
+  STATE.animals = [];
+  STATE.isRunning = false;
+  navigateTo('page-welcome');
+}
+
+function startTest() {
+  document.body.classList.add('testing-active');
+  if (STATE.isRunning) return;
+  STATE.animals = [];
+  STATE.timer = 60;
+  STATE.isRunning = false;
+  document.getElementById('animalInput').disabled = false;
+  document.getElementById('addBtn').disabled = false;
+  document.getElementById('animalInput').value = '';
+  document.getElementById('wordList').innerHTML = '';
+  document.getElementById('wordCount').textContent = '0';
+  updateTimerDisplay();
+  applyModeStyles();
+    ParticipantManager.initFromUrl(); ParticipantManager.markInProgress('fluency');
+  navigateTo('page-test');
+  setTimeout(() => document.getElementById('animalInput').focus(), 400);
+  startTimer();
+}
+
+function startTimer() {
+  STATE.isRunning = true;
+  STATE.timerInterval = setInterval(() => {
+    STATE.timer--;
+    updateTimerDisplay();
+    if (STATE.timer <= 0) { endTest(); }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (STATE.timerInterval) {
+    clearInterval(STATE.timerInterval);
+    STATE.timerInterval = null;
+  }
+  STATE.isRunning = false;
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  const fill = document.getElementById('timerFill');
+  el.textContent = STATE.timer;
+  const pct = (STATE.timer / 60) * 100;
+  fill.style.width = Math.max(pct, 0) + '%';
+  el.className = 'timer-display';
+  fill.className = 'fill';
+  if (STATE.timer <= 10) {
+    el.classList.add('danger');
+    fill.classList.add('danger');
+  } else if (STATE.timer <= 20) {
+    el.classList.add('warn');
+    fill.classList.add('warn');
+  }
+}
+
+function addAnimal() {
+  const input = document.getElementById('animalInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (!STATE.isRunning) return;
+
+  // Check duplicate (case-insensitive)
+  const dup = STATE.animals.some(a => a.toLowerCase() === name.toLowerCase());
+  if (dup) {
+    input.classList.add('shake');
+    setTimeout(() => input.classList.remove('shake'), 400);
+    return;
+  }
+
+  STATE.animals.push(name);
+  input.value = '';
+  input.focus();
+  renderWordList();
+  document.getElementById('wordCount').textContent = STATE.animals.length;
+}
+
+function renderWordList() {
+  const list = document.getElementById('wordList');
+  list.textContent = '';
+  STATE.animals.forEach((a, i) => {
+    const item = document.createElement('span');
+    item.className = 'wl-item';
+    item.textContent = a;
+    if (IS_DEV) {
+      const removeBtn = document.createElement('span');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = '✕';
+      removeBtn.onclick = () => removeAnimal(i);
+      item.appendChild(removeBtn);
+    }
+    list.appendChild(item);
+  });
+  list.scrollTop = list.scrollHeight;
+}
+
+function removeAnimal(index) {
+  STATE.animals.splice(index, 1);
+  renderWordList();
+  document.getElementById('wordCount').textContent = STATE.animals.length;
+}
+
+function endTest() {
+  document.body.classList.remove('testing-active');
+  stopTimer();
+  document.getElementById('animalInput').disabled = true;
+  document.getElementById('addBtn').disabled = true;
+
+  const total = STATE.animals.length;
+  const unique = new Set(STATE.animals.map(a => a.toLowerCase())).size;
+
+  document.getElementById('resultTotal').textContent = total;
+  document.getElementById('resultUnique').textContent = unique;
+  document.getElementById('resultList').textContent = STATE.animals.join('、') || '—';
+
+  // Interpretation
+  let level, cls;
+  if (unique >= 25) { level = '优秀（≥25）'; cls = 'good'; }
+  else if (unique >= 18) { level = '正常范围（18-24）'; cls = 'good'; }
+  else if (unique >= 13) { level = '偏慢（13-17），提示语义检索效率偏低'; cls = 'warn'; }
+  else { level = '明显偏慢（<13），建议进一步评估'; cls = 'bad'; }
+  document.getElementById('resultTotal').className = 'ri-value ' + cls;
+  const interpEl = document.getElementById('normInterpretation');
+  interpEl.textContent = '';
+  const strong = document.createElement('strong');
+  strong.textContent = unique;
+  interpEl.appendChild(document.createTextNode(`您的有效动物总数为 `));
+  interpEl.appendChild(strong);
+  interpEl.appendChild(document.createTextNode(` 个（列举了 ${total} 个，去重后 ${unique} 个）。${level}`));
+
+  saveToLocalStorage();
+  navigateTo('page-result');
+}
+
+function saveToLocalStorage() {
+  const data = {
+    test: 'MCCB Category Fluency (Animal Naming)',
+    date: new Date().toISOString(),
+    total: STATE.animals.length,
+    unique: new Set(STATE.animals.map(a => a.toLowerCase())).size,
+    animals: STATE.animals,
+  };
+  try { localStorage.setItem('mccb-fluency-result', JSON.stringify(data)); } catch(e) {}
+  ParticipantManager.saveResult('fluency', data);
+}
+
+function showExport() {
+  const data = {
+    test: 'MCCB Category Fluency (Animal Naming)',
+    date: new Date().toISOString(),
+    total: STATE.animals.length,
+    unique: new Set(STATE.animals.map(a => a.toLowerCase())).size,
+    animals: STATE.animals,
+  };
+  showOverlay('导出数据',
+    `<div class="export-area">${JSON.stringify(data, null, 2)}</div>` +
+    '<p style="font-size:13px;color:var(--text-muted);">可复制上述 JSON 数据保存或分享</p>',
+    [{ label: '关闭', cls: 'btn-outline' },
+     { label: '复制', cls: 'btn-primary', cb: () => {
+       navigator.clipboard.writeText(JSON.stringify(data, null, 2)).catch(()=>{});
+     }}
+    ]
+  );
+}
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('animalInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addAnimal(); }
+  });
+});
+
+// === 页面离开保护 ===
+window.addEventListener('beforeunload', function(e) {
+  if (STATE.isRunning) {
+    e.preventDefault();
+    e.returnValue = '测试正在进行中，确定要离开吗？';
+  }
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && STATE.isRunning) {
+    endTest();
+  }
+});
+
+// === 模态框焦点陷阱 ===
+function trapFocus(container) {
+  const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  container.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape') {
+      hideOverlay();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+}
+
+// === Wide Mode Toggle ===
+(function(){try{if(window.ParticipantManager)ParticipantManager.initFromUrl();}catch(e){}var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
+b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
+if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
+b.onclick=function(){document.body.classList.toggle('wide-mode');
+b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
+document.body.classList.contains('wide-mode')?'1':'0');};
+document.body.appendChild(b);})();
+</script>
+</body>
+</html>
