@@ -34,6 +34,11 @@
   .header select:focus {
     border-color:var(--accent-blue,#3b82f6); outline:none;
   }
+  .norm-badge {
+    margin-top:4px; font-size:12px; color:var(--text-muted,#64748b);
+    background:var(--color-warning-bg,#fef3c7); border:1px solid var(--border-light,#e2e8f0);
+    border-radius:var(--radius-pill,999px); padding:3px 10px; display:inline-block; width:fit-content;
+  }
   .header .actions { display:flex; gap:8px; }
   .header button {
     padding:8px 18px; border:none; border-radius:var(--radius-md,8px);
@@ -205,6 +210,7 @@
   <!-- ===== 顶部栏 ===== -->
   <div class="header">
     <h1>🧠 MCCB 综合认知报告 <small id="reportCount"></small></h1>
+    <div class="norm-badge" id="normBadge" title="当前采用的分数转换常模"></div>
     <select id="participantSelect" onchange="onSelectParticipant()">
       <option value="">— 选择被试 —</option>
     </select>
@@ -515,6 +521,15 @@
 
     const data = MCCBScoring.getAllProfiles();
     document.getElementById('reportCount').textContent = `(${data.profiles.length} 人)`;
+
+    // 常模标注（临床透明度）
+    const normEl = document.getElementById('normBadge');
+    if (data.norm) {
+      normEl.textContent = `🛡 ${data.norm.label}`;
+      normEl.style.display = 'inline-block';
+    } else {
+      normEl.style.display = 'none';
+    }
 
     if (data.profiles.length === 0) {
       document.getElementById('emptyState').style.display = 'block';

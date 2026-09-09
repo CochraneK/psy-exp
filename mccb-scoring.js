@@ -8,6 +8,12 @@
  *   MCCBScoring.getProfile(participantId)  — 单被试
  *   MCCBScoring.getAllProfiles()            — 全部被试
  *   MCCBScoring.getDomainSummary(profile)   — 域摘要
+ *
+ * 常模（Norm）接口：
+ *   默认用「项目内部相对排名」做近似 T 分转换（见 NORMS.internal）。
+ *   拿到 MCCB 官方常模后，用 registerNorm + setNorm 一键切换，无需改业务逻辑。
+ *   NORMS 结构：{ name, label, apply(allProfiles, domains) }，
+ *   apply 负责把每个 profile.domains[domainKey] 写入 raw / percentile / tScore。
  */
 
 const MCCBScoring = (() => {
@@ -223,55 +229,12 @@ const KEY_TO_RESULT = {
   };
 
   // ============================
-  // 简易标准化（百分比排名近似）
-  // 因缺少 MCCB 官方常模，采用项目内部相对排名
+  // 常模（Norm）体系 —— 可插拔
+  // 默认：项目内部相对排名（近似 T 分）
+  // 将来拿到 MCCB 官方常模，registerNorm + setNorm 一键切换
   // ============================
-  function _computeDomainScores(allProfiles) {
-    // 收集每个测试的原始分数用于排名
-    // domain scores: 0-100 基于内部相对排名
-    const domainValues = {};
-    for (const domainKey of Object.keys(DOMAINS)) {
-      domainValues[domainKey] = [];
-    }
 
-    for (const p of allProfiles) {
-      for (const domainKey of Object.keys(DOMAINS)) {
-        const domain = DOMAINS[domainKey];
-        let rawSum = 0;
-        let count = 0;
-        for (const testKey of domain.tests) {
-          const t = p.tests[testKey];
-          if (t && t.extracted) {
-            // 归一化：不同 tests 映射到大致统一的分数轴
-            rawSum += _estimateDomainContribution(domainKey, testKey, t.extracted);
-            count++;
-          }
-        }
-        const avg = count > 0 ? rawSum / count : 0;
-        domainValues[domainKey].push({ id: p.id, value: avg });
-      }
-    }
-
-    // 对每个域计算百分比排名（0-100）
-    for (const domainKey of Object.keys(DOMAINS)) {
-      const vals = domainValues[domainKey].sort((a, b) => a.value - b.value);
-      const total = vals.length;
-      vals.forEach((v, i) => {
-        v.percentile = total > 1 ? Math.round((i / (total - 1)) * 100) : 50;
-      });
-      // 存回 profile
-      for (const v of vals) {
-        const profile = allProfiles.find(p => p.id === v.id);
-        if (profile) {
-          profile.domains[domainKey] = profile.domains[domainKey] || {};
-          profile.domains[domainKey].raw = Math.round(v.value * 10) / 10;
-          profile.domains[domainKey].percentile = v.percentile;
-          profile.domains[domainKey].tScore = _percentileToTScore(v.percentile);
-        }
-      }
-    }
-  }
-
+  // 域原始分估算（各测验原始分 → 0-1 域贡献轴）
   function _estimateDomainContribution(domainKey, testKey, extracted) {
     // 各测验原始分到域贡献的估算映射
     const maps = {
@@ -317,6 +280,76 @@ const KEY_TO_RESULT = {
     return Math.round(Math.max(20, Math.min(80, t)));
   }
 
+  // 默认常模：项目内部相对排名（0-100 百分位 → T 分近似）
+  // 这是「无官方常模」时的兜底，标注为非临床可比。
+  const internalNorm = {
+    name: 'internal',
+    label: '项目内部相对排名（非 MCCB 官方常模）',
+    apply(allProfiles, domains) {
+      const domainValues = {};
+      for (const domainKey of Object.keys(domains)) domainValues[domainKey] = [];
+
+      // 1) 汇总每个被试的每域原始分（0-1 轴）
+      for (const p of allProfiles) {
+        for (const domainKey of Object.keys(domains)) {
+          const domain = domains[domainKey];
+          let rawSum = 0, count = 0;
+          for (const testKey of domain.tests) {
+            const t = p.tests[testKey];
+            if (t && t.extracted) {
+              rawSum += _estimateDomainContribution(domainKey, testKey, t.extracted);
+              count++;
+            }
+          }
+          const avg = count > 0 ? rawSum / count : 0;
+          domainValues[domainKey].push({ id: p.id, value: avg });
+        }
+      }
+
+      // 2) 每域计算内部百分位排名 → T 分
+      for (const domainKey of Object.keys(domains)) {
+        const vals = domainValues[domainKey].sort((a, b) => a.value - b.value);
+        const total = vals.length;
+        vals.forEach((v, i) => {
+          v.percentile = total > 1 ? Math.round((i / (total - 1)) * 100) : 50;
+        });
+        for (const v of vals) {
+          const profile = allProfiles.find(p => p.id === v.id);
+          if (profile) {
+            profile.domains[domainKey] = profile.domains[domainKey] || {};
+            profile.domains[domainKey].raw = Math.round(v.value * 10) / 10;
+            profile.domains[domainKey].percentile = v.percentile;
+            profile.domains[domainKey].tScore = _percentileToTScore(v.percentile);
+          }
+        }
+      }
+    },
+  };
+
+  // 常模注册表 + 当前激活项
+  const NORM_REGISTRY = { [internalNorm.name]: internalNorm };
+  let activeNorm = internalNorm.name;
+
+  // 公共：注册/切换/查询常模
+  function registerNorm(norm) {
+    if (!norm || !norm.name || typeof norm.apply !== 'function') {
+      throw new Error('norm 需含 name 和 apply(allProfiles, domains)');
+    }
+    NORM_REGISTRY[norm.name] = norm;
+    return NORM_REGISTRY;
+  }
+  function setNorm(name) {
+    if (!NORM_REGISTRY[name]) throw new Error(`常模 "${name}" 未注册`);
+    activeNorm = name;
+    return activeNorm;
+  }
+  function getNorm() {
+    return { name: activeNorm, label: NORM_REGISTRY[activeNorm].label };
+  }
+  function _applyActiveNorm(allProfiles) {
+    NORM_REGISTRY[activeNorm].apply(allProfiles, DOMAINS);
+  }
+
   // ============================
   // 公共 API
   // ============================
@@ -358,8 +391,8 @@ const KEY_TO_RESULT = {
       if (p && Object.keys(p.tests).length > 0) profiles.push(p);
     }
 
-    // 计算域分数（需要全部 profile 做相对排名）
-    _computeDomainScores(profiles);
+    // 计算域分数（委托给当前常模；默认=项目内部相对排名）
+    _applyActiveNorm(profiles);
 
     // 计算综合 T 分
     for (const p of profiles) {
@@ -369,7 +402,7 @@ const KEY_TO_RESULT = {
         : null;
     }
 
-    return { profiles, domains: DOMAINS, metrics: TEST_METRICS };
+    return { profiles, domains: DOMAINS, metrics: TEST_METRICS, norm: getNorm() };
   }
 
   function getDomainSummary(profile) {
@@ -394,7 +427,11 @@ const KEY_TO_RESULT = {
     return summary;
   }
 
-  return { getProfile, getAllProfiles, getDomainSummary, DOMAINS, TEST_METRICS };
+  return {
+    getProfile, getAllProfiles, getDomainSummary,
+    registerNorm, setNorm, getNorm,
+    DOMAINS, TEST_METRICS,
+  };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

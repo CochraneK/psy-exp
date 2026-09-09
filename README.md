@@ -102,7 +102,7 @@ node tests/full-battery.cjs --list / --help
 | `full-battery.cjs` | **现行**完整自动化（推荐） | `tests/` |
 | `cpt_report.py` | CPT 数据处理（支持单文件/批量） | `tests/` |
 | `validate-drivers.cjs` | 驱动语法校验（沙箱验证 10 项 DRV 代码合法） | `tests/` |
-| `verify-scoring.cjs` | 评分模块端到端验证（16 项断言，模拟 3 被试跑通 7 域） | `tests/` |
+| `verify-scoring.cjs` | 评分模块端到端验证（23 项断言，模拟 3 被试跑通 7 域 + 常模接口） | `tests/` |
 | `_autotest.cjs` / `debug-*.cjs` / `add-*` / `patch-*` / `reorg-pages.cjs` | 前代/一次性/调试（历史保留） | `tests/archive/` |
 
 **核心 JS 模块**（`index.html` + 各测试页共用）：
@@ -147,8 +147,15 @@ python tests/cpt_report.py --batch
 
 评分原理：
 - 各域分数基于项目内所有被试的相对排名（百分比 → T 分近似转换）
-- 因缺少 MCCB 官方常模，当前为内部相对评估，适合同一群体内比较
-- 验证：`node tests/verify-scoring.cjs`（须先有被试数据才有意义）
+- 因缺少 MCCB 官方常模，当前为项目**内部相对评估**，适合同一群体内比较
+- 验证：`node tests/verify-scoring.cjs`（23 项断言，须先有被试数据才有意义）
+
+**常模切换接口**（`mccb-scoring.js` 可插拔）：
+- 默认常模 `internal`：项目内部相对排名（非官方常模）
+- `MCCBScoring.registerNorm({name, label, apply(allProfiles, domains)})` 注册自定义常模（将来接入 MCCB 官方常模表）
+- `MCCBScoring.setNorm(name)` / `getNorm()` 切换与查询；`getAllProfiles()` 返回的 `norm` 字段标注当前所用常模
+- 综合报告页顶部自动显示当前常模标注，确保临床透明度
+- `verify-scoring.cjs` 已覆盖常模注册/切换/还原/错误处理
 
 > **原始数据说明**：`data/cpt-results/` 下的 `.rep` / `.dat` / `.raw` 文件（各 383 个）为 CPT 软件导出的**专有二进制 blob**（头部字节跨被试一致、含随机加密字节），**无法**用文本方式解析；当前流水线只消费可读的 `.trep` 文本报告（241 个，已全部转为 `data/cpt-reports/` HTML 报表）。如需利用 `.rep` 等格式，需原厂转换工具。
 

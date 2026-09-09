@@ -97,5 +97,42 @@ console.log('\n=== 4. 边界：空被试 ===');
 const empty = MCCB.getProfile('NONEXIST');
 check('不存在的被试返回 null', empty === null);
 
+console.log('\n=== 5. 常模接口 (registerNorm / setNorm / getNorm) ===');
+const norm0 = MCCB.getNorm();
+check('默认常模 = internal', norm0.name === 'internal', norm0.name);
+check('默认常模含中文标注', /内部相对排名/.test(norm0.label), norm0.label);
+
+// 注册一个自定义常模：固定 T 分 = 50（用于验证可插拔）
+MCCB.registerNorm({
+  name: 'mock-fixed',
+  label: '测试用固定常模（T=50）',
+  apply(allProfiles, domains) {
+    for (const p of allProfiles) {
+      for (const dk of Object.keys(domains)) {
+        p.domains[dk] = { raw: 0, percentile: 50, tScore: 50 };
+      }
+    }
+  },
+});
+MCCB.setNorm('mock-fixed');
+const allFixed = MCCB.getAllProfiles();
+const fixedT = Object.values(allFixed.profiles[0].domains)[0].tScore;
+check('切换自定义常模生效（T=50）', fixedT === 50, 'got ' + fixedT);
+check('getAllProfiles 返回当前常模信息', allFixed.norm && allFixed.norm.name === 'mock-fixed', JSON.stringify(allFixed.norm));
+MCCB.setNorm('internal');
+// 切回后应恢复「相对排名」→ 各被试 speed T 分不再全部等 50（内部排名会拉开差异）
+const back = MCCB.getAllProfiles();
+const backTS = back.profiles.map(p => p.domains.speed_processing.tScore);
+const varied = new Set(backTS).size > 1;
+check('切回 internal 后恢复相对排名（T 分有差异）', varied, 'T 分=' + backTS.join(','));
+
+console.log('\n=== 6. 常模错误处理 ===');
+let threw = false;
+try { MCCB.setNorm('not-exist'); } catch (e) { threw = true; }
+check('setNorm 未知常模抛错', threw);
+let threwReg = false;
+try { MCCB.registerNorm({ name: 'bad' }); } catch (e) { threwReg = true; }
+check('registerNorm 缺 apply 抛错', threwReg);
+
 console.log(`\n=== 结果: ${pass} 通过 / ${fail} 失败 ===`);
 process.exit(fail === 0 ? 0 : 1);
