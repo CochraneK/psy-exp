@@ -52,14 +52,19 @@ jobs:
           test -f task-manifest.json
           test -f docs/README.md
           test -f docs/HISTORY_PURGE.md
+          test -f docs/UI_UX_V2.md
           grep -q "认知任务研究工作台" index.html
           grep -q "Researcher console" index.html
+          grep -q "participant-runner.html" index.html
           grep -q "Participant session" participant-runner.html
+          grep -q "timerJitter" participant-runner.html
           grep -q "research-app" research-ui.css
           grep -q "overflow:auto" research-ui.css
           grep -q "MIN_REFERENCE_N=5" research-report.html
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
           grep -q "导出 CSV" research-comparison.html
+          grep -q "protocol_time_limit_reached_incomplete" pages/mccb-tmt.html
+          ! grep -q "timing_violation.*tmt_part_.*time_limit" pages/mccb-tmt.html
           ! grep -q "MCCB 认知成套测验" index.html
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
