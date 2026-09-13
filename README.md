@@ -1,6 +1,6 @@
 # psy-exp — MCCB-related cognitive research prototype
 
-`psy-exp` 是一个用于**浏览器认知任务研究、实验流程自动化、session QC、原始数据导出与研究管线验证**的纯前端项目。
+`psy-exp` 是一个用于**浏览器认知任务研究、实验流程自动化、session QC、原始数据导出与研究管线验证**的纯前端研究原型。
 
 > [!WARNING]
 > **这不是经验证的 MCCB 临床等效实现，也不是官方 MCCB scoring software。**
@@ -8,11 +8,25 @@
 
 在线演示：<https://cochranek.github.io/psy-exp/>
 
+## 当前产品结构
+
+项目把研究者与参与者界面分开：
+
+- `index.html` — **Researcher Console**：参与者管理、QC 概览、任务检查/重测、报告与数据导出。
+- `participant-runner.html` — **Participant Runner**：固定 USER mode 的参与者施测入口、任务进度、下一任务与设备/软件预检。
+- `research-report.html` — 单参与者 raw metrics + QC + protocol-compatible research rank。
+- `research-comparison.html` — 多参与者、按 reference group 隔离的研究对比与 CSV 导出。
+- `pages/` — 10 个具体研究任务。
+
+Researcher Console / 报告使用 `research-ui.css` 的长页面应用 shell；实验任务继续使用 `mccb-common.css` 的全屏任务 shell。两者故意分离，避免管理/报告页面被实验页的 `100vh + overflow:hidden` 布局截断。
+
+详见 [`docs/UI_UX_V2.md`](docs/UI_UX_V2.md)。
+
 ## 当前安全边界
 
-项目现在把四件事明确分开：
+项目明确区分四件事：
 
-1. **软件是否按代码运行**：由 CI、语法测试、driver 校验和数据契约测试覆盖。
+1. **软件是否按代码运行**：由静态契约、Node 测试与真实 Chromium smoke test 覆盖。
 2. **一次 session 是否可用于研究分析**：由 `valid / interrupted / aborted / timing_violation / technical_failure / unverified` QC 状态控制。
 3. **不同结果能否放在同一研究参考组比较**：默认只比较相同 task version / protocol / material-or-scoring signature 的 QC-valid 结果。
 4. **是否具有 MCCB 心理测量等效性**：当前全部为 `false`；必须通过独立实证验证才能改变。
@@ -48,11 +62,29 @@ python -m http.server 8000 --bind 127.0.0.1
 http://127.0.0.1:8000/
 ```
 
-首次访问默认是 **USER mode**；DEV mode 必须显式开启。直接访问任务页但没有 `mode` 参数时，也会自动进入 USER mode。
+首次访问默认是 **USER mode**。研究者可在 Console 的高级区域显式选择 DEV mode 做单项调试；Participant Runner 始终使用 USER mode。
+
+## Participant Runner 与预检
+
+Runner 在正式进入任务前记录一个本地 preflight snapshot，包括：
+
+- localStorage 是否可写；
+- `performance.now()` 是否可用；
+- 短时 timer-jitter 快测（p95 / max drift）；
+- 页面 visibility；
+- viewport / DPR / screen；
+- secure context；
+- 浏览器暴露的 hardware concurrency / touch metadata；
+- reduced-motion preference；
+- user agent / language。
+
+这些字段用于发现明显的软件/设备风险，**不是跨设备 timing equivalence 证据**。正式研究还应根据最小化原则审查哪些设备字段确有必要保存。
+
+计时任务中切换标签页、锁屏或导致页面不可见，会进入对应 session QC 流程。TMT 达到协议时间上限但未完成时标记为 `aborted / protocol_time_limit_reached_incomplete`，不再错误归类成设备 `timing_violation`。
 
 ## 私有材料
 
-公开仓库不再分发标准词表、正式情绪管理题目、答案键、共识权重或操作者表格。需要授权材料的任务通过本地文件注入：
+公开仓库不分发标准词表、正式情绪管理题目、答案键、共识权重或操作者表格。需要授权材料的任务通过本地文件注入：
 
 ```text
 private/stimuli.js
@@ -65,8 +97,6 @@ HVLT 结果只保存材料 ID / version / fingerprint 与回忆计数；MSCEIT s
 ## 数据模型与 Session QC
 
 公共 runtime：`mccb-participant.js`
-
-当前版本：
 
 ```text
 runtime: research-runtime-0.4.0
@@ -86,23 +116,11 @@ sessions        session QC snapshot
 progress        当前任务状态
 ```
 
-这意味着：一次 valid retest 可以成为 canonical result，但此前 interrupted/timing-violation 记录不会被抹掉；之后发生 invalid retest，也不会覆盖已有 valid canonical result。
-
-页面隐藏会把正在运行的 session 标记为 `interrupted`；未完成页面被卸载时标记为 `aborted`。invalid / unverified 结果可以审计，但默认不能进入 cohort ranking 或 validated norm adapter。
+valid retest 可以成为 canonical result，但此前 interrupted / timing-violation 记录不会被抹掉；之后发生 invalid retest，也不会覆盖已有 valid canonical result。
 
 ## Timing
 
-`ExperimentRuntime.deadline()` 使用绝对单调 deadline，而不是相信 callback 恰好准时触发：
-
-```js
-ExperimentRuntime.deadline(durationMs, {
-  testKey: 'bacs',
-  label: 'formal_window',
-  tickMs: 100,
-  onTick,
-  onDone
-})
-```
+`ExperimentRuntime.deadline()` 使用绝对单调 deadline，而不是相信 callback 恰好准时触发。
 
 当前策略：
 
@@ -110,19 +128,11 @@ ExperimentRuntime.deadline(durationMs, {
 - CPT：absolute trial schedule + trial-level scheduled/actual onset、onset error、actual duration、RT
 - TMT / Mazes / MSCEIT shell：monotonic elapsed
 
-严重 timing drift 可把 session 标为 `timing_violation`。这提高研究数据可审计性，但**不等于已经证明跨设备/浏览器 timing equivalence**。
+严重 callback/timing drift 可把 session 标为 `timing_violation`。这提高研究数据可审计性，但**不等于已经证明跨设备/浏览器 timing equivalence**。
 
 ## Research-safe scoring
 
-`mccb-scoring.js` 当前版本：
-
-```text
-research-scoring-0.4.0
-```
-
-默认 `internal` scoring 不再使用 `/110`、`/50`、`/24`、`/36` 等人为固定分母拼接任务，也不把项目内部排名伪装成 T 分。
-
-流程是：
+`mccb-scoring.js` 当前默认 scoring 不使用人为固定分母拼接任务，也不把项目内部排名伪装成 T 分。
 
 ```text
 QC-valid result
@@ -132,6 +142,16 @@ QC-valid result
 ```
 
 只有同时具备该认知域全部必要任务、且协议签名一致的参与者才进入该域参考组。每个域结果记录 `referenceN` 与 `referenceKey`。
+
+### UI 小样本防误读
+
+scoring engine 会保留兼容组内排名结果，但报告 UI 额外设置展示 guardrail：
+
+- `reference N < 5`：不展示 0–100 rank 数字；
+- `reference N = 5–9`：标记为探索性 / 对样本组成敏感；
+- `reference N >= 10`：正常展示，但仍明确是项目内 research rank，不是临床 percentile。
+
+这个 N 门槛只是**界面 anti-false-precision 规则**，不是经验证的统计学或心理测量样本量阈值。
 
 ### Fluency 特殊门槛
 
@@ -146,22 +166,13 @@ QC-valid result
 - `supportsTask(testKey, task)`
 - `apply(profiles, domains)`
 
-adapter 只会收到 QC-valid 且由 `supportsTask()` 明确接受的任务。只有 validated adapter 输出完整七域 T-score 时，工程层才允许生成 composite。
+adapter 只会收到 QC-valid 且由 `supportsTask()` 明确接受的任务。只有 validated adapter 输出完整七域 T-score 时，工程层才允许生成 composite。这些字段只是软件安全门，不构成心理测量验证证据。
 
-这些字段只是**软件安全门**，并不构成心理测量验证证据。
+## CI / 自动化验证
 
-## 报告
+CI 当前包含三层：
 
-推荐使用：
-
-- `research-report.html`：单被试 raw metrics + QC + protocol-compatible research rank
-- `research-comparison.html`：多被试 QC-aware comparison
-
-旧 `comprehensive-report.html` / `comparison-report.html` 会转到研究安全页面。首页旧的 0–100 启发式“标准化”图表已停用。
-
-## CI
-
-CI 当前检查：
+### 1. 静态与数据契约
 
 ```bash
 node --check mccb-scoring.js
@@ -171,24 +182,47 @@ node tests/verify-participant.cjs
 node tests/verify-scoring.cjs
 node tests/verify-manifest.cjs
 node tests/validate-drivers.cjs
-python -m py_compile tests/cpt_report.py
 ```
 
-此外还有硬 guard，防止：
+### 2. UI / accessibility contract
 
-- research index 被重新标成 MCCB T-score
-- arbitrary fixed-denominator scaling 重新进入 scoring
-- TMT Part B 泄漏进 MCCB-related processing-speed logic
-- invalid / unverified session 进入默认 scoring
-- 未经人工语义核验的 Fluency 进入 scoring
-- 公共树重新出现已移除的操作者表格或公开 HVLT word list
-- manifest / runtime / scoring metadata 漂移
+```bash
+node tests/verify-ui.cjs
+```
+
+该检查覆盖所有 10 个任务的 viewport/lang 基线，并禁止重新加入 `user-scalable=no` / `maximum-scale=1`；同时检查 Researcher Console / Runner / 报告的关键 UI 安全边界。
+
+### 3. 真实 Chromium smoke
+
+```bash
+node tests/browser-smoke.cjs
+```
+
+该脚本不依赖 Playwright/Selenium：在 GitHub runner 上启动本地 HTTP server 和预装 Chromium/Chrome，通过 Chrome DevTools Protocol 实际执行页面 JavaScript，验证 Console、Runner、单人报告、对比页及 USER-mode 任务返回流程。
+
+这仍然是 smoke test，不是完整视觉回归或设备 timing validation。
+
+CI 还包含 fail-closed guard，防止：
+
+- research index 被重新标成 MCCB T-score；
+- arbitrary fixed-denominator scaling 重新进入 scoring；
+- TMT Part B 泄漏进 processing-speed logic；
+- invalid / unverified session 进入默认 scoring；
+- 未经人工语义核验的 Fluency 进入 scoring；
+- 公共树重新出现操作者表格或公开 HVLT word list；
+- Windows/本机绝对路径和旧 browser harness 回归；
+- 任务页重新禁止浏览器缩放；
+- manifest / runtime / scoring metadata 漂移。
+
+旧的机器绑定 `tests/cpt_report.py` 已移除；它不属于当前自定义 CPT 浏览器协议，也不再作为 CI 的 Python 特例存在。
 
 ## 项目结构
 
 ```text
 psy-exp/
 ├── index.html
+├── participant-runner.html
+├── research-ui.css
 ├── mccb-participant.js
 ├── mccb-scoring.js
 ├── task-manifest.json
@@ -203,15 +237,16 @@ psy-exp/
 
 ## 仍然不能声称的事情
 
-即使所有 CI 通过，也不能据此声称：
+即使所有 CI 和 Chromium smoke 都通过，也不能据此声称：
 
-- 与标准 MCCB 数字等效
-- 可使用 MCCB 官方常模解释
-- 可用于临床诊断或“正常/异常”判断
-- 合成刺激任务等同于其对应版权测验
-- GitHub Pages / localStorage 满足正式临床数据治理要求
+- 与标准 MCCB 数字等效；
+- 可使用 MCCB 官方常模解释；
+- 可用于临床诊断或“正常/异常”判断；
+- 合成刺激任务等同于其对应版权测验；
+- GitHub Pages / localStorage 满足正式临床数据治理要求；
+- 一台 CI 虚拟机上的浏览器 smoke 等同于真实目标设备的 timing conformance。
 
-要进入 validated mode，需要独立完成目标设备/浏览器 timing conformance、施测流程一致性研究、重测/信度/效度研究、常模与授权审查，并冻结 task/material/scoring 版本。
+进入 validated mode 仍需要独立完成目标设备/浏览器矩阵、timing conformance、施测流程一致性、重测/信度/效度、常模与授权审查，并冻结 task/material/scoring 版本。
 
 ## Test security / Git 历史
 
