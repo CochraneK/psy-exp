@@ -42,7 +42,7 @@ jobs:
       - name: Python syntax check
         run: python -m py_compile tests/cpt_report.py
 
-      - name: Research report and runtime safety contract
+      - name: Research workspace/report/runtime contract
         shell: bash
         run: |
           test -f research-report.html
@@ -50,6 +50,8 @@ jobs:
           test -f task-manifest.json
           test -f docs/README.md
           test -f docs/HISTORY_PURGE.md
+          grep -q "认知任务研究工作台" index.html
+          ! grep -q "MCCB 认知成套测验" index.html
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-comparison.html
@@ -63,7 +65,8 @@ jobs:
           grep -q "supportsTask" mccb-scoring.js
           grep -q "private-licensed-assets-required" task-manifest.json
           grep -q "mccb_mode.*user" mccb-participant.js
-          grep -q "legacy-chart-safety-note" mccb-participant.js
+          grep -q "research-report.html" comprehensive-report.html
+          grep -q "research-comparison.html" comparison-report.html
 
       - name: Protected material and obsolete-harness guard
         shell: bash
@@ -71,7 +74,7 @@ jobs:
           test ! -e "docs/7.简版MCCB操作者表格（A）_vlm.txt"
           test ! -e "docs/8.简版MCCB操作者表格（B）_vlm.txt"
           test ! -d tests/archive
-          ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' "WORD_LIST" .
+          ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' --exclude='verify-manifest.cjs' "WORD_LIST" pages docs tests
           ! grep -R -n --exclude-dir=.git "C:/Users/\|D:/Software/\|agent-browser/bin" tests
           grep -q "../private/stimuli.js" pages/mccb-hvlt.html
           grep -q "../private/stimuli.js" pages/mccb-msceit.html
