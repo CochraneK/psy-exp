@@ -54,7 +54,7 @@ jobs:
       - name: Python syntax check
         run: python -m py_compile tests/cpt_report.py
 
-      - name: Research report safety contract
+      - name: Research report and runtime safety contract
         shell: bash
         run: |
           test -f research-report.html
@@ -64,11 +64,12 @@ jobs:
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-comparison.html
-          grep -q "completed_invalid" mccb-participant.js
+          grep -q "attemptHistory" mccb-participant.js
           grep -q "eligibleForResearchScoring" mccb-scoring.js
+          grep -q "semantic_review_required" mccb-scoring.js
           grep -q "RUNTIME_VERSION" mccb-participant.js
           grep -q "TASK_TIMING_POLICY" mccb-participant.js
-          grep -q "validated norm 必须声明 version 和 provenance" mccb-scoring.js
+          grep -q "supportsTask" mccb-scoring.js
           grep -q "private-licensed-assets-required" task-manifest.json
           grep -q "mccb_mode.*user" mccb-participant.js
           grep -q "legacy-chart-safety-note" mccb-participant.js
@@ -79,11 +80,19 @@ jobs:
           test ! -e "docs/7.简版MCCB操作者表格（A）_vlm.txt"
           test ! -e "docs/8.简版MCCB操作者表格（B）_vlm.txt"
           ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' "WORD_LIST" pages docs
+          grep -q "../private/stimuli.js" pages/mccb-hvlt.html
+          grep -q "../private/stimuli.js" pages/mccb-msceit.html
 
-      - name: Guard against accidental research-T-score regression
+      - name: Guard against accidental pseudo-standardization regression
         shell: bash
         run: |
           if grep -n "百分位数.*T 分\|近似 T 分转换" mccb-scoring.js; then
             echo "Research scoring must not be relabeled as a T-score conversion."
             exit 1
           fi
+          if grep -nE '/(110|50|24|36)([^0-9]|$)' mccb-scoring.js; then
+            echo "Research domain scoring must not reintroduce arbitrary fixed-denominator scaling."
+            exit 1
+          fi
+          grep -q "research-cohort-rank-index" mccb-scoring.js
+          grep -q "protocolSignature" mccb-scoring.js
