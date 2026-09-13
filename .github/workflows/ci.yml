@@ -50,10 +50,14 @@ jobs:
         shell: bash
         run: |
           test -f research-report.html
+          test -f research-comparison.html
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
+          grep -q "未应用经验证的 MCCB 常模" research-comparison.html
           grep -q "completed_invalid" mccb-participant.js
           grep -q "eligibleForResearchScoring" mccb-scoring.js
+          grep -q "mccb_mode.*user" mccb-participant.js
+          grep -q "legacy-chart-safety-note" mccb-participant.js
 
       - name: Guard against accidental research-T-score regression
         shell: bash
