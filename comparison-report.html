@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCCB 多被试对比报告</title>
+<link rel="stylesheet" href="mccb-common.css">
+<style>
+  /* ===== 页面布局 ===== */
+  body { margin:0; background:var(--bg-page,#f0f2f5); min-height:100vh; }
+  #app { max-width:1400px; margin:0 auto; padding:24px; }
+
+  /* ===== 顶部栏 ===== */
+  .header {
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    background:var(--bg-card,#fff); border-radius:var(--radius-lg,12px);
+    padding:16px 24px; box-shadow:var(--shadow-sm); margin-bottom:24px;
+  }
+  .header h1 {
+    margin:0; font-size:22px; color:var(--text-primary,#1a1a2e); flex:1;
+  }
+  .header h1 small {
+    font-size:14px; font-weight:400; color:var(--text-muted,#94a3b8); margin-left:8px;
+  }
+  .header .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .header button {
+    padding:8px 18px; border:none; border-radius:var(--radius-md,8px);
+    font-size:14px; cursor:pointer; transition:background .2s;
+  }
+  .btn-primary {
+    background:var(--accent-blue,#3b82f6); color:var(--text-on-accent,#fff);
+  }
+  .btn-primary:hover { background:var(--accent-blue-hover,#2563eb); }
+  .btn-outline {
+    background:transparent; color:var(--text-primary);
+    border:2px solid var(--border-light,#e2e8f0);
+  }
+  .btn-outline:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
+  .btn-sm { padding:6px 14px; font-size:13px; }
+  .btn-success {
+    background:var(--color-success-text,#16a34a); color:var(--text-on-accent,#fff);
+  }
+  .btn-success:hover { background:var(--color-success-hover,#15803d); }
+  .btn-warning {
+    background:var(--color-warning-text,#d97706); color:var(--text-on-accent,#fff);
+  }
+  .btn-warning:hover { background:var(--color-warning-hover,#b45309); }
+
+  /* ===== 空状态 ===== */
+  .empty-state {
+    text-align:center; padding:80px 24px; color:var(--text-muted,#94a3b8);
+  }
+  .empty-state .icon { font-size:64px; margin-bottom:16px; }
+  .empty-state h2 { color:var(--text-secondary,#64748b); margin:0 0 8px; }
+
+  /* ===== 被试选择区 ===== */
+  .selection-section {
+    background:var(--bg-card,#fff); border-radius:var(--radius-lg,12px);
+    padding:20px 24px; box-shadow:var(--shadow-sm); margin-bottom:20px;
+  }
+  .selection-section h2 {
+    margin:0 0 12px; font-size:16px; color:var(--text-primary);
+  }
+  .participant-grid {
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;
+  }
+  .participant-chip {
+    display:flex; align-items:center; gap:6px;
+    padding:6px 12px; border:2px solid var(--border-light,#e2e8f0);
+    border-radius:var(--radius-pill,999px); cursor:pointer;
+    font-size:13px; transition:all .2s; user-select:none;
+    background:var(--bg-input,#fff); color:var(--text-primary);
+  }
+  .participant-chip:hover { border-color:var(--accent-blue); }
+  .participant-chip.selected {
+    border-color:var(--accent-blue); background:var(--accent-blue,#3b82f6);
+    color:var(--text-on-accent,#fff);
+  }
+  .participant-chip input[type="checkbox"] { display:none; }
+  .chip-count { font-size:13px; color:var(--text-muted); }
+
+  /* ===== 双列布局 ===== */
+  .comparison-layout {
+    display:grid; grid-template-columns:1fr 1fr; gap:20px;
+  }
+  @media (max-width:1024px) {
+    .comparison-layout { grid-template-columns:1fr; }
+  }
+
+  /* ===== 雷达图 ===== */
+  .chart-section {
+    background:var(--bg-card,#fff); border-radius:var(--radius-lg,12px);
+    padding:24px; box-shadow:var(--shadow-sm); margin-bottom:20px;
+  }
+  .chart-section h2 {
+    margin:0 0 16px; font-size:18px; color:var(--text-primary);
+  }
+  #comparisonRadar {
+    display:block; margin:0 auto; max-width:600px; width:100%;
+  }
+  .radar-legend {
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+    margin-top:12px;
+  }
+  .legend-item {
+    display:flex; align-items:center; gap:4px;
+    font-size:12px; color:var(--text-secondary);
+  }
+  .legend-swatch {
+    width:12px; height:12px; border-radius:3px; display:inline-block;
+  }
+
+  /* ===== 对比表 ===== */
+  .table-section {
+    background:var(--bg-card,#fff); border-radius:var(--radius-lg,12px);
+    padding:24px; box-shadow:var(--shadow-sm); margin-bottom:20px;
+    overflow-x:auto;
+  }
+  .table-section h2 {
+    margin:0 0 16px; font-size:18px; color:var(--text-primary);
+  }
+  .comp-table {
+    width:100%; border-collapse:collapse; font-size:13px;
+    white-space:nowrap;
+  }
+  .comp-table th {
+    text-align:center; padding:8px 10px; font-weight:600;
+    color:var(--text-primary); border-bottom:2px solid var(--border-light,#e2e8f0);
+    position:sticky; top:0; background:var(--bg-card,#fff);
+  }
+  .comp-table th:first-child { text-align:left; }
+  .comp-table td {
+    text-align:center; padding:7px 10px;
+    color:var(--text-body,#475569); border-bottom:1px solid var(--border-light,#e2e8f0);
+  }
+  .comp-table td:first-child {
+    text-align:left; font-weight:600; color:var(--text-primary);
+  }
+  .comp-table tr:hover td { background:var(--bg-inst,#f5f3ff); }
+  .comp-table .stats-row { font-weight:600; border-top:2px solid var(--text-muted,#94a3b8); }
+  .comp-table .stats-row td { padding-top:10px; }
+
+  /* ===== T 分单元格着色 ===== */
+  .t-cell {
+    display:inline-block; min-width:32px; padding:2px 6px;
+    border-radius:var(--radius-sm,4px); font-weight:600;
+  }
+  .t-high { background:#dcfce7; color:#166534; }     /* ≥60 */
+  .t-ok   { background:#fef9c3; color:#854d0e; }     /* 40-59 */
+  .t-low  { background:#fee2e2; color:#991b1b; }     /* <40 */
+  .t-verylow { background:#fecaca; color:#7f1d1d; }  /* <30 */
+
+  /* ===== 统计摘要 ===== */
+  .stats-summary {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:12px; margin-top:16px;
+  }
+  .stat-card {
+    border:1px solid var(--border-light,#e2e8f0); border-radius:var(--radius-md,8px);
+    padding:12px 16px; text-align:center;
+  }
+  .stat-card .stat-label {
+    font-size:12px; color:var(--text-muted,#94a3b8); margin-bottom:4px;
+  }
+  .stat-card .stat-value {
+    font-size:22px; font-weight:700; color:var(--text-primary);
+  }
+  .stat-card .stat-detail {
+    font-size:11px; color:var(--text-muted,#94a3b8); margin-top:2px;
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width:768px) {
+    #app { padding:12px; }
+    .header { flex-direction:column; align-items:stretch; }
+    .header .actions { justify-content:flex-end; }
+    .comp-table { font-size:12px; }
+    .comp-table th, .comp-table td { padding:5px 6px; }
+  }
+
+  /* ===== 打印 ===== */
+  @media print {
+    .header .actions, .selection-section { display:none; }
+    body { background:#fff; }
+    #app { max-width:100%; padding:0; }
+    .chart-section, .table-section { box-shadow:none; break-inside:avoid; }
+    .comparison-layout { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ===== 顶部栏 ===== -->
+  <div class="header">
+    <h1>📊 MCCB 多被试对比 <small id="reportCount"></small></h1>
+    <div class="actions">
+      <button class="btn-outline btn-sm" onclick="selectAll()">✅ 全选</button>
+      <button class="btn-outline btn-sm" onclick="clearAll()">✖ 清空</button>
+      <button class="btn-primary btn-sm" onclick="exportCSV()">📥 CSV</button>
+      <button class="btn-success btn-sm" onclick="window.print()">📄 打印</button>
+      <button class="btn-outline btn-sm" onclick="window.location.href='index.html'">🏠 首页</button>
+    </div>
+  </div>
+
+  <!-- ===== 空状态 ===== -->
+  <div class="empty-state" id="emptyState">
+    <div class="icon">📊</div>
+    <h2>暂无被试数据</h2>
+    <p>请先在首页添加被试并完成至少一项测验后，再来查看对比报告。</p>
+    <button class="btn-primary" onclick="window.location.href='index.html'">前往首页</button>
+  </div>
+
+  <!-- ===== 主内容 ===== -->
+  <div id="mainContent" style="display:none">
+
+    <!-- 被试选择 -->
+    <div class="selection-section">
+      <h2>选择被试 <span class="chip-count" id="chipCount">(0 人已选)</span></h2>
+      <div class="participant-grid" id="participantGrid"></div>
+    </div>
+
+    <!-- 双列布局 -->
+    <div class="comparison-layout">
+      <!-- 雷达图 -->
+      <div class="chart-section">
+        <h2>认知域轮廓叠加</h2>
+        <canvas id="comparisonRadar" width="600" height="600"></canvas>
+        <div class="radar-legend" id="radarLegend"></div>
+      </div>
+
+      <!-- 对比表格 -->
+      <div class="table-section">
+        <h2>域 T 分对比</h2>
+        <table class="comp-table">
+          <thead><tr id="compTableHead"><th>认知域</th></tr></thead>
+          <tbody id="compTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 统计摘要 -->
+    <div class="table-section">
+      <h2>组统计摘要</h2>
+      <div class="stats-summary" id="statsSummary"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 依赖 ===== -->
+<script src="mccb-participant.js"></script>
+<script src="mccb-scoring.js"></script>
+
+<script>
+  // ============================
+  // 状态
+  // ============================
+  let allProfiles = [];
+  let selectedIds = new Set();
+  const COLORS = ['#3b82f6','#ef4444','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16'];
+
+  // ============================
+  // 被试选择
+  // ============================
+  function refreshList() {
+    const data = MCCBScoring.getAllProfiles();
+    allProfiles = data.profiles;
+    document.getElementById('reportCount').textContent = `(${allProfiles.length} 人)`;
+
+    if (allProfiles.length === 0) {
+      document.getElementById('emptyState').style.display = 'block';
+      document.getElementById('mainContent').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+
+    const grid = document.getElementById('participantGrid');
+    grid.innerHTML = '';
+    selectedIds = new Set();
+
+    for (const p of allProfiles) {
+      const testsDone = Object.keys(p.tests).length;
+      const chip = document.createElement('div');
+      chip.className = 'participant-chip';
+      chip.dataset.pid = p.id;
+      chip.textContent = `${p.id} (${testsDone}/10)`;
+      chip.onclick = () => toggleParticipant(p.id);
+      grid.appendChild(chip);
+    }
+
+    // 默认选中所有
+    allProfiles.forEach(p => selectedIds.add(p.id));
+    updateChips();
+    updateComparison();
+  }
+
+  function toggleParticipant(pid) {
+    if (selectedIds.has(pid)) selectedIds.delete(pid);
+    else selectedIds.add(pid);
+    updateChips();
+    updateComparison();
+  }
+
+  function selectAll() {
+    allProfiles.forEach(p => selectedIds.add(p.id));
+    updateChips();
+    updateComparison();
+  }
+
+  function clearAll() {
+    selectedIds.clear();
+    updateChips();
+    updateComparison();
+  }
+
+  function updateChips() {
+    document.querySelectorAll('.participant-chip').forEach(chip => {
+      chip.classList.toggle('selected', selectedIds.has(chip.dataset.pid));
+    });
+    document.getElementById('chipCount').textContent = `(${selectedIds.size} 人已选)`;
+  }
+
+  // ============================
+  // 雷达图叠加
+  // ============================
+  function drawComparisonRadar() {
+    const canvas = document.getElementById('comparisonRadar');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const CX = W / 2, CY = H / 2;
+    const R = Math.min(W, H) * 0.35;
+
+    const { devicePixelRatio: dpr = 1 } = window;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    // 获取选中被试的域数据
+    const selectedProfiles = allProfiles.filter(p => selectedIds.has(p.id));
+    if (selectedProfiles.length === 0) return;
+
+    // 用第一个有完整数据的被试确定域列表
+    let domainKeys = [];
+    for (const p of selectedProfiles) {
+      const summary = MCCBScoring.getDomainSummary(p);
+      if (summary.length > 0) { domainKeys = summary.map(d => d.label); break; }
+    }
+    if (domainKeys.length === 0) return;
+
+    const N = domainKeys.length;
+    const getAngle = (i) => -Math.PI / 2 + (2 * Math.PI * i) / N;
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const T_MIN = 20, T_MAX = 80;
+    const levels = [20, 30, 40, 50, 60, 70, 80];
+
+    // --- 同心环 ---
+    for (const lv of levels) {
+      const r = R * (lv - T_MIN) / (T_MAX - T_MIN);
+      ctx.beginPath();
+      for (let i = 0; i <= N; i++) {
+        const angle = getAngle(i % N);
+        const x = CX + r * Math.cos(angle);
+        const y = CY + r * Math.sin(angle);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = gridColor;
+      ctx.lineWidth = lv === 50 ? 1.5 : 1;
+      ctx.stroke();
+      // 外圈标签
+      if (lv === 80) {
+        ctx.fillStyle = textColor;
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(lv + 'T', CX + r + 20, CY + 4);
+      }
+    }
+
+    // --- 轴线 + 标签 ---
+    for (let i = 0; i < N; i++) {
+      const angle = getAngle(i);
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.lineTo(CX + R * Math.cos(angle), CY + R * Math.sin(angle));
+      ctx.strokeStyle = gridColor;
+      ctx.stroke();
+
+      const lx = CX + (R + 42) * Math.cos(angle);
+      const ly = CY + (R + 42) * Math.sin(angle);
+      ctx.fillStyle = textColor;
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = angle > Math.PI / 2 - 0.3 && angle < Math.PI * 1.5 - 0.3 ? 'right'
+        : angle < -Math.PI / 2 + 0.3 ? 'left' : 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(domainKeys[i], lx, ly);
+    }
+
+    // 中心 50T
+    ctx.fillStyle = textColor;
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('50T', CX, CY + 3);
+
+    // --- 每位被试的数据多边形 ---
+    selectedProfiles.forEach((p, idx) => {
+      const summary = MCCBScoring.getDomainSummary(p);
+      const color = COLORS[idx % COLORS.length];
+
+      const tValues = domainKeys.map(label => {
+        const d = summary.find(s => s.label === label);
+        return d ? d.tScore : null;
+      });
+
+      // 描边
+      ctx.beginPath();
+      let hasData = false;
+      for (let i = 0; i < N; i++) {
+        const t = tValues[i];
+        if (t == null) continue;
+        const r = R * (Math.max(T_MIN, Math.min(T_MAX, t)) - T_MIN) / (T_MAX - T_MIN);
+        const angle = getAngle(i);
+        const x = CX + r * Math.cos(angle);
+        const y = CY + r * Math.sin(angle);
+        if (!hasData) { ctx.moveTo(x, y); hasData = true; }
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.7;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // 轻微填充
+      ctx.beginPath();
+      hasData = false;
+      for (let i = 0; i < N; i++) {
+        const t = tValues[i];
+        if (t == null) continue;
+        const r = R * (Math.max(T_MIN, Math.min(T_MAX, t)) - T_MIN) / (T_MAX - T_MIN);
+        const angle = getAngle(i);
+        const x = CX + r * Math.cos(angle);
+        const y = CY + r * Math.sin(angle);
+        if (!hasData) { ctx.moveTo(x, y); hasData = true; }
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.08;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // 数据点（仅第一个被试带大点）
+      if (idx === 0) {
+        for (let i = 0; i < N; i++) {
+          const t = tValues[i];
+          if (t == null) continue;
+          const r = R * (Math.max(T_MIN, Math.min(T_MAX, t)) - T_MIN) / (T_MAX - T_MIN);
+          const angle = getAngle(i);
+          const x = CX + r * Math.cos(angle);
+          const y = CY + r * Math.sin(angle);
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+    });
+
+    // 图例
+    const legendEl = document.getElementById('radarLegend');
+    legendEl.innerHTML = selectedProfiles.map((p, idx) =>
+      `<div class="legend-item">
+        <span class="legend-swatch" style="background:${COLORS[idx % COLORS.length]}"></span>
+        ${p.id}
+      </div>`
+    ).join('');
+  }
+
+  // ============================
+  // 对比表
+  // ============================
+  function renderComparisonTable() {
+    const selected = allProfiles.filter(p => selectedIds.has(p.id));
+    if (selected.length === 0) {
+      document.getElementById('compTableHead').innerHTML = '<th>认知域</th>';
+      document.getElementById('compTableBody').innerHTML = '';
+      document.getElementById('statsSummary').innerHTML = '';
+      return;
+    }
+
+    // 构建域列表
+    let domains = [];
+    for (const p of selected) {
+      const summary = MCCBScoring.getDomainSummary(p);
+      if (summary.length > 0) { domains = summary.map(d => ({ label: d.label, labelEn: d.labelEn, color: d.color })); break; }
+    }
+
+    // 表头
+    const headRow = document.getElementById('compTableHead');
+    headRow.innerHTML = '<th>认知域</th>' + selected.map(p => `<th>${p.id}</th>`).join('') + '<th>均值</th><th>SD</th>';
+
+    // 表体
+    const body = document.getElementById('compTableBody');
+    let rows = '';
+    for (const d of domains) {
+      const tScores = selected.map(p => {
+        const summary = MCCBScoring.getDomainSummary(p);
+        const found = summary.find(s => s.label === d.label);
+        return found ? found.tScore : null;
+      });
+
+      const valid = tScores.filter(t => t != null);
+      const mean = valid.length > 0 ? (valid.reduce((a, b) => a + b, 0) / valid.length) : null;
+      const sd = valid.length > 1 ? Math.sqrt(valid.reduce((sum, t) => sum + (t - mean) ** 2, 0) / valid.length) : null;
+
+      const tCells = tScores.map(t => {
+        if (t == null) return '<td>—</td>';
+        let cls = 't-ok';
+        if (t >= 60) cls = 't-high';
+        else if (t < 30) cls = 't-verylow';
+        else if (t < 40) cls = 't-low';
+        return `<td><span class="t-cell ${cls}">${t}</span></td>`;
+      }).join('');
+
+      rows += `<tr>
+        <td><span style="color:${d.color}">●</span> ${d.label}</td>
+        ${tCells}
+        <td><strong>${mean != null ? mean.toFixed(1) : '—'}</strong></td>
+        <td>${sd != null ? sd.toFixed(1) : '—'}</td>
+      </tr>`;
+    }
+    body.innerHTML = rows;
+
+    // 统计摘要卡片
+    renderStatsSummary(selected, domains);
+  }
+
+  function renderStatsSummary(selected, domains) {
+    const summary = document.getElementById('statsSummary');
+    const allScores = [];
+    for (const p of selected) {
+      const s = MCCBScoring.getDomainSummary(p);
+      s.forEach(d => { if (d.tScore != null) allScores.push(d.tScore); });
+    }
+    const n = selected.length;
+    const domainCount = domains.length;
+    const mean = allScores.length > 0 ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(1) : '—';
+    const min = allScores.length > 0 ? Math.min(...allScores) : '—';
+    const max = allScores.length > 0 ? Math.max(...allScores) : '—';
+
+    // 综合 T 分统计
+    const compositeScores = selected.map(p => p.composite).filter(c => c != null);
+    const compMean = compositeScores.length > 0 ? (compositeScores.reduce((a, b) => a + b, 0) / compositeScores.length).toFixed(1) : '—';
+
+    summary.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">被试数</div>
+        <div class="stat-value">${n}</div>
+        <div class="stat-detail">已选 / 总计 ${allProfiles.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">全域 T 分均值</div>
+        <div class="stat-value">${mean}</div>
+        <div class="stat-detail">${allScores.length} 个域分数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">综合 T 分均值</div>
+        <div class="stat-value">${compMean}</div>
+        <div class="stat-detail">${compositeScores.length} 人</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">T 分范围</div>
+        <div class="stat-value">${min} – ${max}</div>
+        <div class="stat-detail">最低 - 最高</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">认知域覆盖</div>
+        <div class="stat-value">${domainCount}/7</div>
+        <div class="stat-detail">${domains.map(d => d.label).join(' · ')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">测验完成率</div>
+        <div class="stat-value">${selected.reduce((sum, p) => sum + Object.keys(p.tests).length, 0)}/${n * 10}</div>
+        <div class="stat-detail">总计 / 最大可能</div>
+      </div>
+    `;
+  }
+
+  // ============================
+  // CSV 导出
+  // ============================
+  function exportCSV() {
+    const selected = allProfiles.filter(p => selectedIds.has(p.id));
+    if (selected.length === 0) { alert('请先选择被试'); return; }
+
+    let domains = [];
+    for (const p of selected) {
+      const summary = MCCBScoring.getDomainSummary(p);
+      if (summary.length > 0) { domains = summary.map(d => d.label); break; }
+    }
+
+    let csv = '\uFEFF'; // BOM for Excel
+    // Header
+    csv += '被试编号,综合T分,' + domains.join(',') + '\n';
+
+    for (const p of selected) {
+      const summary = MCCBScoring.getDomainSummary(p);
+      const tMap = {};
+      summary.forEach(d => { tMap[d.label] = d.tScore; });
+      const comp = p.composite != null ? p.composite : '';
+      const scores = domains.map(d => tMap[d] != null ? tMap[d] : '');
+      csv += `${p.id},${comp},${scores.join(',')}\n`;
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mccb-comparison-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ============================
+  // 更新全部
+  // ============================
+  function updateComparison() {
+    drawComparisonRadar();
+    renderComparisonTable();
+  }
+
+  // ============================
+  // 初始化
+  // ============================
+  document.addEventListener('DOMContentLoaded', () => {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawComparisonRadar);
+    refreshList();
+  });
+</script>
+</body>
+</html>
