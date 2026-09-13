@@ -1,40 +1,51 @@
-/**
- * 评分模块端到端验证
- * 模拟 ParticipantManager，喂入覆盖 10 项测验的样本数据，
- * 验证 mccb-scoring.js 的 getProfile / getAllProfiles / getDomainSummary 逻辑。
- */
-const path = require('path');
-const MCCB = require(path.resolve(__dirname, '../mccb-scoring.js')).MCCBScoring;
+'use strict';
 
-// ---- 模拟 ParticipantManager ----
+/**
+ * Scoring safety verification.
+ *
+ * These tests intentionally protect the distinction between:
+ *   1) exploratory within-project indices, and
+ *   2) validated MCCB-style T scores/composites.
+ */
+
+const path = require('path');
+const { MCCBScoring: MCCB } = require(path.resolve(__dirname, '../mccb-scoring.js'));
+
 function makeResults(overrides = {}) {
   return Object.assign({
-    'mccb-bacs-result':        { correct: 88, attempted: 90 },
-    'mccb-fluency-result':     { total: 32, unique: 30 },
-    'mccb-hvlt-result':        { trial1: 7, trial2: 9, trial3: 10, delayedRecall: 9 },
-    'mccb-bvmt-result':        { trials: [{score:9},{score:11},{score:12}], delayedRecall: 10 },
-    'mccb-cpt-result':         { hits: 180, misses: 5, falseAlarms: 8, meanHitRT: 420, meanFART: 510, dPrime: 3.2, totalTrials: 200 },
-    'mccb-msceit-result':      { total: 24, correct: 18, elapsed: 120000 },
-    'mccb-mazes-result':       { totalScore: 22, maxScore: 26, completed: [1,2,3,4,5,6,7], totalTime: 540 },
-    'mccb-spatial-span-result':{ totalCorrect: 19, maxLevel: 7 },
-    'mccb-lns-result':         { totalCorrect: 21, maxLevel: 8 },
-    'mccb-tmt-result':         { partA: { time: 35, errors: 0 }, partB: { time: 75, errors: 1 } },
+    'mccb-bacs-result':         { correct: 88, attempted: 90 },
+    'mccb-fluency-result':      { total: 32, unique: 30 },
+    'mccb-hvlt-result':         { trial1: 7, trial2: 9, trial3: 10, delayedRecall: 9 },
+    'mccb-bvmt-result':         { trials: [{ score: 9 }, { score: 11 }, { score: 12 }], delayedRecall: 10 },
+    'mccb-cpt-result':          { hits: 110, misses: 8, falseAlarms: 10, meanHitRT: 420, dPrime: 3.2, totalTrials: 150 },
+    'mccb-msceit-result':       { total: 24, correct: 18, elapsed: 120000 },
+    'mccb-mazes-result':        { totalScore: 22, maxScore: 26, completed: [1, 2, 3, 4, 5, 6, 7], totalTime: 540 },
+    'mccb-spatial-span-result': { totalCorrect: 19, maxLevel: 7 },
+    'mccb-lns-result':          { totalCorrect: 21, maxLevel: 8 },
+    'mccb-tmt-result':          { partA: { time: 35, errors: 0 }, partB: { time: 75, errors: 1 } },
   }, overrides);
 }
 
 const mockData = {
-  'P001': { cohortId: 'P001', results: makeResults() },
-  'P002': { cohortId: 'P002', results: makeResults({
-    'mccb-bacs-result':     { correct: 60, attempted: 90 },
-    'mccb-fluency-result':  { total: 18, unique: 16 },
-    'mccb-cpt-result':      { hits: 150, misses: 20, falseAlarms: 30, meanHitRT: 500, meanFART: 600, dPrime: 1.5, totalTrials: 200 },
-    'mccb-mazes-result':    { totalScore: 12, maxScore: 26, completed: [1,2,3], totalTime: 800 },
-  })},
-  'P003': { cohortId: 'P003', results: makeResults({
-    'mccb-bacs-result':     { correct: 100, attempted: 100 },
-    'mccb-cpt-result':      { hits: 195, misses: 1, falseAlarms: 2, meanHitRT: 380, meanFART: 460, dPrime: 4.1, totalTrials: 200 },
-    'mccb-mazes-result':    { totalScore: 25, maxScore: 26, completed: [1,2,3,4,5,6,7], totalTime: 400 },
-  })},
+  P001: { cohortId: 'P001', results: makeResults() },
+  P002: { cohortId: 'P002', results: makeResults({
+    'mccb-bacs-result': { correct: 60, attempted: 90 },
+    'mccb-fluency-result': { total: 18, unique: 16 },
+    'mccb-cpt-result': { hits: 80, misses: 30, falseAlarms: 35, meanHitRT: 520, dPrime: 1.3, totalTrials: 150 },
+    'mccb-mazes-result': { totalScore: 12, maxScore: 26, completed: [1, 2, 3], totalTime: 800 },
+    'mccb-tmt-result': { partA: { time: 70, errors: 2 }, partB: { time: 40, errors: 0 } },
+  }) },
+  P003: { cohortId: 'P003', results: makeResults({
+    'mccb-bacs-result': { correct: 100, attempted: 100 },
+    'mccb-cpt-result': { hits: 125, misses: 3, falseAlarms: 3, meanHitRT: 380, dPrime: 4.1, totalTrials: 150 },
+    'mccb-mazes-result': { totalScore: 25, maxScore: 26, completed: [1, 2, 3, 4, 5, 6, 7], totalTime: 400 },
+    'mccb-tmt-result': { partA: { time: 25, errors: 0 }, partB: { time: 999, errors: 20 } },
+  }) },
+  // Deliberately incomplete: missing domains must remain missing rather than
+  // being ranked as zero performance.
+  P004: { cohortId: 'P004', results: {
+    'mccb-bacs-result': { correct: 75, attempted: 80 },
+  } },
 };
 
 global.window = {
@@ -43,96 +54,100 @@ global.window = {
     getAllParticipants() { return Object.keys(mockData); },
   },
 };
-global.ParticipantManager = global.window.ParticipantManager;
 
-let pass = 0, fail = 0;
-function check(name, cond, detail) {
-  if (cond) { pass++; console.log('  ✅ ' + name); }
-  else { fail++; console.log('  ❌ ' + name + (detail ? ' — ' + detail : '')); }
-}
-
-console.log('=== 1. getProfile 提取正确性 ===');
-const p1 = MCCB.getProfile('P001');
-check('返回 profile', !!p1);
-check('10 项测验全部提取', Object.keys(p1.tests).length === 10, Object.keys(p1.tests).length + ' 项');
-check('BACS 正确数=88', p1.tests.bacs.extracted.correct === 88);
-check('HVLT 总学习=26', p1.tests.hvlt.extracted.totalLearning === 26, 'got ' + p1.tests.hvlt.extracted.totalLearning);
-check('CPT dPrime=3.2', p1.tests.cpt.extracted.dPrime === 3.2);
-check('TMT 总时间=110', p1.tests.tmt.extracted.totalTime === 110, 'got ' + p1.tests.tmt.extracted.totalTime);
-check('BVMT 总学习=32', p1.tests.bvmt.extracted.totalLearning === 32, 'got ' + p1.tests.bvmt.extracted.totalLearning);
-
-console.log('\n=== 2. getAllProfiles 域排名 / T 分 ===');
-const all = MCCB.getAllProfiles();
-check('3 个 profile', all.profiles.length === 3, all.profiles.length + ' 个');
-
-// P003 应该最高（BACS/CPT/Mazes 都很强），P002 最低
-const byId = Object.fromEntries(all.profiles.map(p => [p.id, p]));
-const c003 = byId['P003'].composite, c002 = byId['P002'].composite, c001 = byId['P001'].composite;
-check('综合分存在', [c003,c002,c001].every(v => typeof v === 'number'));
-check('P003 综合分 ≥ P002 (排序合理)', c003 >= c002, `P003=${c003} P002=${c002}`);
-console.log(`    综合分: P001=${c001}, P002=${c002}, P003=${c003}`);
-
-// T 分范围 20-80
-let tInRange = true;
-for (const p of all.profiles) {
-  for (const d of Object.values(p.domains)) {
-    if (d.tScore != null && (d.tScore < 20 || d.tScore > 80)) tInRange = false;
+let pass = 0;
+let fail = 0;
+function check(name, condition, detail = '') {
+  if (condition) {
+    pass++;
+    console.log('  ✅ ' + name);
+  } else {
+    fail++;
+    console.log('  ❌ ' + name + (detail ? ' — ' + detail : ''));
   }
 }
-check('所有 T 分落在 [20,80]', tInRange);
 
-// P002 在 mazes 域应最低（totalScore=12）
-const mazesDom = 'reasoning';
-const p002MazesPct = byId['P002'].domains[mazesDom].percentile;
-const p003MazesPct = byId['P003'].domains[mazesDom].percentile;
-check('P002 迷宫百分位 ≤ P003', p002MazesPct <= p003MazesPct, `P002=${p002MazesPct} P003=${p003MazesPct}`);
+console.log('=== 1. Raw metric extraction ===');
+const p1 = MCCB.getProfile('P001');
+check('returns profile', !!p1);
+check('extracts all 10 tasks', Object.keys(p1.tests).length === 10, Object.keys(p1.tests).length + ' tasks');
+check('HVLT total learning = 26', p1.tests.hvlt.extracted.totalLearning === 26);
+check('BVMT total learning = 32', p1.tests.bvmt.extracted.totalLearning === 32);
+check('TMT exposes Part A = 35', p1.tests.tmt.extracted.partATime === 35);
+check('TMT keeps Part B as supplemental = 75', p1.tests.tmt.extracted.partBTime === 75);
+check('TMT MCCB time uses Part A only', p1.tests.tmt.extracted.mccbTime === 35);
+check('validation metadata is present', p1.tests.tmt.validation && p1.tests.tmt.validation.mccbEquivalent === false);
 
-console.log('\n=== 3. getDomainSummary ===');
-const summary = MCCB.getDomainSummary(byId['P001']);
-check('返回 7 个域', summary.length === 7, summary.length + ' 个');
-check('含处理速度域', summary.some(d => d.key === 'speed_processing'));
-check('每个域含 T 分', summary.every(d => typeof d.tScore === 'number'));
+console.log('\n=== 2. Default internal mode is research-only ===');
+const all = MCCB.getAllProfiles();
+check('default norm is internal', all.norm.name === 'internal');
+check('default norm is explicitly unvalidated', all.norm.validated === false);
+check('default norm label states non-MCCB', /非 MCCB/.test(all.norm.label));
+check('all profiles have null composite in research mode', all.profiles.every(p => p.composite === null));
+check('no internal domain emits a T score', all.profiles.every(p => Object.values(p.domains).every(d => d.tScore === null)));
+check('research domains expose an index score', all.profiles.some(p => Object.values(p.domains).some(d => Number.isFinite(d.indexScore))));
 
-console.log('\n=== 4. 边界：空被试 ===');
-const empty = MCCB.getProfile('NONEXIST');
-check('不存在的被试返回 null', empty === null);
+const byId = Object.fromEntries(all.profiles.map(p => [p.id, p]));
+check('incomplete P004 has speed-processing domain', !!byId.P004.domains.speed_processing);
+check('incomplete P004 does not get missing attention domain', !byId.P004.domains.attention);
+check('P003 faster Part A outranks P002 on processing index',
+  byId.P003.domains.speed_processing.indexScore > byId.P002.domains.speed_processing.indexScore,
+  `P003=${byId.P003.domains.speed_processing.indexScore}, P002=${byId.P002.domains.speed_processing.indexScore}`);
 
-console.log('\n=== 5. 常模接口 (registerNorm / setNorm / getNorm) ===');
-const norm0 = MCCB.getNorm();
-check('默认常模 = internal', norm0.name === 'internal', norm0.name);
-check('默认常模含中文标注', /内部相对排名/.test(norm0.label), norm0.label);
+console.log('\n=== 3. TMT Part B must not affect MCCB-side contribution ===');
+// P003 has an intentionally catastrophic Part B but very fast Part A. If Part B
+// leaked into processing scoring this profile would be heavily penalized.
+check('catastrophic Part B does not erase fast Part A advantage',
+  byId.P003.domains.speed_processing.indexScore >= byId.P001.domains.speed_processing.indexScore,
+  `P003=${byId.P003.domains.speed_processing.indexScore}, P001=${byId.P001.domains.speed_processing.indexScore}`);
 
-// 注册一个自定义常模：固定 T 分 = 50（用于验证可插拔）
+console.log('\n=== 4. Domain summary distinguishes research index from T score ===');
+const summary = MCCB.getDomainSummary(byId.P001);
+check('summary has seven available domains for complete profile', summary.length === 7, summary.length + ' domains');
+check('summary T scores are null in internal mode', summary.every(d => d.tScore === null));
+check('summary score type is research-cohort-index', summary.every(d => d.scoreType === 'research-cohort-index'));
+check('summary exposes cohort percentile/index', summary.every(d => Number.isFinite(d.indexScore)));
+
+console.log('\n=== 5. Validated norm gate ===');
 MCCB.registerNorm({
-  name: 'mock-fixed',
-  label: '测试用固定常模（T=50）',
-  apply(allProfiles, domains) {
-    for (const p of allProfiles) {
-      for (const dk of Object.keys(domains)) {
-        p.domains[dk] = { raw: 0, percentile: 50, tScore: 50 };
-      }
+  name: 'mock-unvalidated',
+  label: 'Mock unvalidated norm',
+  validated: false,
+  apply(profiles, domains) {
+    for (const p of profiles) {
+      for (const key of Object.keys(domains)) p.domains[key] = { tScore: 50 };
     }
   },
 });
-MCCB.setNorm('mock-fixed');
-const allFixed = MCCB.getAllProfiles();
-const fixedT = Object.values(allFixed.profiles[0].domains)[0].tScore;
-check('切换自定义常模生效（T=50）', fixedT === 50, 'got ' + fixedT);
-check('getAllProfiles 返回当前常模信息', allFixed.norm && allFixed.norm.name === 'mock-fixed', JSON.stringify(allFixed.norm));
+MCCB.setNorm('mock-unvalidated');
+const unvalidated = MCCB.getAllProfiles();
+check('unvalidated custom norm cannot create composite', unvalidated.profiles.every(p => p.composite === null));
+
+MCCB.registerNorm({
+  name: 'mock-validated',
+  label: 'Mock validated norm for contract test',
+  validated: true,
+  kind: 'test',
+  apply(profiles, domains) {
+    for (const p of profiles) {
+      for (const key of Object.keys(domains)) p.domains[key] = { tScore: 50, scoreType: 'validated-t-score' };
+    }
+  },
+});
+MCCB.setNorm('mock-validated');
+const validated = MCCB.getAllProfiles();
+check('validated norm is marked validated', validated.norm.validated === true);
+check('validated complete profiles can create composite', validated.profiles.every(p => p.composite === 50));
+check('validated status is explicit', validated.profiles.every(p => p.scoringStatus === 'validated-norm'));
+
+console.log('\n=== 6. Error handling ===');
+let threwUnknown = false;
+try { MCCB.setNorm('does-not-exist'); } catch { threwUnknown = true; }
+check('unknown norm throws', threwUnknown);
+let threwBad = false;
+try { MCCB.registerNorm({ name: 'bad' }); } catch { threwBad = true; }
+check('norm without apply throws', threwBad);
+
 MCCB.setNorm('internal');
-// 切回后应恢复「相对排名」→ 各被试 speed T 分不再全部等 50（内部排名会拉开差异）
-const back = MCCB.getAllProfiles();
-const backTS = back.profiles.map(p => p.domains.speed_processing.tScore);
-const varied = new Set(backTS).size > 1;
-check('切回 internal 后恢复相对排名（T 分有差异）', varied, 'T 分=' + backTS.join(','));
-
-console.log('\n=== 6. 常模错误处理 ===');
-let threw = false;
-try { MCCB.setNorm('not-exist'); } catch (e) { threw = true; }
-check('setNorm 未知常模抛错', threw);
-let threwReg = false;
-try { MCCB.registerNorm({ name: 'bad' }); } catch (e) { threwReg = true; }
-check('registerNorm 缺 apply 抛错', threwReg);
-
-console.log(`\n=== 结果: ${pass} 通过 / ${fail} 失败 ===`);
+console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);
 process.exit(fail === 0 ? 0 : 1);
