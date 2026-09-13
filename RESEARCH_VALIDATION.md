@@ -2,88 +2,45 @@
 
 > **Status: research prototype — not a clinically equivalent MCCB implementation.**
 >
-> The browser tasks in this repository are useful for software prototyping, workflow automation, and exploratory research. They must not be treated as interchangeable with a licensed/standardized MCCB administration unless equivalence has been established for the exact digital procedure and a validated scoring path is used.
+> 当前代码已经完成工程层面的安全化、材料隔离、session QC、版本/溯源与 research-safe scoring 改造，但这不构成心理测量等效性证据。
 
-## Why this document exists
+## 四层验证模型
 
-A polished interface can make an experimental score look more authoritative than it is. This project therefore separates three questions that were previously conflated:
+本项目把“验证”拆成四层，避免 CI 通过被误解成临床有效：
 
-1. **Does the software run correctly?** — engineering validity.
-2. **Does the task reproduce the standardized administration?** — procedural equivalence.
-3. **Can the result use MCCB norms/T-scores/composites?** — psychometric/scoring validity.
+1. **Engineering correctness**：代码能否稳定运行、保存、导出、回归测试通过。
+2. **Session validity**：本次施测是否存在切屏、中断、严重 timing drift 或技术失败。
+3. **Research comparability**：两个结果是否来自兼容的 task version / protocol / material / scoring signature。
+4. **Psychometric / normative validity**：数字流程是否与标准施测等效、是否有资格使用 MCCB 常模/T-score/composite。
 
-Passing automated browser tests answers only the first question.
+当前前三层有工程实现；第四层仍为 **未验证**。
 
-## Current task matrix
+## 当前任务矩阵
 
-| Task | Current browser implementation | MCCB-equivalent today? | Release status |
-|---|---|---:|---|
-| TMT | Part A + supplemental Part B | **No** | Part A may be retained as the MCCB-related component; Part B must stay supplemental and must not enter MCCB scoring |
-| BACS Symbol Coding | keyboard/browser adaptation | **No** | raw score / research use only until digital equivalence is established |
-| Category Fluency | typed self-administration | **No** | standard administration is oral; keep as research adaptation |
-| CPT-IP | custom browser identical-pairs task | **No** | blocker: do not apply MCCB CPT-IP norms to the current parameters |
-| WMS-III Spatial Span | screen-based blocks | **No** | blocker: differs from standardized physical-board administration |
-| Letter-Number Span | visually displayed sequence + typed response | **No** | blocker: standard administration is oral |
-| HVLT-R | visual word display + typed recall | **No** | blocker: standard administration is oral across three learning trials |
-| BVMT-R | browser/canvas adaptation | **No** | blocker: establish administration and scoring equivalence before normative use |
-| NAB Mazes | browser/canvas adaptation | **No** | blocker: establish administration and scoring equivalence before normative use |
-| MSCEIT Managing Emotions | browser adaptation/custom scoring | **No** | blocker: use licensed/validated scoring before MCCB-style normative output |
+| Task | 当前实现 | 当前公开材料 | Timing | MCCB-equivalent? |
+|---|---|---|---|---:|
+| TMT | 浏览器 Part A + supplemental Part B | public-domain-related | monotonic elapsed | **No** |
+| BACS-related | 合成符号编码 | synthetic | absolute deadline | **No** |
+| Category Fluency | typed Animal Naming | public-domain-related | absolute deadline | **No** |
+| CPT-related | 自定义 4 位 identical-pairs | synthetic | absolute trial schedule + onset log | **No** |
+| Spatial Span-related | 算法生成 3×3 forward/reverse 序列 | synthetic | absolute deadline | **No** |
+| LNS-related | 算法生成字母数字排序序列 | synthetic | absolute deadline | **No** |
+| HVLT-related | 私有授权词表协议壳 | **private only** | absolute deadline | **No** |
+| BVMT-related | 合成符号网格视觉学习 | synthetic | absolute deadline | **No** |
+| Mazes-related | 算法生成迷宫规划 | synthetic | monotonic elapsed | **No** |
+| MSCEIT-related | 私有题目 + 私有 `score()` 协议壳 | **private only** | monotonic elapsed | **No** |
 
-The official MATRICS test list identifies **Trail Making Test: Part A** (not Part B) as the MCCB speed-of-processing component. It also describes Category Fluency as oral, Letter-Number Span and HVLT-R as orally administered, and Spatial Span as a physical-board task. The same page warns not to change CPT-IP parameter settings because doing so invalidates normative scores.
+机器可读版本见 `task-manifest.json`。任何任务从 `mccbEquivalent:false` 变成 `true` 都必须有单独的验证证据、审查记录与冻结版本，不能只改一个布尔值。
 
-Reference: https://www.matricsinc.org/mccbtestlist/
+## TMT policy
 
-## Scoring policy
+MCCB-related processing-speed 映射只使用 **Trail Making Test Part A**。Part B 可保留为 supplemental research data，但不能进入 MCCB-related processing-speed scoring。
 
-### Default `internal` mode
+官方 MCCB test list：<https://www.matricsinc.org/mccbtestlist/>
 
-The default scoring path is deliberately named and treated as an **exploratory project-internal index**.
+## Session QC
 
-It may output:
-
-- raw task metrics;
-- exploratory domain contribution (`rawIndex`);
-- within-project rank (`indexScore` / `cohortPercentile`).
-
-It must **not** output:
-
-- MCCB T-scores;
-- clinical percentiles;
-- an MCCB overall composite;
-- labels such as “normal”, “impaired”, “excellent”, or “clinically low” unless a validated reference explicitly supports the threshold for the exact administration.
-
-The official MCCB scoring program transforms test raw scores into T-scores and percentiles and uses respondent demographics for corrected scoring. Its documented default option uses age and gender; another option includes education. Official composite scores are generated from standardized domain scores, not from a linear remapping of within-sample ranks.
-
-Reference: https://matricsinc.org/wp-content/uploads/2019/12/MCCB_MSCEIT_CD_Installation.pdf
-
-### Validated norm plug-in
-
-`MCCBScoring.registerNorm()` still supports a future validated scoring adapter. A norm must explicitly set:
-
-```js
-{
-  name: '...',
-  label: '...',
-  validated: true,
-  apply(profiles, domains) { /* validated conversion */ }
-}
-```
-
-Only a norm explicitly marked `validated: true` may generate an overall composite, and only when all seven domain T-scores are present.
-
-This gate is an engineering safety mechanism; setting the flag is **not itself evidence of validation**. The evidence/provenance for such an adapter must be documented and reviewed separately.
-
-## Missing-data rule
-
-Missing task/domain data are treated as **missing**, not as zero performance. The exploratory ranking pool for a domain contains only participants with usable data for that domain.
-
-Before implementing an official scoring adapter, reproduce the MCCB scoring program's documented missing-data rules exactly. The official program allows limited missingness in domains represented by multiple tests but requires data for single-test domains.
-
-Reference: https://www.matricsinc.org/wp-content/uploads/2019/11/MCCB_MSCEIT%20Installation%20notes.pdf
-
-## Session-quality states — implemented baseline
-
-Newly saved task results now receive a common metadata envelope from `mccb-participant.js` with these states:
+公共 runtime 当前定义：
 
 ```text
 valid
@@ -94,89 +51,186 @@ technical_failure
 unverified
 ```
 
-`markInProgress()` starts a monotonic session clock. `visibilitychange` marks active sessions as interrupted; `pagehide` marks unfinished sessions as aborted. `saveResult()` preserves an invalid status instead of restoring it to valid. Results with invalid QC are stored for auditability but their participant progress is `completed_invalid`.
+结果保存为：
 
-Only sessions explicitly marked `valid` enter the default project-internal group-comparison indices. Historical results that predate the metadata envelope are marked `unverified`: they remain visible as raw data but are excluded from the default ranking pool.
+```text
+results         canonical valid result
+invalidResults  最近一次 invalid attempt
+attemptHistory  每任务最近 20 次尝试
+sessions        session QC snapshot
+progress        当前状态
+```
 
-Current result metadata includes:
+### 关键不变量
 
-```json
+- 页面隐藏时，活动 session → `interrupted`。
+- 未完成页面离开 → `aborted`。
+- 明显超出 timing tolerance → `timing_violation`。
+- invalid result 不能成为 canonical result。
+- valid retest 可以成为 canonical result，但旧 invalid attempt 继续保留在审计历史。
+- valid canonical result 后出现 invalid retest，不得覆盖 canonical result，也不得把已完成状态降级。
+- 旧数据无 QC envelope → `unverified`，只显示 raw data。
+
+## Timing
+
+当前 runtime 使用单调时钟并支持 absolute deadline。CPT 使用自己的绝对 trial timeline，逐 trial 保存：
+
+```text
+scheduled onset
+actual onset
+onset error
+actual stimulus duration
+response time
+```
+
+这些数据用于判断 session 数据质量与设备/浏览器差异，但目前尚未完成目标硬件矩阵的 timing conformance study。因此，“timer 更正确”不能写成“已经心理测量等效”。
+
+## Research scoring policy
+
+当前 scoring version：
+
+```text
+research-scoring-0.4.0
+```
+
+### 已删除的旧方法
+
+旧实现曾用 `/110`、`/50`、`/24`、`/36` 等人为固定分母，把不同任务缩放后平均。这种方法会制造不存在的统一量尺，现已删除，并由 CI guard 禁止重新引入。
+
+### 当前默认 internal index
+
+当前只允许：
+
+```text
+QC-valid result
+→ protocol/material/version compatibility gate
+→ required task complete gate
+→ per-task tied cohort rank
+→ domain research cohort rank index
+```
+
+结果字段包括：
+
+```text
+indexScore
+referenceN
+referenceKey
+testRanks
+scoreType = research-cohort-rank-index
+```
+
+它不是临床 percentile，也不是 MCCB T-score。
+
+### Missing data
+
+默认研究 index 要求一个域所需的所有研究任务都齐全。缺任务就缺域，不把缺失当作 0 分，也不从不完整的混合任务集合强行生成域分。
+
+这条规则是**本项目的保守 research policy**，不是对官方 MCCB missing-data 规则的复制。未来 validated adapter 必须独立实现并验证其自己的 missing-data rule。
+
+### Category Fluency semantic review
+
+网页可以去重输入，但不能可靠判断任意字符串是否属于动物名称，也不能自动处理同义词、上下位词和语言变体。
+
+因此：
+
+- raw result 始终可保留；
+- 新结果默认 `reviewStatus = unreviewed`；
+- 未被研究者标记为 `verified` 的 Fluency 不进入 cohort scoring；
+- 该状态会导致 processing-speed research domain 暂不生成。
+
+## Protocol compatibility
+
+项目内 rank 也不能把不同研究协议混在一起。
+
+默认 reference group 至少区分：
+
+- task version
+- task protocol identifier
+- HVLT private set ID / version / fingerprint
+- MSCEIT private item-set version / private scoring version
+
+因此，更换材料或计分版本后，不会自动和旧版本形成同一个 reference pool。
+
+## Validated norm adapter gate
+
+未来 `validated:true` adapter 必须至少声明：
+
+```js
 {
-  "_meta": {
-    "schemaVersion": 2,
-    "taskVersion": "research-web-0.2.0",
-    "administration": "digital_research_adaptation",
-    "mccbEquivalent": false,
-    "participantId": "P001",
-    "recordedAt": "...",
-    "sessionQc": {
-      "status": "valid",
-      "startedAt": "...",
-      "completedAt": "...",
-      "elapsedMs": 12345,
-      "clock": "performance.now",
-      "qc": {
-        "visibilityInterruptions": 0,
-        "timingViolation": false,
-        "technicalFailure": false,
-        "reasons": []
-      }
-    }
-  }
+  name: '...',
+  version: '...',
+  provenance: '...',
+  validated: true,
+  supportsTask(testKey, task) { ... },
+  apply(profiles, domains) { ... }
 }
 ```
 
-This is an engineering QC baseline, not a complete psychometric validation system.
+工程层保证：
 
-## Research-safe reporting — implemented
+- invalid / unverified tasks 不进入 adapter；
+- adapter 只能看到自己显式接受的 task/version/protocol；
+- 只有 validated adapter 生成完整七域 T-score 时才允许 composite。
 
-`research-report.html` is the default report surface for this branch. The legacy `comprehensive-report.html` automatically redirects to it because the legacy page assumes T-score-shaped data.
+这些门槛只是防止误用，**不是 validated status 的证据**。
 
-The research report clearly separates:
+## Protected materials / redistribution
 
-- raw task metrics;
-- session QC (`valid`, invalid states, `unverified`);
-- exploratory project-internal indices;
-- a future validated-norm path.
+当前工作树已经采取以下措施：
 
-Individual task pages may still contain historical threshold strings in their source code. The shared runtime replaces `.norm-ref` result interpretations with a research-only safety notice so unsupported “normal / impaired / excellent” language is not presented as a valid interpretation. Removing the dead threshold branches from every individual page remains desirable cleanup work.
+- 删除两份公开 MCCB operator-form 文本；
+- HVLT 页面不再内嵌词表；
+- MSCEIT 页面不再公开题目/答案/评分权重；
+- WMS/LNS/BVMT/Mazes 类页面改用算法生成或合成刺激；
+- `private/` 默认 git-ignored；
+- CI 会检查受保护材料不会重新回到公开树。
 
-## Timing validation — partially implemented
+MATRICS technical assistance / copyright background：<https://www.matricsinc.org/technical-assistance/>
 
-`ExperimentRuntime` now measures session duration with `performance.now()` where available and provides an absolute-deadline scheduler (`ExperimentRuntime.deadline`) for task migrations.
+### 重要：Git history 仍需单独处置
 
-Still required for timing-sensitive tasks:
+从当前树删除文件并不会删除历史 blob。若历史版本包含不应公开的材料，需要执行 repository history rewrite，并处理缓存/PR refs 等遗留对象。见 `docs/HISTORY_PURGE.md`。
 
-- migrate task countdowns away from callback-counting `setInterval()` logic;
-- record scheduled onset, actual onset, onset error, and response timestamps per trial where relevant;
-- define timing/jitter acceptance thresholds;
-- validate those thresholds on target browser/device combinations.
+这不是当前代码 PR 能通过普通文件 API 安全完成的操作，因为它会重写大量 commit SHA 和协作者历史。
 
-`setInterval()` and `setTimeout()` must be treated as scheduling mechanisms, not clocks.
+## Reporting policy
 
-## Test-material licensing and security
+当前推荐报告：
 
-MATRICS states that several component tests have their own copyright holders, while Trail Making Test Part A and Category Fluency: Animal Naming are public-domain tests for administration/scoring questions. Before publishing complete stimuli, answer keys, administrator forms, or derived reproductions, confirm redistribution rights with the relevant rights holder.
+- `research-report.html`
+- `research-comparison.html`
 
-Reference: https://www.matricsinc.org/technical-assistance/
+必须明确显示：
 
-Until that review is complete, test-material licensing/security should be treated as a release blocker for a public deployment that exposes protected content.
+- raw metric
+- session QC
+- task/protocol validation status
+- research cohort rank 的 reference group 大小
+- 当前 norm / scoring version
+- 非 MCCB-equivalent 声明
 
-## Definition of done for “validated MCCB mode”
+旧 T-score-shaped 页面不应作为默认报告入口。
 
-Do not describe this project as an MCCB-equivalent clinical assessment until all of the following are true:
+## Definition of done for a future “validated MCCB mode”
 
-- exact administration protocol is documented per task;
-- stimulus materials and scoring have appropriate permissions/licensing;
-- timing-critical tasks have device/browser timing validation;
-- digital-vs-standard equivalence has empirical evidence for each adapted task;
-- scoring uses validated normative transformations with provenance/versioning;
-- official missing-data rules are reproduced and tested;
-- raw-data fixtures with known expected outputs pass conformance tests;
-- every result records task version, scoring version, norm version, and QC status;
-- security/privacy handling is appropriate for the intended study environment;
-- reports visibly distinguish raw, research-standardized, and validated normative scores.
+至少需要全部完成：
 
-## Engineering tests vs psychometric validation
+- exact administration protocol frozen per task；
+- material/scoring redistribution rights and test security resolved；
+- target browser/device timing conformance completed；
+- digital-vs-standard empirical equivalence evidence for every adapted task；
+- reliability / validity / repeated-measure properties documented where relevant；
+- validated normative transformations with provenance and versioning；
+- validated missing-data rules reproduced and conformance-tested；
+- known-answer reference fixtures for scoring；
+- result stores task/material/scoring/norm/QC provenance；
+- privacy/security architecture appropriate to intended research/clinical environment；
+- independent review confirms report labels do not overstate validity。
 
-The repository's automated tests verify navigation, persistence, calculations, schema integrity, session-QC invariants, report safety contracts, and regressions. They must never be presented as evidence that a browser adaptation is psychometrically interchangeable with the standardized MCCB procedure.
+在这些条件满足之前，应坚持使用 **research prototype / research adaptation / raw score / cohort rank index** 等表述，而不是 “MCCB score”“clinical percentile”“normal/impaired”。
+
+## Automated tests are not psychometric validation
+
+CI 能证明的是工程约束没有被明显破坏，例如：语法、数据持久化、session QC、材料策略、protocol grouping、TMT Part-B isolation、无伪 T-score、无 arbitrary denominator scaling 等。
+
+CI 不能证明数字任务与标准 MCCB 在心理测量意义上可互换。
