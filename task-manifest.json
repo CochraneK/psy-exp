@@ -1,0 +1,116 @@
+{
+  "manifestVersion": 1,
+  "projectMode": "research-prototype",
+  "tasks": [
+    {
+      "key": "tmt",
+      "taskVersion": "tmt-web-0.3.0",
+      "officialComponent": "Trail Making Test Part A only",
+      "administration": "browser research adaptation",
+      "mccbEquivalent": false,
+      "timingStatus": "monotonic-elapsed",
+      "materialPolicy": "public-domain-related",
+      "publicExecutable": true,
+      "notes": "Only Part A is MCCB-related; Part B must remain supplemental."
+    },
+    {
+      "key": "bacs",
+      "taskVersion": "bacs-web-0.3.0",
+      "officialComponent": "BACS Symbol Coding",
+      "administration": "synthetic browser symbol-coding task",
+      "mccbEquivalent": false,
+      "timingStatus": "absolute-deadline",
+      "materialPolicy": "synthetic-public-stimuli",
+      "publicExecutable": true,
+      "notes": "Uses a synthetic fixed symbol sequence; not the licensed paper/pencil form."
+    },
+    {
+      "key": "fluency",
+      "taskVersion": "fluency-web-0.3.0",
+      "officialComponent": "Category Fluency: Animal Naming",
+      "administration": "typed browser research adaptation",
+      "mccbEquivalent": false,
+      "timingStatus": "absolute-deadline",
+      "materialPolicy": "public-domain-related",
+      "publicExecutable": true,
+      "notes": "Typed strings are de-duplicated; semantic validity is not automatically adjudicated."
+    },
+    {
+      "key": "cpt",
+      "taskVersion": "cpt-web-0.3.0",
+      "officialComponent": "CPT-IP",
+      "administration": "custom 4-digit identical-pairs research task",
+      "mccbEquivalent": false,
+      "timingStatus": "absolute-trial-schedule-with-onset-log",
+      "materialPolicy": "synthetic-public-stimuli",
+      "publicExecutable": true,
+      "notes": "Custom parameters; trial-level scheduled/actual onset and RT are logged."
+    },
+    {
+      "key": "spatial-span",
+      "taskVersion": "spatial-span-web-0.3.0",
+      "officialComponent": "WMS-III Spatial Span",
+      "administration": "screen-based research adaptation",
+      "mccbEquivalent": false,
+      "timingStatus": "legacy-scheduled",
+      "materialPolicy": "review-required",
+      "publicExecutable": true,
+      "notes": "Physical-board equivalence is not established; stimulus provenance must be reviewed."
+    },
+    {
+      "key": "lns",
+      "taskVersion": "lns-web-0.3.0",
+      "officialComponent": "Letter-Number Span",
+      "administration": "visual/typed research adaptation",
+      "mccbEquivalent": false,
+      "timingStatus": "legacy-scheduled",
+      "materialPolicy": "review-required",
+      "publicExecutable": true,
+      "notes": "Standard administration is oral; embedded sequence provenance must be reviewed."
+    },
+    {
+      "key": "hvlt",
+      "taskVersion": "hvlt-web-0.3.0",
+      "officialComponent": "HVLT-R",
+      "administration": "private-stimulus visual/typed protocol shell",
+      "mccbEquivalent": false,
+      "timingStatus": "absolute-deadline",
+      "materialPolicy": "private-licensed-assets-required",
+      "publicExecutable": false,
+      "notes": "No word list is bundled; private/stimuli.js is required and git-ignored."
+    },
+    {
+      "key": "bvmt",
+      "taskVersion": "bvmt-web-0.3.0",
+      "officialComponent": "BVMT-R",
+      "administration": "browser/canvas research adaptation",
+      "mccbEquivalent": false,
+      "timingStatus": "legacy-scheduled",
+      "materialPolicy": "review-required",
+      "publicExecutable": true,
+      "notes": "Figure/stimulus provenance and digital scoring equivalence require review."
+    },
+    {
+      "key": "mazes",
+      "taskVersion": "mazes-web-0.3.0",
+      "officialComponent": "NAB Mazes",
+      "administration": "browser/canvas research adaptation",
+      "mccbEquivalent": false,
+      "timingStatus": "legacy-scheduled",
+      "materialPolicy": "review-required",
+      "publicExecutable": true,
+      "notes": "Maze layout provenance and digital equivalence require review."
+    },
+    {
+      "key": "msceit",
+      "taskVersion": "msceit-web-0.3.0",
+      "officialComponent": "MSCEIT Managing Emotions",
+      "administration": "browser research adaptation/custom scoring",
+      "mccbEquivalent": false,
+      "timingStatus": "legacy-scheduled",
+      "materialPolicy": "review-required",
+      "publicExecutable": true,
+      "notes": "Official/licensed scoring is not bundled; item/scoring provenance requires review."
+    }
+  ]
+}
