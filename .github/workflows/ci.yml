@@ -31,6 +31,7 @@ jobs:
           node --check mccb-participant.js
           node --check tests/verify-scoring.cjs
           node --check tests/verify-participant.cjs
+          node --check tests/verify-manifest.cjs
           node --check tests/validate-drivers.cjs
           node --check tests/validate-inline-scripts.cjs
           node --check tests/full-battery.cjs
@@ -44,6 +45,9 @@ jobs:
       - name: Scoring safety tests
         run: node tests/verify-scoring.cjs
 
+      - name: Task manifest and material-policy tests
+        run: node tests/verify-manifest.cjs
+
       - name: Browser-driver syntax validation
         run: node tests/validate-drivers.cjs
 
@@ -55,13 +59,26 @@ jobs:
         run: |
           test -f research-report.html
           test -f research-comparison.html
+          test -f task-manifest.json
+          test -f docs/README.md
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-comparison.html
           grep -q "completed_invalid" mccb-participant.js
           grep -q "eligibleForResearchScoring" mccb-scoring.js
+          grep -q "RUNTIME_VERSION" mccb-participant.js
+          grep -q "TASK_TIMING_POLICY" mccb-participant.js
+          grep -q "validated norm 必须声明 version 和 provenance" mccb-scoring.js
+          grep -q "private-licensed-assets-required" task-manifest.json
           grep -q "mccb_mode.*user" mccb-participant.js
           grep -q "legacy-chart-safety-note" mccb-participant.js
+
+      - name: Protected material guard
+        shell: bash
+        run: |
+          test ! -e "docs/7.简版MCCB操作者表格（A）_vlm.txt"
+          test ! -e "docs/8.简版MCCB操作者表格（B）_vlm.txt"
+          ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' "WORD_LIST" pages docs
 
       - name: Guard against accidental research-T-score regression
         shell: bash
