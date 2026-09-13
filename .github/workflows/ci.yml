@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, audit-validation-hardening-20260914]
+    branches: [main]
   pull_request:
 
 permissions:
@@ -45,12 +45,21 @@ jobs:
       - name: Research workspace/report/runtime contract
         shell: bash
         run: |
+          test -f research-ui.css
+          test -f participant-runner.html
           test -f research-report.html
           test -f research-comparison.html
           test -f task-manifest.json
           test -f docs/README.md
           test -f docs/HISTORY_PURGE.md
           grep -q "认知任务研究工作台" index.html
+          grep -q "Researcher console" index.html
+          grep -q "Participant session" participant-runner.html
+          grep -q "research-app" research-ui.css
+          grep -q "overflow:auto" research-ui.css
+          grep -q "MIN_REFERENCE_N=5" research-report.html
+          grep -q "MIN_REFERENCE_N=5" research-comparison.html
+          grep -q "导出 CSV" research-comparison.html
           ! grep -q "MCCB 认知成套测验" index.html
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
