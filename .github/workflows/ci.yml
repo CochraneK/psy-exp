@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, audit-validation-hardening-20260914]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: JavaScript syntax checks
+        run: |
+          node --check mccb-scoring.js
+          node --check mccb-participant.js
+          node --check tests/verify-scoring.cjs
+          node --check tests/validate-drivers.cjs
+          node --check tests/full-battery.cjs
+
+      - name: Scoring safety tests
+        run: node tests/verify-scoring.cjs
+
+      - name: Browser-driver syntax validation
+        run: node tests/validate-drivers.cjs
+
+      - name: Python syntax check
+        run: python -m py_compile tests/cpt_report.py
+
+      - name: Guard against accidental research-T-score regression
+        shell: bash
+        run: |
+          if grep -n "百分位数.*T 分\|近似 T 分转换" mccb-scoring.js; then
+            echo "Research scoring must not be relabeled as a T-score conversion."
+            exit 1
+          fi
