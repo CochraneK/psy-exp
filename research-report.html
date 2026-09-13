@@ -2,199 +2,54 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>研究版认知报告 · psy-exp</title>
 <link rel="stylesheet" href="mccb-common.css">
 <style>
-:root{--rr-bg:#f6f8fb;--rr-card:#fff;--rr-text:#172033;--rr-muted:#667085;--rr-border:#e5e9f0;--rr-blue:#2563eb;--rr-green:#047857;--rr-amber:#b45309;--rr-red:#b42318}
-*{box-sizing:border-box}body{margin:0;background:var(--rr-bg);color:var(--rr-text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
-#reportApp{max-width:1180px;margin:0 auto;padding:28px 20px 72px}.topbar{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:18px}.title h1{font-size:28px;margin:0 0 8px}.title p{margin:0;color:var(--rr-muted);line-height:1.65}.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.badge{display:inline-flex;align-items:center;border:1px solid var(--rr-border);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;background:#fff}.badge.research{background:#fff7ed;color:#9a3412;border-color:#fed7aa}.badge.valid{background:#ecfdf3;color:var(--rr-green);border-color:#a7f3d0}.badge.invalid{background:#fff1f2;color:var(--rr-red);border-color:#fecdd3}.toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.toolbar button,.toolbar select,.toolbar a{border:1px solid var(--rr-border);background:#fff;color:var(--rr-text);border-radius:10px;padding:9px 12px;font:inherit;text-decoration:none;cursor:pointer}.toolbar select{min-width:220px}.toolbar .primary{background:var(--rr-blue);color:#fff;border-color:var(--rr-blue)}
-.notice{border:1px solid #f9d28b;background:#fffaf0;border-radius:14px;padding:14px 16px;margin:16px 0 22px;line-height:1.65;color:#7c4a03}.grid{display:grid;gap:14px}.stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card{background:var(--rr-card);border:1px solid var(--rr-border);border-radius:16px;padding:18px;box-shadow:0 4px 18px rgba(15,23,42,.035)}.stat .value{font-size:26px;font-weight:800;line-height:1.1}.stat .label{font-size:12px;color:var(--rr-muted);margin-top:7px}.section{margin-top:18px}.section-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:10px}.section-head h2{margin:0;font-size:19px}.section-head p{margin:0;color:var(--rr-muted);font-size:12px}.domains{grid-template-columns:repeat(3,minmax(0,1fr))}.domain-name{font-size:15px;font-weight:800}.domain-en{font-size:11px;color:var(--rr-muted);margin-top:2px}.domain-score{font-size:30px;font-weight:850;margin:14px 0 5px}.domain-unit{font-size:11px;color:var(--rr-muted)}.bar{height:7px;background:#edf1f6;border-radius:999px;overflow:hidden;margin-top:12px}.fill{height:100%;background:var(--rr-blue);border-radius:999px}.domain-meta{display:flex;justify-content:space-between;gap:8px;color:var(--rr-muted);font-size:11px;margin-top:7px}.empty{padding:48px 20px;text-align:center;color:var(--rr-muted)}
-.table-wrap{overflow:auto;background:#fff;border:1px solid var(--rr-border);border-radius:16px}table{width:100%;border-collapse:collapse;min-width:800px}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--rr-border);font-size:13px;vertical-align:top}th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--rr-muted);background:#fafbfc;position:sticky;top:0}tr:last-child td{border-bottom:none}.task-name{font-weight:800}.sub{display:block;color:var(--rr-muted);font-size:11px;margin-top:3px}.qc{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800}.qc.valid{background:#ecfdf3;color:var(--rr-green)}.qc.unverified{background:#f2f4f7;color:#475467}.qc.bad{background:#fff1f2;color:var(--rr-red)}.validation{color:var(--rr-amber);font-size:12px;line-height:1.45}.metric{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap}.footer-note{margin-top:18px;color:var(--rr-muted);font-size:12px;line-height:1.65}
-@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.domains{grid-template-columns:repeat(2,1fr)}.topbar{flex-direction:column}.toolbar{justify-content:flex-start}}@media(max-width:560px){#reportApp{padding:18px 12px 70px}.stats,.domains{grid-template-columns:1fr}.title h1{font-size:23px}.toolbar select{min-width:0;max-width:100%}}
-@media print{body{background:#fff}#reportApp{max-width:none;padding:0}.toolbar,#research-prototype-banner{display:none!important}.card,.table-wrap{box-shadow:none;break-inside:avoid}.notice{background:#fff}}
+:root{--bg:#f6f8fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e5e9f0;--blue:#2563eb;--green:#047857;--amber:#b45309;--red:#b42318}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}#app{max-width:1180px;margin:auto;padding:28px 20px 72px}.top{display:flex;gap:18px;justify-content:space-between;align-items:flex-start}.title h1{margin:0 0 6px;font-size:28px}.title p,.muted{color:var(--muted)}.badges,.tools{display:flex;gap:8px;flex-wrap:wrap}.badges{margin-top:12px}.badge,.tools button,.tools select,.tools a{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font:inherit;color:inherit;text-decoration:none}.badge{font-size:12px;font-weight:800}.badge.research{background:#fff7ed;color:#9a3412;border-color:#fed7aa}.badge.valid{background:#ecfdf3;color:var(--green);border-color:#a7f3d0}.tools button,.tools select,.tools a{border-radius:10px;padding:9px 12px;cursor:pointer}.tools select{min-width:220px}.notice{margin:18px 0 22px;padding:14px 16px;border:1px solid #f9d28b;border-radius:14px;background:#fffaf0;color:#7c4a03;line-height:1.65}.grid{display:grid;gap:14px}.stats{grid-template-columns:repeat(4,minmax(0,1fr))}.domains{grid-template-columns:repeat(3,minmax(0,1fr))}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 4px 18px rgba(15,23,42,.035)}.stat .v{font-size:26px;font-weight:850}.stat .l,.sub{font-size:11px;color:var(--muted);margin-top:6px}.section{margin-top:20px}.section h2{font-size:19px;margin:0 0 10px}.domain-name{font-weight:800}.domain-en{font-size:11px;color:var(--muted);margin-top:2px}.domain-score{font-size:30px;font-weight:850;margin:14px 0 4px}.domain-unit{font-size:11px;color:var(--muted)}.bar{height:7px;margin-top:12px;background:#edf1f6;border-radius:999px;overflow:hidden}.fill{height:100%;border-radius:999px}.domain-meta{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:11px;color:var(--muted)}.empty{text-align:center;padding:44px;color:var(--muted)}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff}table{width:100%;min-width:800px;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line);font-size:13px}th{background:#fafbfc;color:var(--muted);font-size:11px}tr:last-child td{border-bottom:0}.task{font-weight:800}.metric{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;line-height:1.55}.qc{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800}.qc.valid{background:#ecfdf3;color:var(--green)}.qc.unverified{background:#f2f4f7;color:#475467}.qc.bad{background:#fff1f2;color:var(--red)}.validation{font-size:12px;color:var(--amber);line-height:1.5}.foot{font-size:12px;color:var(--muted);line-height:1.65;margin-top:18px}@media(max-width:900px){.top{flex-direction:column}.stats,.domains{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){#app{padding:18px 12px 70px}.stats,.domains{grid-template-columns:1fr}.tools select{min-width:0;max-width:100%}}@media print{body{background:#fff}.tools,#research-prototype-banner{display:none!important}.card,.table-wrap{box-shadow:none}}
 </style>
 </head>
 <body>
-<main id="reportApp">
-  <div class="topbar">
+<main id="app">
+  <div class="top">
     <div class="title">
       <h1>研究版认知报告</h1>
       <p>Raw scores · session QC · exploratory cohort indices</p>
-      <div class="badges">
-        <span class="badge research">RESEARCH PROTOTYPE</span>
-        <span class="badge" id="normBadge">载入中…</span>
-      </div>
+      <div class="badges"><span class="badge research">RESEARCH PROTOTYPE</span><span class="badge" id="normBadge">载入中…</span></div>
     </div>
-    <div class="toolbar">
+    <div class="tools">
       <select id="participantSelect" aria-label="选择被试"><option value="">— 选择被试 —</option></select>
-      <button type="button" id="refreshBtn">刷新</button>
-      <button type="button" id="jsonBtn">导出 JSON</button>
+      <button id="refreshBtn" type="button">刷新</button>
+      <button id="jsonBtn" type="button">导出 JSON</button>
       <button type="button" onclick="window.print()">打印 / PDF</button>
       <a href="index.html">返回首页</a>
     </div>
   </div>
 
-  <div class="notice">
-    <strong>解释边界：</strong>当前网页任务为数字化研究适配版，尚未建立与标准 MCCB 施测的等效性。默认模式不生成 MCCB T 分或综合分；“项目内相对位置”只描述当前有效研究样本中的相对排序，不能解释为临床正常/异常。
-  </div>
+  <div class="notice"><strong>解释边界：</strong>当前网页任务为数字化研究适配版，尚未建立与标准 MCCB 施测的等效性。<strong>当前研究模式未应用经验证的 MCCB 常模</strong>，默认不生成 MCCB T 分或综合分；“项目内相对位置”只描述当前 QC-valid 研究样本中的相对排序，不能解释为临床正常/异常。</div>
 
   <section id="emptyState" class="card empty">暂无可显示数据。请先选择或完成至少一项任务。</section>
   <div id="content" hidden>
-    <section class="grid stats" id="statsGrid"></section>
-
-    <section class="section">
-      <div class="section-head"><div><h2>认知域</h2><p id="domainHint">仅纳入 session QC = valid 的任务</p></div></div>
-      <div class="grid domains" id="domainGrid"></div>
-    </section>
-
-    <section class="section">
-      <div class="section-head"><div><h2>任务明细与质量控制</h2><p>无 QC 元数据的历史记录标记为 unverified，不进入默认项目内排名</p></div></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>任务</th><th>原始/核心指标</th><th>Session QC</th><th>验证状态</th></tr></thead>
-          <tbody id="taskBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <p class="footer-note">报告用于软件验证、研究流程和探索性分析。若未来接入经验证的常模适配器，本页面会单独标注 validated norm；未经验证的项目内指标不会改名为 T 分。</p>
+    <section id="statsGrid" class="grid stats"></section>
+    <section class="section"><h2>认知域 <span class="sub" id="domainHint"></span></h2><div id="domainGrid" class="grid domains"></div></section>
+    <section class="section"><h2>任务明细与质量控制 <span class="sub">历史无 QC 元数据记录标为 unverified</span></h2><div class="table-wrap"><table><thead><tr><th>任务</th><th>原始/核心指标</th><th>Session QC</th><th>验证状态</th></tr></thead><tbody id="taskBody"></tbody></table></div></section>
+    <p class="foot">报告用于软件验证、研究流程和探索性分析。未来若接入经验证常模，会单独标注 validated norm；未经验证的项目内指标不会改名为 T 分。</p>
   </div>
 </main>
-
 <script src="mccb-participant.js"></script>
 <script src="mccb-scoring.js"></script>
 <script>
 'use strict';
-let currentProfile = null;
-let currentBundle = null;
-
-const $ = id => document.getElementById(id);
-function fmt(value, digits = 1) {
-  if (value == null || value === '') return '—';
-  if (typeof value === 'number' && Number.isFinite(value)) return Number.isInteger(value) ? String(value) : value.toFixed(digits);
-  return String(value);
-}
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text != null) node.textContent = text;
-  return node;
-}
-function metricText(key, e) {
-  if (!e) return '—';
-  switch (key) {
-    case 'tmt': return `Part A: ${fmt(e.partATime)} s · errors ${fmt(e.partAErrors)}\nPart B (supplemental): ${fmt(e.partBTime)} s · errors ${fmt(e.partBErrors)}`;
-    case 'bacs': return `correct ${fmt(e.correct)} / attempted ${fmt(e.attempted)} · accuracy ${fmt(e.accuracy)}%`;
-    case 'fluency': return `unique ${fmt(e.unique)} · total ${fmt(e.total)}`;
-    case 'cpt': return `d′ ${fmt(e.dPrime,2)} · hits ${fmt(e.hits)} · false alarms ${fmt(e.falseAlarms)} · hit RT ${fmt(e.meanHitRT)} ms`;
-    case 'spatial-span': return `correct ${fmt(e.totalCorrect)} · max level ${fmt(e.maxLevel)}`;
-    case 'lns': return `correct ${fmt(e.totalCorrect)} · max level ${fmt(e.maxLevel)}`;
-    case 'hvlt': return `learning ${fmt(e.totalLearning)} · delayed ${fmt(e.delayedRecall)} · retention ${e.retention == null ? '—' : fmt(e.retention)+'%'}`;
-    case 'bvmt': return `learning ${fmt(e.totalLearning)} · delayed ${fmt(e.delayedRecall)} · trials ${fmt(e.trialsCompleted)}`;
-    case 'mazes': return `score ${fmt(e.totalScore)} / ${fmt(e.maxScore)} · completed ${fmt(e.completed)}`;
-    case 'msceit': return `correct ${fmt(e.correct)} / ${fmt(e.total)} · accuracy ${fmt(e.accuracy)}%`;
-    default: return JSON.stringify(e);
-  }
-}
-function qcClass(status) { return status === 'valid' ? 'valid' : status === 'unverified' ? 'unverified' : 'bad'; }
-function statCard(value, label, detail) {
-  const card = el('div','card stat');
-  card.appendChild(el('div','value',value));
-  card.appendChild(el('div','label',label));
-  if (detail) card.appendChild(el('span','sub',detail));
-  return card;
-}
-
-function loadBundle() {
-  currentBundle = MCCBScoring.getAllProfiles();
-  const norm = currentBundle.norm;
-  $('normBadge').textContent = norm.validated ? `VALIDATED NORM · ${norm.label}` : `RESEARCH INDEX · ${norm.label}`;
-  $('normBadge').className = 'badge ' + (norm.validated ? 'valid' : 'research');
-
-  const select = $('participantSelect');
-  const previous = select.value;
-  select.textContent = '';
-  const placeholder = document.createElement('option'); placeholder.value=''; placeholder.textContent='— 选择被试 —'; select.appendChild(placeholder);
-  currentBundle.profiles.forEach(profile => {
-    const option = document.createElement('option');
-    option.value = profile.id;
-    const qc = profile.qcSummary || {};
-    option.textContent = `${profile.id} · ${Object.keys(profile.tests).length}/10 · valid ${qc.valid || 0}`;
-    select.appendChild(option);
-  });
-
-  const deepId = new URLSearchParams(location.search).get('p');
-  if (deepId && currentBundle.profiles.some(p => p.id === deepId)) select.value = deepId;
-  else if (previous && currentBundle.profiles.some(p => p.id === previous)) select.value = previous;
-  else if (currentBundle.profiles.length === 1) select.value = currentBundle.profiles[0].id;
-
-  renderSelected();
-}
-
-function renderSelected() {
-  const pid = $('participantSelect').value;
-  currentProfile = currentBundle && currentBundle.profiles.find(p => p.id === pid) || null;
-  $('emptyState').style.display = currentProfile ? 'none' : 'block';
-  $('content').hidden = !currentProfile;
-  if (!currentProfile) return;
-
-  const qc = currentProfile.qcSummary || {valid:0,invalid:0,unverified:0};
-  const testsDone = Object.keys(currentProfile.tests).length;
-  const domains = MCCBScoring.getDomainSummary(currentProfile);
-  const validated = currentBundle.norm.validated === true;
-  const stats = $('statsGrid'); stats.textContent='';
-  stats.appendChild(statCard(currentProfile.id,'被试编号'));
-  stats.appendChild(statCard(`${testsDone}/10`,'已有原始结果',`${qc.valid||0} valid · ${qc.invalid||0} invalid · ${qc.unverified||0} unverified`));
-  stats.appendChild(statCard(String(domains.length),'可显示认知域','仅由可评分任务形成'));
-  stats.appendChild(statCard(validated && Number.isFinite(currentProfile.composite) ? String(currentProfile.composite) : '未生成', validated ? '综合分' : 'MCCB 综合分','研究模式默认不生成'));
-
-  const domainGrid = $('domainGrid'); domainGrid.textContent='';
-  $('domainHint').textContent = validated ? '经验证常模模式' : '仅纳入 session QC = valid 的任务；数值为项目内探索性相对位置';
-  if (!domains.length) {
-    const empty = el('div','card empty','暂无可评分认知域。历史 unverified 或 invalid 结果仍会在下方原始任务表显示。');
-    empty.style.gridColumn='1/-1'; domainGrid.appendChild(empty);
-  } else {
-    domains.forEach(domain => {
-      const card = el('div','card');
-      card.appendChild(el('div','domain-name',domain.label));
-      card.appendChild(el('div','domain-en',domain.labelEn));
-      const score = validated ? domain.tScore : domain.indexScore;
-      card.appendChild(el('div','domain-score',score == null ? '—' : String(score)));
-      card.appendChild(el('div','domain-unit',validated ? 'Validated T score' : '项目内相对位置（0–100，探索性）'));
-      const bar = el('div','bar'); const fill=el('div','fill'); fill.style.width=Math.max(0,Math.min(100,Number(score)||0))+'%'; fill.style.background=domain.color; bar.appendChild(fill); card.appendChild(bar);
-      const meta=el('div','domain-meta'); meta.appendChild(el('span','',validated ? 'validated norm' : '非临床百分位')); meta.appendChild(el('span','',`score type: ${domain.scoreType}`)); card.appendChild(meta);
-      domainGrid.appendChild(card);
-    });
-  }
-
-  const body = $('taskBody'); body.textContent='';
-  Object.entries(currentProfile.tests).forEach(([key, task]) => {
-    const tr=document.createElement('tr');
-    const tdName=document.createElement('td'); tdName.appendChild(el('span','task-name',task.label)); tdName.appendChild(el('span','sub',task.labelEn));
-    const tdMetric=el('td','metric',metricText(key,task.extracted));
-    const tdQc=document.createElement('td'); const qc=el('span','qc '+qcClass(task.qcStatus),task.qcStatus); tdQc.appendChild(qc); if(!task.eligibleForResearchScoring) tdQc.appendChild(el('span','sub','默认不进入项目内排名'));
-    const tdVal=document.createElement('td'); tdVal.appendChild(el('div','validation',task.validation && task.validation.note ? task.validation.note : 'Research adaptation; equivalence not established.'));
-    tr.append(tdName,tdMetric,tdQc,tdVal); body.appendChild(tr);
-  });
-}
-
-function exportJson() {
-  if (!currentProfile) return;
-  const payload = {
-    reportType:'research-safe-cognitive-report',
-    generatedAt:new Date().toISOString(),
-    norm:currentBundle.norm,
-    profile:currentProfile,
-  };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`research-report-${currentProfile.id}.json`; a.click(); URL.revokeObjectURL(url);
-}
-
-$('participantSelect').addEventListener('change',renderSelected);
-$('refreshBtn').addEventListener('click',loadBundle);
-$('jsonBtn').addEventListener('click',exportJson);
-document.addEventListener('DOMContentLoaded',loadBundle);
+let bundle=null,profile=null;const $=id=>document.getElementById(id);
+const text=(tag,cls,value)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(value!=null)n.textContent=value;return n};
+const fmt=(v,d=1)=>v==null||v===''?'—':typeof v==='number'&&Number.isFinite(v)?(Number.isInteger(v)?String(v):v.toFixed(d)):String(v);
+function metric(k,e){if(!e)return'—';switch(k){case'tmt':return`Part A: ${fmt(e.partATime)} s · errors ${fmt(e.partAErrors)}\nPart B (supplemental): ${fmt(e.partBTime)} s · errors ${fmt(e.partBErrors)}`;case'bacs':return`correct ${fmt(e.correct)} / attempted ${fmt(e.attempted)} · accuracy ${fmt(e.accuracy)}%`;case'fluency':return`unique ${fmt(e.unique)} · total ${fmt(e.total)}`;case'cpt':return`d′ ${fmt(e.dPrime,2)} · hits ${fmt(e.hits)} · false alarms ${fmt(e.falseAlarms)} · hit RT ${fmt(e.meanHitRT)} ms`;case'spatial-span':case'lns':return`correct ${fmt(e.totalCorrect)} · max level ${fmt(e.maxLevel)}`;case'hvlt':return`learning ${fmt(e.totalLearning)} · delayed ${fmt(e.delayedRecall)} · retention ${e.retention==null?'—':fmt(e.retention)+'%'}`;case'bvmt':return`learning ${fmt(e.totalLearning)} · delayed ${fmt(e.delayedRecall)} · trials ${fmt(e.trialsCompleted)}`;case'mazes':return`score ${fmt(e.totalScore)} / ${fmt(e.maxScore)} · completed ${fmt(e.completed)}`;case'msceit':return`correct ${fmt(e.correct)} / ${fmt(e.total)} · accuracy ${fmt(e.accuracy)}%`;default:return JSON.stringify(e)}}
+function qcClass(s){return s==='valid'?'valid':s==='unverified'?'unverified':'bad'}
+function stat(v,l,d=''){const c=text('div','card stat');c.append(text('div','v',v),text('div','l',l));if(d)c.append(text('div','sub',d));return c}
+function load(){bundle=MCCBScoring.getAllProfiles();const norm=bundle.norm;$('normBadge').textContent=norm.validated?`VALIDATED NORM · ${norm.label}`:`RESEARCH INDEX · ${norm.label}`;$('normBadge').className='badge '+(norm.validated?'valid':'research');const s=$('participantSelect'),prev=s.value;s.textContent='';const p0=document.createElement('option');p0.value='';p0.textContent='— 选择被试 —';s.append(p0);bundle.profiles.forEach(p=>{const o=document.createElement('option'),q=p.qcSummary||{};o.value=p.id;o.textContent=`${p.id} · ${Object.keys(p.tests).length}/10 · valid ${q.valid||0}`;s.append(o)});const deep=new URLSearchParams(location.search).get('p');if(deep&&bundle.profiles.some(p=>p.id===deep))s.value=deep;else if(prev&&bundle.profiles.some(p=>p.id===prev))s.value=prev;else if(bundle.profiles.length===1)s.value=bundle.profiles[0].id;render()}
+function render(){const id=$('participantSelect').value;profile=bundle&&bundle.profiles.find(p=>p.id===id)||null;$('emptyState').style.display=profile?'none':'block';$('content').hidden=!profile;if(!profile)return;const q=profile.qcSummary||{valid:0,invalid:0,unverified:0},domains=MCCBScoring.getDomainSummary(profile),validated=bundle.norm.validated===true,stats=$('statsGrid');stats.textContent='';stats.append(stat(profile.id,'被试编号'),stat(`${Object.keys(profile.tests).length}/10`,'已有原始结果',`${q.valid||0} valid · ${q.invalid||0} invalid · ${q.unverified||0} unverified`),stat(String(domains.length),'可评分认知域','仅由 QC-valid 任务形成'),stat(validated&&Number.isFinite(profile.composite)?String(profile.composite):'未生成',validated?'综合分':'MCCB 综合分','研究模式默认不生成'));$('domainHint').textContent=validated?'· 经验证常模模式':'· 仅纳入 session QC = valid 的任务';const dg=$('domainGrid');dg.textContent='';if(!domains.length){const e=text('div','card empty','暂无可评分认知域。invalid / unverified 原始结果仍在下方显示。');e.style.gridColumn='1/-1';dg.append(e)}else domains.forEach(d=>{const c=text('div','card'),score=validated?d.tScore:d.indexScore;c.append(text('div','domain-name',d.label),text('div','domain-en',d.labelEn),text('div','domain-score',score==null?'—':String(score)),text('div','domain-unit',validated?'Validated T score':'项目内相对位置（0–100，探索性）'));const b=text('div','bar'),f=text('div','fill');f.style.width=Math.max(0,Math.min(100,Number(score)||0))+'%';f.style.background=d.color;b.append(f);c.append(b);const m=text('div','domain-meta');m.append(text('span','',validated?'validated norm':'非临床百分位'),text('span','',`score type: ${d.scoreType}`));c.append(m);dg.append(c)});const body=$('taskBody');body.textContent='';Object.entries(profile.tests).forEach(([k,t])=>{const tr=document.createElement('tr'),a=document.createElement('td');a.append(text('span','task',t.label),text('span','sub',t.labelEn));const b=text('td','metric',metric(k,t.extracted)),c=document.createElement('td'),pill=text('span','qc '+qcClass(t.qcStatus),t.qcStatus);c.append(pill);if(!t.eligibleForResearchScoring)c.append(text('span','sub','默认不进入项目内排名'));const d=document.createElement('td');d.append(text('div','validation',t.validation&&t.validation.note?t.validation.note:'Research adaptation; equivalence not established.'));tr.append(a,b,c,d);body.append(tr)})}
+function exportJson(){if(!profile)return;const payload={reportType:'research-safe-cognitive-report',generatedAt:new Date().toISOString(),norm:bundle.norm,profile};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`research-report-${profile.id}.json`;a.click();URL.revokeObjectURL(url)}
+$('participantSelect').addEventListener('change',render);$('refreshBtn').addEventListener('click',load);$('jsonBtn').addEventListener('click',exportJson);document.addEventListener('DOMContentLoaded',load);
 </script>
 </body>
 </html>
