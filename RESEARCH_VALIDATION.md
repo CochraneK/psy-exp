@@ -37,7 +37,7 @@ Reference: https://www.matricsinc.org/mccbtestlist/
 
 ### Default `internal` mode
 
-The default scoring path is now deliberately named and treated as an **exploratory project-internal index**.
+The default scoring path is deliberately named and treated as an **exploratory project-internal index**.
 
 It may output:
 
@@ -75,15 +75,15 @@ This gate is an engineering safety mechanism; setting the flag is **not itself e
 
 ## Missing-data rule
 
-Missing task/domain data are now treated as **missing**, not as zero performance. The exploratory ranking pool for a domain contains only participants with usable data for that domain.
+Missing task/domain data are treated as **missing**, not as zero performance. The exploratory ranking pool for a domain contains only participants with usable data for that domain.
 
 Before implementing an official scoring adapter, reproduce the MCCB scoring program's documented missing-data rules exactly. The official program allows limited missingness in domains represented by multiple tests but requires data for single-test domains.
 
 Reference: https://www.matricsinc.org/wp-content/uploads/2019/11/MCCB_MSCEIT%20Installation%20notes.pdf
 
-## Session-quality states required next
+## Session-quality states — implemented baseline
 
-Every completed task should eventually carry a machine-readable quality state:
+Newly saved task results now receive a common metadata envelope from `mccb-participant.js` with these states:
 
 ```text
 valid
@@ -91,36 +91,68 @@ aborted
 interrupted
 timing_violation
 technical_failure
+unverified
 ```
 
-Only `valid` sessions should enter any normative or group-comparison scoring path. `visibilitychange`, refresh, timer throttling, device sleep, or focus loss must not silently become a normal completion.
+`markInProgress()` starts a monotonic session clock. `visibilitychange` marks active sessions as interrupted; `pagehide` marks unfinished sessions as aborted. `saveResult()` preserves an invalid status instead of restoring it to valid. Results with invalid QC are stored for auditability but their participant progress is `completed_invalid`.
 
-Recommended common result envelope:
+Only sessions explicitly marked `valid` enter the default project-internal group-comparison indices. Historical results that predate the metadata envelope are marked `unverified`: they remain visible as raw data but are excluded from the default ranking pool.
+
+Current result metadata includes:
 
 ```json
 {
-  "schemaVersion": 1,
-  "taskVersion": "...",
-  "participantId": "...",
-  "startedAt": "...",
-  "completedAt": "...",
-  "status": "valid",
-  "qc": {
-    "visibilityInterruptions": 0,
-    "timingViolation": false
-  },
-  "raw": {}
+  "_meta": {
+    "schemaVersion": 2,
+    "taskVersion": "research-web-0.2.0",
+    "administration": "digital_research_adaptation",
+    "mccbEquivalent": false,
+    "participantId": "P001",
+    "recordedAt": "...",
+    "sessionQc": {
+      "status": "valid",
+      "startedAt": "...",
+      "completedAt": "...",
+      "elapsedMs": 12345,
+      "clock": "performance.now",
+      "qc": {
+        "visibilityInterruptions": 0,
+        "timingViolation": false,
+        "technicalFailure": false,
+        "reasons": []
+      }
+    }
+  }
 }
 ```
 
-## Timing validation required next
+This is an engineering QC baseline, not a complete psychometric validation system.
 
-For timed tasks:
+## Research-safe reporting — implemented
 
-- use `performance.now()` / absolute deadlines for measurement;
-- treat `setInterval()` and `setTimeout()` as scheduling mechanisms, not clocks;
-- record scheduled onset, actual onset, onset error, response time, focus/visibility interruptions, and browser/device metadata;
-- establish acceptable jitter thresholds before using reaction-time metrics for research inference.
+`research-report.html` is the default report surface for this branch. The legacy `comprehensive-report.html` automatically redirects to it because the legacy page assumes T-score-shaped data.
+
+The research report clearly separates:
+
+- raw task metrics;
+- session QC (`valid`, invalid states, `unverified`);
+- exploratory project-internal indices;
+- a future validated-norm path.
+
+Individual task pages may still contain historical threshold strings in their source code. The shared runtime replaces `.norm-ref` result interpretations with a research-only safety notice so unsupported “normal / impaired / excellent” language is not presented as a valid interpretation. Removing the dead threshold branches from every individual page remains desirable cleanup work.
+
+## Timing validation — partially implemented
+
+`ExperimentRuntime` now measures session duration with `performance.now()` where available and provides an absolute-deadline scheduler (`ExperimentRuntime.deadline`) for task migrations.
+
+Still required for timing-sensitive tasks:
+
+- migrate task countdowns away from callback-counting `setInterval()` logic;
+- record scheduled onset, actual onset, onset error, and response timestamps per trial where relevant;
+- define timing/jitter acceptance thresholds;
+- validate those thresholds on target browser/device combinations.
+
+`setInterval()` and `setTimeout()` must be treated as scheduling mechanisms, not clocks.
 
 ## Test-material licensing and security
 
@@ -147,4 +179,4 @@ Do not describe this project as an MCCB-equivalent clinical assessment until all
 
 ## Engineering tests vs psychometric validation
 
-The repository's automated tests should continue to verify navigation, persistence, calculations, schema integrity, and regressions. They must never be presented as evidence that a browser adaptation is psychometrically interchangeable with the standardized MCCB procedure.
+The repository's automated tests verify navigation, persistence, calculations, schema integrity, session-QC invariants, report safety contracts, and regressions. They must never be presented as evidence that a browser adaptation is psychometrically interchangeable with the standardized MCCB procedure.
