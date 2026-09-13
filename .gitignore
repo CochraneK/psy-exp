@@ -1,11 +1,15 @@
 # ---- 代码库：只传程序，不传数据 ----
 
 # ---- 被试原始数据（含真实姓名，PHI 隐私） ----
-data/cpt-results/
+# 排除所有内容，但保留 .gitkeep 以维持目录结构
+data/cpt-results/*
+!data/cpt-results/.gitkeep
 
 # ---- 运行产物 / 可再生输出 ----
-data/cpt-reports/
-data/autotest/
+data/cpt-reports/*
+!data/cpt-reports/.gitkeep
+data/autotest/**/*
+!data/autotest/**/.gitkeep
 
 # ---- 文档 / PDF 大文件（含队列 PHI 风险） ----
 docs/*.pdf
