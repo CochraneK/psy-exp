@@ -2,8 +2,8 @@
  * mccb-participant.js — participant storage + research session QC
  *
  * The browser tasks in this repository are research adaptations. This module owns
- * participant-scoped persistence and now also records a conservative session
- * quality envelope so interrupted runs cannot silently look like valid data.
+ * participant-scoped persistence and records a conservative session-quality
+ * envelope so interrupted runs cannot silently look like valid completed data.
  */
 
 const RESULT_SCHEMA_VERSION = 2;
@@ -81,9 +81,7 @@ const _ls = {
 };
 
 function monotonicNow() {
-  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-    return performance.now();
-  }
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') return performance.now();
   return Date.now();
 }
 
@@ -102,11 +100,6 @@ function isValidCohortId(value) {
   return id.length >= 1 && id.length <= 64 && /^[A-Za-z0-9._-]+$/.test(id);
 }
 
-/**
- * ExperimentRuntime keeps a monotonic session clock and a machine-readable QC
- * state. Existing pages can keep their own task logic; ParticipantManager hooks
- * into markInProgress/saveResult so every newly saved result gets this metadata.
- */
 const ExperimentRuntime = (() => {
   const sessions = new Map();
 
@@ -119,9 +112,7 @@ const ExperimentRuntime = (() => {
       completedAt: null,
       startedPerfMs: monotonicNow(),
       elapsedMs: null,
-      clock: (typeof performance !== 'undefined' && typeof performance.now === 'function')
-        ? 'performance.now'
-        : 'Date.now',
+      clock: (typeof performance !== 'undefined' && typeof performance.now === 'function') ? 'performance.now' : 'Date.now',
       qc: {
         visibilityInterruptions: 0,
         timingViolation: false,
@@ -140,8 +131,7 @@ const ExperimentRuntime = (() => {
 
   function start(testKey) {
     if (!VALID_TEST_KEYS.has(testKey)) return null;
-    const session = createSession(testKey);
-    sessions.set(testKey, session);
+    sessions.set(testKey, createSession(testKey));
     return snapshot(testKey);
   }
 
@@ -162,13 +152,10 @@ const ExperimentRuntime = (() => {
     if (!session) return null;
     const nextStatus = VALID_QC_STATUSES.has(status) ? status : 'technical_failure';
 
-    // Once invalid, a later normal completion must not silently restore validity.
     if (session.status === 'valid' || session.status === 'unverified') {
       session.status = nextStatus;
     } else if (nextStatus === 'technical_failure') {
       session.status = nextStatus;
-    } else if (nextStatus === 'timing_violation' && session.status === 'interrupted') {
-      // Preserve interruption as the more directly observable protocol violation.
     }
 
     if (nextStatus === 'interrupted') session.qc.visibilityInterruptions += 1;
@@ -225,11 +212,6 @@ const ExperimentRuntime = (() => {
       .map(([key]) => key);
   }
 
-  /**
-   * Absolute-deadline scheduler for future task migrations.
-   * setTimeout is used only to wake the loop; elapsed time is measured against a
-   * monotonic deadline rather than by counting timer callbacks.
-   */
   function deadline(durationMs, { onTick, onDone, tickMs = 100 } = {}) {
     const start = monotonicNow();
     const end = start + Math.max(0, Number(durationMs) || 0);
@@ -250,10 +232,7 @@ const ExperimentRuntime = (() => {
 
     step();
     return {
-      cancel() {
-        cancelled = true;
-        if (timer) clearTimeout(timer);
-      },
+      cancel() { cancelled = true; if (timer) clearTimeout(timer); },
       startedPerfMs: start,
       deadlinePerfMs: end,
     };
@@ -284,9 +263,7 @@ const ParticipantManager = {
       list.push(normalized);
       if (!_ls.set('mccb-participant-list', JSON.stringify(list))) return false;
     }
-    if (!_ls.get('mccb-participant-' + normalized)) {
-      return !!this._createParticipant(normalized);
-    }
+    if (!_ls.get('mccb-participant-' + normalized)) return !!this._createParticipant(normalized);
     return true;
   },
 
@@ -326,6 +303,7 @@ const ParticipantManager = {
       progress,
       sessions: {},
       results: {},
+      invalidResults: {},
     };
     return this._saveData(cohortId, data) ? data : null;
   },
@@ -367,9 +345,12 @@ const ParticipantManager = {
     const data = this.getData();
     if (!data) return false;
     if (!data.sessions) data.sessions = {};
+    if (!data.progress) data.progress = {};
     for (const testKey of VALID_TEST_KEYS) {
       const session = ExperimentRuntime.snapshot(testKey);
-      if (session) data.sessions[testKey] = session;
+      if (!session) continue;
+      data.sessions[testKey] = session;
+      if (session.completedAt == null && session.status !== 'valid') data.progress[testKey] = session.status;
     }
     return this._saveData(data.cohortId, data);
   },
@@ -397,20 +378,36 @@ const ParticipantManager = {
     if (!data) return false;
     if (!data.progress) data.progress = {};
     if (!data.results) data.results = {};
+    if (!data.invalidResults) data.invalidResults = {};
     if (!data.sessions) data.sessions = {};
-
     data.sessions[testKey] = sessionQc;
-    data.results[resultKey] = enriched;
-    data.progress[testKey] = sessionQc && sessionQc.status === 'valid' ? 'completed' : 'completed_invalid';
 
-    // Save the canonical participant record first. Do not claim completion if the
-    // canonical write fails; the compatibility key is secondary.
+    const isValid = sessionQc && sessionQc.status === 'valid';
+    if (isValid) {
+      data.results[resultKey] = enriched;
+      delete data.invalidResults[resultKey];
+      data.progress[testKey] = 'completed';
+    } else {
+      // Invalid attempts are auditable but are not canonical completed results.
+      data.invalidResults[resultKey] = enriched;
+      if (!data.results[resultKey]) data.progress[testKey] = 'completed_invalid';
+    }
+
     if (!this._saveData(cohortId, data)) {
       console.error('被试结果保存失败:', cohortId, testKey);
       return false;
     }
 
-    _ls.set('mccb-participant-' + cohortId + '-' + resultKey, JSON.stringify(enriched));
+    const compatibilityKey = 'mccb-participant-' + cohortId + '-' + resultKey;
+    if (isValid) {
+      _ls.set(compatibilityKey, JSON.stringify(enriched));
+    } else {
+      // Page-level legacy code often writes an unscoped result immediately before
+      // ParticipantManager.saveResult(). Remove it so dashboards cannot mistake an
+      // invalid attempt for a valid completion.
+      _ls.remove(resultKey);
+      if (!data.results[resultKey]) _ls.remove(compatibilityKey);
+    }
     return true;
   },
 
@@ -420,8 +417,18 @@ const ParticipantManager = {
     return data.results[KEY_TO_RESULT[testKey]] || null;
   },
 
+  getInvalidResult(testKey) {
+    const data = this.getData();
+    if (!data || !data.invalidResults) return null;
+    return data.invalidResults[KEY_TO_RESULT[testKey]] || null;
+  },
+
+  getAnyResult(testKey) {
+    return this.getResult(testKey) || this.getInvalidResult(testKey);
+  },
+
   getSessionQc(testKey) {
-    const result = this.getResult(testKey);
+    const result = this.getAnyResult(testKey);
     if (result && result._meta && result._meta.sessionQc) return result._meta.sessionQc;
     const data = this.getData();
     return data && data.sessions ? data.sessions[testKey] || null : null;
@@ -442,7 +449,7 @@ const ParticipantManager = {
     const statuses = Object.values(data.progress || {});
     return {
       done: statuses.filter(s => s === 'completed').length,
-      invalid: statuses.filter(s => s === 'completed_invalid').length,
+      invalid: statuses.filter(s => s === 'completed_invalid' || s === 'aborted' || s === 'interrupted' || s === 'timing_violation' || s === 'technical_failure').length,
       total: TEST_ORDER.length,
     };
   },
@@ -483,8 +490,7 @@ const ParticipantManager = {
     keysToRemove.forEach(key => _ls.remove(key));
 
     const list = this.getAllParticipants();
-    const next = list.filter(item => item !== id);
-    _ls.set('mccb-participant-list', JSON.stringify(next));
+    _ls.set('mccb-participant-list', JSON.stringify(list.filter(item => item !== id)));
     if (this.getCurrent() === id) _ls.remove('mccb-current-participant');
     return true;
   },
@@ -492,14 +498,12 @@ const ParticipantManager = {
   getAllSummaries() {
     return this.getAllParticipants().map(id => {
       const data = this.getData(id);
-      if (!data) {
-        return { id, done: 0, invalid: 0, total: TEST_ORDER.length, createdAt: null, updatedAt: null };
-      }
+      if (!data) return { id, done: 0, invalid: 0, total: TEST_ORDER.length, createdAt: null, updatedAt: null };
       const statuses = Object.values(data.progress || {});
       return {
         id,
         done: statuses.filter(s => s === 'completed').length,
-        invalid: statuses.filter(s => s === 'completed_invalid').length,
+        invalid: statuses.filter(s => s === 'completed_invalid' || s === 'aborted' || s === 'interrupted' || s === 'timing_violation' || s === 'technical_failure').length,
         total: TEST_ORDER.length,
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
@@ -555,7 +559,6 @@ function installResearchSafetyUI() {
 
   document.querySelectorAll('.norm-ref').forEach(lockNormRef);
 
-  // Add a visible prototype banner once on task pages and the landing page.
   if (!document.getElementById('research-prototype-banner')) {
     const banner = document.createElement('div');
     banner.id = 'research-prototype-banner';
@@ -581,11 +584,8 @@ function installRuntimeGuards() {
       }
     });
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', installResearchSafetyUI, { once: true });
-    } else {
-      installResearchSafetyUI();
-    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installResearchSafetyUI, { once: true });
+    else installResearchSafetyUI();
   }
 
   if (typeof window !== 'undefined') {
@@ -594,8 +594,6 @@ function installRuntimeGuards() {
       ParticipantManager._persistActiveSessionQc();
     });
 
-    // The legacy comprehensive report assumes T-scores. Route it to the new
-    // research-safe report without requiring a large brittle edit to that file.
     if (window.location && /\/comprehensive-report\.html$/.test(window.location.pathname)) {
       const next = 'research-report.html' + (window.location.search || '') + (window.location.hash || '');
       window.location.replace(next);
