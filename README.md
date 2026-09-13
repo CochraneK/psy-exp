@@ -2,7 +2,13 @@
 
 精神分裂症认知功能成套测验（MCCB）的网页化实现。10 项测验 + 被试管理系统，纯前端（HTML/CSS/JS），数据存于浏览器 localStorage，可离线运行。
 
-## 快速开始
+## GitHub Pages 在线访问
+
+**https://cochranek.github.io/psy-exp/** — 无需本地部署，浏览器直接打开即可使用。
+
+> 所有数据存于浏览器 localStorage（本地存储），不会上传至服务器。
+
+## 快速开始（本地部署）
 
 用任意 HTTP 静态服务器在项目根目录启动，然后浏览器打开 `index.html`：
 
