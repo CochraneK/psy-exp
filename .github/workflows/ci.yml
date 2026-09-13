@@ -13,17 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+          package-manager-cache: false
 
       - name: JavaScript syntax checks
         run: |
@@ -47,9 +43,6 @@ jobs:
       - name: Chromium browser smoke
         run: node tests/browser-smoke.cjs
 
-      - name: Python syntax check
-        run: python -m py_compile tests/cpt_report.py
-
       - name: Research workspace/report/runtime contract
         shell: bash
         run: |
@@ -72,9 +65,18 @@ jobs:
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
           grep -q "导出 CSV" research-comparison.html
           grep -q "protocol_time_limit_reached_incomplete" pages/mccb-tmt.html
-          ! grep -q "timing_violation.*tmt_part_.*time_limit" pages/mccb-tmt.html
-          ! grep -R -n --include='*.html' "user-scalable=no\|maximum-scale=1" pages
-          ! grep -q "MCCB 认知成套测验" index.html
+          if grep -q "timing_violation.*tmt_part_.*time_limit" pages/mccb-tmt.html; then
+            echo "TMT protocol time limit must not be mislabeled as timing_violation."
+            exit 1
+          fi
+          if grep -R -n --include='*.html' -E "user-scalable[[:space:]]*=[[:space:]]*no|maximum-scale[[:space:]]*=[[:space:]]*1([,.\"']|$)" pages; then
+            echo "Task pages must not disable browser zoom."
+            exit 1
+          fi
+          if grep -q "MCCB 认知成套测验" index.html; then
+            echo "Researcher Console must not regress to the legacy standardized-test framing."
+            exit 1
+          fi
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-comparison.html
@@ -97,8 +99,15 @@ jobs:
           test ! -e "docs/7.简版MCCB操作者表格（A）_vlm.txt"
           test ! -e "docs/8.简版MCCB操作者表格（B）_vlm.txt"
           test ! -d tests/archive
-          ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' --exclude='verify-manifest.cjs' "WORD_LIST" pages docs tests
-          ! grep -R -n --exclude-dir=.git "C:/Users/\|D:/Software/\|agent-browser/bin" tests
+          test ! -e tests/cpt_report.py
+          if grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' --exclude='verify-manifest.cjs' "WORD_LIST" pages docs tests; then
+            echo "Protected/public word-list marker reappeared."
+            exit 1
+          fi
+          if grep -R -n --exclude-dir=.git -E "C:/Users/|D:/Software/|agent-browser/bin" tests; then
+            echo "Machine-specific path or obsolete browser harness reappeared."
+            exit 1
+          fi
           grep -q "../private/stimuli.js" pages/mccb-hvlt.html
           grep -q "../private/stimuli.js" pages/mccb-msceit.html
 
