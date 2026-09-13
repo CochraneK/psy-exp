@@ -32,7 +32,11 @@ jobs:
           node --check tests/verify-scoring.cjs
           node --check tests/verify-participant.cjs
           node --check tests/validate-drivers.cjs
+          node --check tests/validate-inline-scripts.cjs
           node --check tests/full-battery.cjs
+
+      - name: Inline HTML JavaScript syntax
+        run: node tests/validate-inline-scripts.cjs
 
       - name: Participant and session-QC safety tests
         run: node tests/verify-participant.cjs
