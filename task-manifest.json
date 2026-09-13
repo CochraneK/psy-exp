@@ -1,6 +1,8 @@
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
   "projectMode": "research-prototype",
+  "runtimeVersion": "research-runtime-0.3.0",
+  "scoringVersion": "research-scoring-0.3.0",
   "tasks": [
     {
       "key": "tmt",
@@ -11,7 +13,7 @@
       "timingStatus": "monotonic-elapsed",
       "materialPolicy": "public-domain-related",
       "publicExecutable": true,
-      "notes": "Only Part A is MCCB-related; Part B must remain supplemental."
+      "notes": "Only Part A is MCCB-related; Part B is supplemental and excluded from the research domain index."
     },
     {
       "key": "bacs",
@@ -22,7 +24,7 @@
       "timingStatus": "absolute-deadline",
       "materialPolicy": "synthetic-public-stimuli",
       "publicExecutable": true,
-      "notes": "Uses a synthetic fixed symbol sequence; not the licensed paper/pencil form."
+      "notes": "Synthetic symbols and browser input; not the licensed paper/pencil form."
     },
     {
       "key": "fluency",
@@ -33,7 +35,7 @@
       "timingStatus": "absolute-deadline",
       "materialPolicy": "public-domain-related",
       "publicExecutable": true,
-      "notes": "Typed strings are de-duplicated; semantic validity is not automatically adjudicated."
+      "notes": "Typed strings are de-duplicated; semantic validity requires researcher review."
     },
     {
       "key": "cpt",
@@ -44,29 +46,29 @@
       "timingStatus": "absolute-trial-schedule-with-onset-log",
       "materialPolicy": "synthetic-public-stimuli",
       "publicExecutable": true,
-      "notes": "Custom parameters; trial-level scheduled/actual onset and RT are logged."
+      "notes": "Custom protocol; each trial logs scheduled onset, actual onset, onset error, actual duration and RT."
     },
     {
       "key": "spatial-span",
       "taskVersion": "spatial-span-web-0.3.0",
       "officialComponent": "WMS-III Spatial Span",
-      "administration": "screen-based research adaptation",
+      "administration": "synthetic 3x3 screen sequence task",
       "mccbEquivalent": false,
-      "timingStatus": "legacy-scheduled",
-      "materialPolicy": "review-required",
+      "timingStatus": "absolute-deadline",
+      "materialPolicy": "synthetic-public-stimuli",
       "publicExecutable": true,
-      "notes": "Physical-board equivalence is not established; stimulus provenance must be reviewed."
+      "notes": "Algorithm-generated forward/reverse sequences; no WMS-III board stimuli are bundled."
     },
     {
       "key": "lns",
       "taskVersion": "lns-web-0.3.0",
       "officialComponent": "Letter-Number Span",
-      "administration": "visual/typed research adaptation",
+      "administration": "synthetic visual/typed ordering task",
       "mccbEquivalent": false,
-      "timingStatus": "legacy-scheduled",
-      "materialPolicy": "review-required",
+      "timingStatus": "absolute-deadline",
+      "materialPolicy": "synthetic-public-stimuli",
       "publicExecutable": true,
-      "notes": "Standard administration is oral; embedded sequence provenance must be reviewed."
+      "notes": "Algorithm-generated sequences; standard administration is oral, so equivalence is not claimed."
     },
     {
       "key": "hvlt",
@@ -77,40 +79,40 @@
       "timingStatus": "absolute-deadline",
       "materialPolicy": "private-licensed-assets-required",
       "publicExecutable": false,
-      "notes": "No word list is bundled; private/stimuli.js is required and git-ignored."
+      "notes": "No word list is bundled; private/stimuli.js is required and git-ignored. Results store counts and material fingerprint, not the word list."
     },
     {
       "key": "bvmt",
       "taskVersion": "bvmt-web-0.3.0",
       "officialComponent": "BVMT-R",
-      "administration": "browser/canvas research adaptation",
+      "administration": "synthetic symbol-grid visual learning task",
       "mccbEquivalent": false,
-      "timingStatus": "legacy-scheduled",
-      "materialPolicy": "review-required",
+      "timingStatus": "absolute-deadline",
+      "materialPolicy": "synthetic-public-stimuli",
       "publicExecutable": true,
-      "notes": "Figure/stimulus provenance and digital scoring equivalence require review."
+      "notes": "Uses public synthetic symbols rather than standard BVMT-R figures; score is project-local raw performance."
     },
     {
       "key": "mazes",
       "taskVersion": "mazes-web-0.3.0",
       "officialComponent": "NAB Mazes",
-      "administration": "browser/canvas research adaptation",
+      "administration": "algorithm-generated browser maze planning task",
       "mccbEquivalent": false,
-      "timingStatus": "legacy-scheduled",
-      "materialPolicy": "review-required",
+      "timingStatus": "monotonic-elapsed",
+      "materialPolicy": "synthetic-public-stimuli",
       "publicExecutable": true,
-      "notes": "Maze layout provenance and digital equivalence require review."
+      "notes": "Seven deterministic generated mazes; no NAB maze layouts or official scoring are bundled."
     },
     {
       "key": "msceit",
       "taskVersion": "msceit-web-0.3.0",
       "officialComponent": "MSCEIT Managing Emotions",
-      "administration": "browser research adaptation/custom scoring",
+      "administration": "private-item/private-scoring protocol shell",
       "mccbEquivalent": false,
-      "timingStatus": "legacy-scheduled",
-      "materialPolicy": "review-required",
-      "publicExecutable": true,
-      "notes": "Official/licensed scoring is not bundled; item/scoring provenance requires review."
+      "timingStatus": "monotonic-elapsed",
+      "materialPolicy": "private-licensed-assets-required",
+      "publicExecutable": false,
+      "notes": "Public repository contains no formal items, answer keys, consensus weights or proprietary scoring; private/stimuli.js supplies authorized items and score()."
     }
   ]
 }
