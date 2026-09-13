@@ -1,170 +1,225 @@
-# MCCB 认知测验套件
+# psy-exp — MCCB-related cognitive research prototype
 
-精神分裂症认知功能成套测验（MCCB）的网页化实现。10 项测验 + 被试管理系统，纯前端（HTML/CSS/JS），数据存于浏览器 localStorage，可离线运行。
+`psy-exp` 是一个用于**浏览器认知任务研究、实验流程自动化、session QC、原始数据导出与研究管线验证**的纯前端项目。
 
-## GitHub Pages 在线访问
+> [!WARNING]
+> **这不是经验证的 MCCB 临床等效实现，也不是官方 MCCB scoring software。**
+> 当前公开任务是合成刺激研究任务、私有授权材料协议壳或与 MCCB 构念相关的数字适配。默认结果不能继承 MCCB 官方常模，不生成 MCCB T 分、临床 percentile 或 MCCB overall composite。
 
-**https://cochranek.github.io/psy-exp/** — 无需本地部署，浏览器直接打开即可使用。
+在线演示：<https://cochranek.github.io/psy-exp/>
 
-> 所有数据存于浏览器 localStorage（本地存储），不会上传至服务器。
+## 当前安全边界
 
-## 快速开始（本地部署）
+项目现在把四件事明确分开：
 
-用任意 HTTP 静态服务器在项目根目录启动，然后浏览器打开 `index.html`：
+1. **软件是否按代码运行**：由 CI、语法测试、driver 校验和数据契约测试覆盖。
+2. **一次 session 是否可用于研究分析**：由 `valid / interrupted / aborted / timing_violation / technical_failure / unverified` QC 状态控制。
+3. **不同结果能否放在同一研究参考组比较**：默认只比较相同 task version / protocol / material-or-scoring signature 的 QC-valid 结果。
+4. **是否具有 MCCB 心理测量等效性**：当前全部为 `false`；必须通过独立实证验证才能改变。
+
+机器可读状态见 [`task-manifest.json`](task-manifest.json)，详细验证边界见 [`RESEARCH_VALIDATION.md`](RESEARCH_VALIDATION.md)。
+
+## 10 个任务的当前定位
+
+| key | 当前公开实现 | 材料策略 | 默认可用于项目内 rank |
+|---|---|---|---|
+| `tmt` | 浏览器 TMT；MCCB-related 部分只用 Part A | public-domain-related | QC-valid |
+| `bacs` | 合成符号编码任务 | synthetic public stimuli | QC-valid |
+| `fluency` | 键盘输入 Animal Naming | public-domain-related | **需人工语义核验** |
+| `cpt` | 自定义 4 位 identical-pairs | synthetic public stimuli | QC-valid + protocol-compatible |
+| `spatial-span` | 算法生成 3×3 空间序列 | synthetic public stimuli | QC-valid |
+| `lns` | 算法生成字母数字排序序列 | synthetic public stimuli | QC-valid |
+| `hvlt` | 私有词表研究协议壳 | private licensed assets required | QC-valid + same material fingerprint |
+| `bvmt` | 合成符号网格视觉学习任务 | synthetic public stimuli | QC-valid |
+| `mazes` | 算法生成迷宫规划任务 | synthetic public stimuli | QC-valid |
+| `msceit` | 私有题目 + 私有 `score()` 协议壳 | private licensed assets required | QC-valid + same item/scoring signature |
+
+这些页面保留 MCCB 构念/组件映射是为了研究追踪，不表示标准施测等效。
+
+## 快速启动
 
 ```bash
-# 项目根目录启动静态服务器
 python -m http.server 8000 --bind 127.0.0.1
-# 浏览器访问 http://127.0.0.1:8000/
 ```
 
-> 必须通过 HTTP 访问（不能用 `file://`），否则 localStorage 与脚本加载会受限。
+然后打开：
 
-## 目录结构
-
+```text
+http://127.0.0.1:8000/
 ```
+
+首次访问默认是 **USER mode**；DEV mode 必须显式开启。直接访问任务页但没有 `mode` 参数时，也会自动进入 USER mode。
+
+## 私有材料
+
+公开仓库不再分发标准词表、正式情绪管理题目、答案键、共识权重或操作者表格。需要授权材料的任务通过本地文件注入：
+
+```text
+private/stimuli.js
+```
+
+`private/` 已加入 `.gitignore`。可参考仓库中的示例模板创建本地配置，但不要把受保护材料提交回公共 Git 历史。
+
+HVLT 结果只保存材料 ID / version / fingerprint 与回忆计数；MSCEIT shell 只保存私有 `score()` 返回的脱敏分数元数据，不把题目正文或答案键写入结果。
+
+## 数据模型与 Session QC
+
+公共 runtime：`mccb-participant.js`
+
+当前版本：
+
+```text
+runtime: research-runtime-0.4.0
+participant schema: 4
+result schema: 4
+```
+
+每次 session 使用单调时钟（浏览器中优先 `performance.now()`），并保存 task/runtime version、timing policy、事件与 QC。
+
+结果分为：
+
+```text
+results         canonical valid result
+invalidResults  最近一次 invalid attempt
+attemptHistory  每任务最近 20 次完整尝试（valid + invalid）
+sessions        session QC snapshot
+progress        当前任务状态
+```
+
+这意味着：一次 valid retest 可以成为 canonical result，但此前 interrupted/timing-violation 记录不会被抹掉；之后发生 invalid retest，也不会覆盖已有 valid canonical result。
+
+页面隐藏会把正在运行的 session 标记为 `interrupted`；未完成页面被卸载时标记为 `aborted`。invalid / unverified 结果可以审计，但默认不能进入 cohort ranking 或 validated norm adapter。
+
+## Timing
+
+`ExperimentRuntime.deadline()` 使用绝对单调 deadline，而不是相信 callback 恰好准时触发：
+
+```js
+ExperimentRuntime.deadline(durationMs, {
+  testKey: 'bacs',
+  label: 'formal_window',
+  tickMs: 100,
+  onTick,
+  onDone
+})
+```
+
+当前策略：
+
+- BACS / Fluency / HVLT / Spatial / LNS / BVMT：absolute deadline
+- CPT：absolute trial schedule + trial-level scheduled/actual onset、onset error、actual duration、RT
+- TMT / Mazes / MSCEIT shell：monotonic elapsed
+
+严重 timing drift 可把 session 标为 `timing_violation`。这提高研究数据可审计性，但**不等于已经证明跨设备/浏览器 timing equivalence**。
+
+## Research-safe scoring
+
+`mccb-scoring.js` 当前版本：
+
+```text
+research-scoring-0.4.0
+```
+
+默认 `internal` scoring 不再使用 `/110`、`/50`、`/24`、`/36` 等人为固定分母拼接任务，也不把项目内部排名伪装成 T 分。
+
+流程是：
+
+```text
+QC-valid result
+  → protocol/material/version compatibility gate
+  → each required task: tied within-group rank
+  → domain research cohort rank index
+```
+
+只有同时具备该认知域全部必要任务、且协议签名一致的参与者才进入该域参考组。每个域结果记录 `referenceN` 与 `referenceKey`。
+
+### Fluency 特殊门槛
+
+网页只能自动去重字符串，不能可靠判断任意文本是否真的是动物名称。因此新结果默认 `reviewStatus = unreviewed`，raw data 可查看，但在研究者把语义核验状态设为 `verified` 前，不进入处理速度域排名。
+
+### Validated norm adapter
+
+未来若注册 `validated: true` 的 norm adapter，代码强制要求：
+
+- `version`
+- `provenance`
+- `supportsTask(testKey, task)`
+- `apply(profiles, domains)`
+
+adapter 只会收到 QC-valid 且由 `supportsTask()` 明确接受的任务。只有 validated adapter 输出完整七域 T-score 时，工程层才允许生成 composite。
+
+这些字段只是**软件安全门**，并不构成心理测量验证证据。
+
+## 报告
+
+推荐使用：
+
+- `research-report.html`：单被试 raw metrics + QC + protocol-compatible research rank
+- `research-comparison.html`：多被试 QC-aware comparison
+
+旧 `comprehensive-report.html` / `comparison-report.html` 会转到研究安全页面。首页旧的 0–100 启发式“标准化”图表已停用。
+
+## CI
+
+CI 当前检查：
+
+```bash
+node --check mccb-scoring.js
+node --check mccb-participant.js
+node tests/validate-inline-scripts.cjs
+node tests/verify-participant.cjs
+node tests/verify-scoring.cjs
+node tests/verify-manifest.cjs
+node tests/validate-drivers.cjs
+python -m py_compile tests/cpt_report.py
+```
+
+此外还有硬 guard，防止：
+
+- research index 被重新标成 MCCB T-score
+- arbitrary fixed-denominator scaling 重新进入 scoring
+- TMT Part B 泄漏进 MCCB-related processing-speed logic
+- invalid / unverified session 进入默认 scoring
+- 未经人工语义核验的 Fluency 进入 scoring
+- 公共树重新出现已移除的操作者表格或公开 HVLT word list
+- manifest / runtime / scoring metadata 漂移
+
+## 项目结构
+
+```text
 psy-exp/
-  index.html              入口页（测验中心 + 被试面板）
-  mccb-common.css         10 个测验页共享 CSS（365 行，53 个变量）
-  mccb-participant.js     被试管理系统（ParticipantManager）
-  pages/                  10 个测验页（mccb-*.html）
-  data/                   CPT 原始数据 / 报告 / 自动化测试产物
-  docs/                   参考资料（操作者表格 A/B、队列研究者手册等 PDF/TXT）
-  tests/                  自动化测试与一次性工具脚本
-  .workbuddy/memory/      项目工作日志与笔记
+├── index.html
+├── mccb-participant.js
+├── mccb-scoring.js
+├── task-manifest.json
+├── research-report.html
+├── research-comparison.html
+├── RESEARCH_VALIDATION.md
+├── docs/
+├── pages/
+├── tests/
+└── .github/workflows/ci.yml
 ```
 
-## 10 项测验
+## 仍然不能声称的事情
 
-| 测验 | 文件 | 类型 |
-|------|------|------|
-| BACS 符号编码 | `pages/mccb-bacs.html` | DOM 输入 |
-| 语义流畅性 | `pages/mccb-fluency.html` | DOM 按钮 |
-| HVLT-R 言语学习 | `pages/mccb-hvlt.html` | DOM 选择 |
-| CPT-IP 持续操作 | `pages/mccb-cpt.html` | 全屏响应 |
-| WMS-III 空间广度 | `pages/mccb-spatial-span.html` | DOM 方块 |
-| 字母-数字广度 LNS | `pages/mccb-lns.html` | DOM 输入 |
-| TMT 连线测验 | `pages/mccb-tmt.html` | Canvas |
-| BVMT-R 视觉空间记忆 | `pages/mccb-bvmt.html` | Canvas |
-| NAB 迷宫 | `pages/mccb-mazes.html` | Canvas |
-| MSCEIT 情绪管理 | `pages/mccb-msceit.html` | DOM 评分 |
+即使所有 CI 通过，也不能据此声称：
 
-## 双模式
+- 与标准 MCCB 数字等效
+- 可使用 MCCB 官方常模解释
+- 可用于临床诊断或“正常/异常”判断
+- 合成刺激任务等同于其对应版权测验
+- GitHub Pages / localStorage 满足正式临床数据治理要求
 
-- **DEV 模式**（默认 `?mode=dev`）：显示反馈面板 / 正确错误标记 / 统计 / 快速反馈，用于开发测试
-- **USER 模式**（`?mode=user`）：隐藏全部开发辅助元素，供真实被试作答
-- index.html 顶部有 DEV/USER 切换开关，存入 `localStorage('mccb_mode')`
+要进入 validated mode，需要独立完成目标设备/浏览器 timing conformance、施测流程一致性研究、重测/信度/效度研究、常模与授权审查，并冻结 task/material/scoring 版本。
 
-## 被试管理系统
+## Test security / Git 历史
 
-每个被试分配一个队列编号，可中途退出凭编号续做；支持多被试数据隔离与批量管理。
+当前工作树已经移除公开操作者表格和内嵌受保护刺激，但**删除文件不会自动从历史 commit 中清除旧内容**。若过去提交过不应公开的材料，需要额外执行 Git history purge；见 [`docs/HISTORY_PURGE.md`](docs/HISTORY_PURGE.md)。
 
-- 登录 / 进度 / 续做 / 结果导出集中在 index.html 被试面板
-- **被试管理**（👥 被试管理按钮）：弹窗显示所有被试列表、进度条、最近更新时间，支持**单个删除**和**一键导出全部**（JSON）
-- **导出全部**：`mccb-all-participants-{date}.json` 包含每位被试的完整数据
-- **清除数据**增强：登录态下自动清除全部被试数据而非仅 global localStorage
-- **被试删除**自动清理：`mccb-participant-{ID}` 数据对象 + 向后兼容的 `mccb-participant-{ID}-mccb-*-result` 残留键
-- 存储键：`mccb-participant-{ID}`（进度 + 结果）、`mccb-participant-list`、`mccb-current-participant`
-- 详见 `mccb-participant.js`
+## 官方背景资料
 
-## 自动化测试
+- MCCB test list: <https://www.matricsinc.org/mccbtestlist/>
+- MATRICS technical assistance / copyright information: <https://www.matricsinc.org/technical-assistance/>
 
-`tests/full-battery.cjs` 用 [agent-browser](https://www.npmjs.com/package/agent-browser) 驱动无头浏览器，模拟被试自动完成全部 10 项测验，结果写入 `data/autotest/`。
-
-**前置条件**（agent-browser v0.27 起不再内置静态服务器）：
-
-```bash
-npm install -g agent-browser          # 一次性安装 CLI
-python -m http.server 8766 --bind 127.0.0.1 &   # 项目根目录起静态服务器，脚本自动探测
-```
-
-**用法**：
-
-```bash
-node tests/full-battery.cjs                # 全量 10 项
-node tests/full-battery.cjs cpt,bvmt       # 指定子集
-node tests/full-battery.cjs --retry 1      # 单项失败自动重试 N 次（抗 daemon 抖动）
-node tests/full-battery.cjs --timestamp    # 报表文件名带时间戳（保留历史）
-node tests/full-battery.cjs --render       # 从最新 JSON 重生成 HTML 报表（免重跑）
-node tests/full-battery.cjs --list / --help
-```
-
-- 环境变量：`MCCB_BASE`（静态服务器地址，默认 `http://127.0.0.1:8766`）、`MCCB_PARTICIPANT`（被试编号，默认 `test`）
-- 产物：`data/autotest/battery-test-report.json`（全量原始数据）+ `battery-test-report.html`（可视化报表）
-- 退出码：`0` 全部通过；`2` 数据完整性未达标（可直接接 CI）
-
-**架构**：驱动逻辑整块注入页面世界（`setInterval` 自转，零 eval 开销），harness 只轮询完成标志；用 `location.href` 同一标签页导航保持 localStorage（**严禁 `close --all`**，会清空临时 profile）。
-
-**关键踩坑（改驱动前必读）**：
-- `localStorage.getItem() !== null` 返回字符串 `"false"` 恒真，须显式 `=== 'true'`
-- DIV 用 JS `disabled` 属性不会生成 HTML `[disabled]` 属性，CSS `:not([disabled])` 失效，用 `:not(.selected)`
-- `input.value` 赋值不触发 `input` 事件，需手动 `dispatchEvent(new Event('input', {bubbles:true}))`
-- agent-browser v0.27 的 `eval` 中运算符需空格（`1 + 1` 而非 `1+1`）；**不要用 `.cmd` 包装脚本**（`&` 会被 cmd 拆条）
-
-**测试脚本**（`tests/` 顶层只留现行工具，历史脚本在 `tests/archive/`）：
-
-| 脚本 | 用途 | 位置 |
-|------|------|------|
-| `full-battery.cjs` | **现行**完整自动化（推荐） | `tests/` |
-| `cpt_report.py` | CPT 数据处理（支持单文件/批量） | `tests/` |
-| `validate-drivers.cjs` | 驱动语法校验（沙箱验证 10 项 DRV 代码合法） | `tests/` |
-| `verify-scoring.cjs` | 评分模块端到端验证（23 项断言，模拟 3 被试跑通 7 域 + 常模接口） | `tests/` |
-| `_autotest.cjs` / `debug-*.cjs` / `add-*` / `patch-*` / `reorg-pages.cjs` | 前代/一次性/调试（历史保留） | `tests/archive/` |
-
-**核心 JS 模块**（`index.html` + 各测试页共用）：
-
-| 文件 | 用途 |
-|------|------|
-| `mccb-common.css` | 共享 CSS 体系（~24 个自定义属性） |
-| `mccb-participant.js` | 被试管理（登录/进度/续做/删除/批量导出） |
-| `mccb-scoring.js` | **MCCB 综合评分**（7 域认知画像 + 内部相对排名） |
-
-自动化产物：现行报表在 `data/autotest/`，历史报表在 `data/autotest/archive/`。
-
-### CPT 报告生成
-
-`tests/cpt_report.py` 解析 CPT 原始 `.trep` 报告文件，生成可视化 HTML 报表（内联 SVG 图表，无外部 CDN 依赖）：
-
-```bash
-# 处理单文件
-python tests/cpt_report.py data/cpt-results/被试001.trep
-
-# 批量处理所有 .trep 文件（241 个被试）
-python tests/cpt_report.py --all
-# 等价语法:
-python tests/cpt_report.py --batch
-```
-
-- 数据源：`data/cpt-results/*.trep`（241 个文本报告）
-- 产物：`data/cpt-reports/{name}_ses{N}.html`（独立 HTML 文件，含击中/虚报/d-prime/反应时图表）
-- 索引页：`data/cpt-reports/index.html`（可搜索/排序/筛选的 239 份报告索引）
-
-### 综合认知报告
-
-`comprehensive-report.html` 将 10 项测验的原始分数按 MCCB 7 个认知域汇总，生成统一认知画像：
-
-- 选择被试后自动展示所有已完成测验的域评分
-- 雷达图展示 7 个认知域 T 分轮廓
-- 域评分卡片含百分位数排名（基于项目内部相对排名）
-- 各测验原始分数详情表
-- 支持导出 JSON / 打印 PDF / 复制摘要
-- 支持 `?p=ID` 深链接直接从被试管理面板跳转
-- 入口：首页仪表盘 → 「📊 综合报告」按钮
-
-评分原理：
-- 各域分数基于项目内所有被试的相对排名（百分比 → T 分近似转换）
-- 因缺少 MCCB 官方常模，当前为项目**内部相对评估**，适合同一群体内比较
-- 验证：`node tests/verify-scoring.cjs`（23 项断言，须先有被试数据才有意义）
-
-**常模切换接口**（`mccb-scoring.js` 可插拔）：
-- 默认常模 `internal`：项目内部相对排名（非官方常模）
-- `MCCBScoring.registerNorm({name, label, apply(allProfiles, domains)})` 注册自定义常模（将来接入 MCCB 官方常模表）
-- `MCCBScoring.setNorm(name)` / `getNorm()` 切换与查询；`getAllProfiles()` 返回的 `norm` 字段标注当前所用常模
-- 综合报告页顶部自动显示当前常模标注，确保临床透明度
-- `verify-scoring.cjs` 已覆盖常模注册/切换/还原/错误处理
-
-> **原始数据说明**：`data/cpt-results/` 下的 `.rep` / `.dat` / `.raw` 文件（各 383 个）为 CPT 软件导出的**专有二进制 blob**（头部字节跨被试一致、含随机加密字节），**无法**用文本方式解析；当前流水线只消费可读的 `.trep` 文本报告（241 个，已全部转为 `data/cpt-reports/` HTML 报表）。如需利用 `.rep` 等格式，需原厂转换工具。
-
-## 资料
-
-`docs/` 内含简版 MCCB 操作者表格 A/B（含标准词表与评分规则）、队列研究者手册等。
+代码许可与第三方测验材料权利是两件不同的事；不要因为项目代码公开就推定测试材料可以自由再分发。

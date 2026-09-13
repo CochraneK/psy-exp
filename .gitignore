@@ -11,6 +11,12 @@ data/cpt-reports/*
 data/autotest/**/*
 !data/autotest/**/.gitkeep
 
+# ---- 私有/授权刺激材料：严禁提交到公开仓库 ----
+private/
+private-*/
+*.licensed-stimuli.js
+*.licensed-stimuli.json
+
 # ---- 文档 / PDF 大文件（含队列 PHI 风险） ----
 docs/*.pdf
 

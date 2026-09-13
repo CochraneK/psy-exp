@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, audit-validation-hardening-20260914]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: JavaScript syntax checks
+        run: |
+          node --check mccb-scoring.js
+          node --check mccb-participant.js
+          node --check tests/verify-scoring.cjs
+          node --check tests/verify-participant.cjs
+          node --check tests/verify-manifest.cjs
+          node --check tests/validate-drivers.cjs
+          node --check tests/validate-inline-scripts.cjs
+          node --check tests/full-battery.cjs
+
+      - name: Portable full battery
+        run: node tests/full-battery.cjs
+
+      - name: Python syntax check
+        run: python -m py_compile tests/cpt_report.py
+
+      - name: Research workspace/report/runtime contract
+        shell: bash
+        run: |
+          test -f research-report.html
+          test -f research-comparison.html
+          test -f task-manifest.json
+          test -f docs/README.md
+          test -f docs/HISTORY_PURGE.md
+          grep -q "认知任务研究工作台" index.html
+          ! grep -q "MCCB 认知成套测验" index.html
+          grep -q "RESEARCH PROTOTYPE" research-report.html
+          grep -q "未应用经验证的 MCCB 常模" research-report.html
+          grep -q "未应用经验证的 MCCB 常模" research-comparison.html
+          grep -q "referenceN" research-report.html
+          grep -q "reference group" research-comparison.html
+          grep -q "attemptHistory" mccb-participant.js
+          grep -q "eligibleForResearchScoring" mccb-scoring.js
+          grep -q "semantic_review_required" mccb-scoring.js
+          grep -q "RUNTIME_VERSION" mccb-participant.js
+          grep -q "TASK_TIMING_POLICY" mccb-participant.js
+          grep -q "supportsTask" mccb-scoring.js
+          grep -q "private-licensed-assets-required" task-manifest.json
+          grep -q "mccb_mode.*user" mccb-participant.js
+          grep -q "research-report.html" comprehensive-report.html
+          grep -q "research-comparison.html" comparison-report.html
+
+      - name: Protected material and obsolete-harness guard
+        shell: bash
+        run: |
+          test ! -e "docs/7.简版MCCB操作者表格（A）_vlm.txt"
+          test ! -e "docs/8.简版MCCB操作者表格（B）_vlm.txt"
+          test ! -d tests/archive
+          ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' --exclude='verify-manifest.cjs' "WORD_LIST" pages docs tests
+          ! grep -R -n --exclude-dir=.git "C:/Users/\|D:/Software/\|agent-browser/bin" tests
+          grep -q "../private/stimuli.js" pages/mccb-hvlt.html
+          grep -q "../private/stimuli.js" pages/mccb-msceit.html
+
+      - name: Guard against accidental pseudo-standardization regression
+        shell: bash
+        run: |
+          if grep -n "百分位数.*T 分\|近似 T 分转换" mccb-scoring.js; then
+            echo "Research scoring must not be relabeled as a T-score conversion."
+            exit 1
+          fi
+          if grep -nE '/(110|50|24|36)([^0-9]|$)' mccb-scoring.js; then
+            echo "Research domain scoring must not reintroduce arbitrary fixed-denominator scaling."
+            exit 1
+          fi
+          grep -q "research-cohort-rank-index" mccb-scoring.js
+          grep -q "protocolSignature" mccb-scoring.js

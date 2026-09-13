@@ -2,471 +2,96 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MCCB HVLT-R 言语学习测验</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>言语学习研究任务 · 私有刺激配置</title>
 <link rel="stylesheet" href="../mccb-common.css">
 <script src="../mccb-participant.js"></script>
+<!-- Optional local/private file. The private/ directory is git-ignored and is not shipped on GitHub Pages. -->
+<script src="../private/stimuli.js"></script>
 <style>
-  /* Study phase */
-  #page-study { flex-direction: column; gap: 1.5rem; text-align: center; padding: 2.5rem 1.5rem; }
-  .study-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
-  .study-timer {
-    font-family: var(--font-mono);
-    font-size: 1.75rem; font-weight: 700; color: var(--text-primary);
-  }
-  .study-timer.warn { color: var(--color-warning-hover); }
-  .study-timer.danger { color: var(--color-danger-hover); animation: pulse 0.6s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .study-bar { width: 100%; max-width: 28.75rem; height: 0.5rem; background: var(--border-light); border-radius: 0.375rem; overflow: hidden; }
-  .study-bar .fill { height: 100%; border-radius: 0.375rem; background: linear-gradient(90deg,var(--accent-inst-border),#10b981); transition: width 0.3s; }
-
-  .word-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 0.625rem; max-width: 28.75rem; width: 100%;
-  }
-  .word-grid .wg-item {
-    background: var(--bg-card); padding: 0.75rem; border-radius: 0.625rem;
-    font-size: 1.125rem; font-weight: 600; color: var(--text-primary);
-    box-shadow: var(--shadow-sm);
-    border: 2px solid var(--border-light);
-  }
-
-  /* Recall phase */
-  #page-recall { flex-direction: column; gap: 1.25rem; text-align: center; padding: 2.5rem 1.5rem; }
-  .recall-title { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
-  .recall-input-row { display: flex; gap: 0.625rem; width: 100%; max-width: 28.75rem; }
-  .recall-input-row input {
-    flex: 1; padding: 0.625rem 0.875rem; border: 2px solid var(--border-light); border-radius: 0.625rem;
-    font-size: 1rem; outline: none; font-family: inherit;
-    transition: border-color 0.2s;
-  }
-  .recall-input-row input:focus-visible { border-color: var(--accent-blue); }
-  .recall-list {
-    display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
-    max-width: 32.5rem; padding: 0.875rem; background: var(--bg-card);
-    border-radius: 0.75rem; box-shadow: var(--shadow-sm-alt); width: 100%;
-    min-height: 3.75rem; max-height: 12.5rem; overflow-y: auto;
-  }
-  .recall-list .rl-item {
-    background: var(--bg-inst); color: var(--text-primary); padding: 0.375rem 0.875rem;
-    border-radius: 1rem; font-size: 0.875rem; font-weight: 500;
-  }
-  .recall-count { font-size: 0.875rem; color: var(--text-secondary); }
-  .recall-count span { font-weight: 700; color: var(--accent-blue); }
-
-  /* Break page */
-  #page-break { flex-direction: column; gap: 1.5rem; text-align: center; padding: 3.75rem 1.5rem; }
-  #page-break h2 { font-size: 1.5rem; }
-  #page-break p { color: var(--text-secondary); font-size: 1rem; max-width: 28.75rem; line-height: 1.8; }
-
-/* Wide mode: HVLT-R */
-body.wide-mode .recall-grid { max-width: 40rem; }
-body.wide-mode .recall-input-row { max-width: 40rem; }
-body.wide-mode #page-break p { max-width: 40rem; }
-body.wide-mode #page-test { font-size: 110%; padding: 1.5rem 2.5rem; }
-body.wide-mode .study-bar { max-width: 40rem; }
-
+  .page{padding:2rem 1.25rem}.shell{width:min(720px,100%);margin:auto}.status{border:1px solid var(--border-light);border-radius:12px;padding:14px 16px;line-height:1.65;margin:16px 0}.status.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}.status.bad{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.word{font-size:clamp(2.2rem,8vw,4.5rem);font-weight:800;letter-spacing:.06em;min-height:7rem;display:flex;align-items:center;justify-content:center}.phase{font-size:13px;color:var(--text-muted);margin-bottom:8px}.countdown{font-family:var(--font-mono);font-size:1.25rem;font-weight:700}.recall-box{width:100%;min-height:180px;border:2px solid var(--border-light);border-radius:12px;padding:14px;font:inherit;line-height:1.8;resize:vertical}.meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.meta{background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;padding:14px}.meta b{display:block;font-size:22px}.meta span{font-size:12px;color:var(--text-muted)}.research-note{font-size:13px;color:var(--text-secondary);line-height:1.7}.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}@media(max-width:560px){.meta-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main id="app">
-  <!-- Welcome -->
   <section id="page-welcome" class="page active">
-    <header>
-      <div class="logo">📖</div>
-      <h2>HVLT-R 言语学习测验</h2>
-    </header>
-    <p class="subtitle">
-      Hopkins Verbal Learning Test — Revised<br>
-      您将学习一个包含 <strong>12 个词语</strong> 的列表，通过学习-回忆（共 3 轮）
-      和延迟回忆，评估言语学习和记忆能力。
-    </p>
-    <div class="inst-box">
-      <strong>流程：</strong><br>
-      ① 每轮学习：词语列表显示 <strong>30 秒</strong>，请尽量记住<br>
-      ② 回忆阶段：输入您记住的词语（不限顺序）<br>
-      ③ 共进行 <strong>3 轮学习-回忆</strong>，最后有一轮延迟回忆
+    <div class="shell">
+      <header><div class="logo">🔐</div><h2>言语学习研究任务</h2></header>
+      <p class="subtitle">HVLT-related protocol shell · 私有刺激材料不随公开仓库分发</p>
+      <div class="status bad" id="materialStatus">正在检查私有刺激配置…</div>
+      <div class="inst-box">
+        <strong>研究边界：</strong>本页面只提供数字研究流程壳。标准/授权词表、答案材料与正式常模不包含在公开仓库中。即使加载了合法材料，本网页视觉/自助施测也不自动等同标准口头施测。
+      </div>
+      <p class="research-note">本地部署可在 <code>private/stimuli.js</code> 注入 <code>window.PSY_PRIVATE_STIMULI.hvlt</code>。示例结构见 <code>docs/private-stimuli.example.js</code>；<code>private/</code> 已加入 <code>.gitignore</code>。</p>
+      <footer class="actions"><button type="button" class="btn btn-primary" id="startBtn" disabled>开始研究任务</button><a class="btn btn-outline" href="../index.html" style="text-decoration:none">返回测验中心</a></footer>
     </div>
-    <footer>
-      <button type="button" class="btn btn-primary" onclick="startTrial(1)" style="margin-top:4px;">开始第 1 轮学习</button>
-    </footer>
   </section>
 
-  <!-- Study -->
   <section id="page-study" class="page">
-    <div class="study-title" id="studyTitle">第 1 轮学习</div>
-    <div class="study-timer" id="studyTimer">30</div>
-    <div class="study-bar"><div class="fill" id="studyFill" style="width:100%"></div></div>
-    <p style="color:var(--text-secondary);font-size:13px;">请记住以下词语：</p>
-    <div class="word-grid" id="wordGrid"></div>
+    <div class="shell" style="text-align:center">
+      <div class="phase" id="studyPhase">学习阶段</div>
+      <div class="word" id="studyWord">—</div>
+      <div class="countdown" id="studyCountdown">—</div>
+      <p class="research-note">请记住呈现的词。正式材料不会写入结果文件。</p>
+    </div>
   </section>
 
-  <!-- Recall -->
   <section id="page-recall" class="page">
-    <div class="recall-title" id="recallTitle">第 1 轮回忆</div>
-    <p style="color:var(--text-secondary);font-size:14px;">输入您记住的所有词语（不限顺序）：</p>
-    <div class="recall-input-row">
-      <input type="text" id="recallInput" placeholder="输入词语..." maxlength="20" autocomplete="off">
-      <button type="button" class="btn btn-success btn-sm" onclick="addRecall()">添加</button>
-      <button type="button" class="btn btn-primary btn-sm" onclick="finishRecall()">完成回忆</button>
+    <div class="shell">
+      <header><h2 id="recallTitle">立即回忆</h2></header>
+      <p class="subtitle">输入你记得的词，可用空格、逗号、顿号或换行分隔。输入完成后提交。</p>
+      <textarea id="recallInput" class="recall-box" autocomplete="off" spellcheck="false"></textarea>
+      <div class="actions"><button class="btn btn-primary" id="submitRecallBtn" type="button">提交本轮</button></div>
     </div>
-    <div class="recall-count">已回忆 <span id="recallCount">0</span> 个</div>
-    <div class="recall-list" id="recallList"></div>
   </section>
 
-  <!-- Break page (before delayed recall) -->
-  <section id="page-break" class="page">
-    <h2>⏳ 延迟回忆准备</h2>
-    <p>
-      前方还有几分钟的间隔时间（可在本页面休息片刻）。<br>
-      准备就绪后，点击下方按钮开始 <strong>延迟回忆</strong>。
-    </p>
-    <p style="font-size:14px;color:var(--text-muted);">
-      提示：请尝试回忆最初学习的 12 个词语，不要重新学习。
-    </p>
-    <button type="button" class="btn btn-primary" onclick="startDelayedRecall()">开始延迟回忆</button>
+  <section id="page-delay" class="page">
+    <div class="shell" style="text-align:center">
+      <header><h2>延迟阶段</h2></header>
+      <p class="subtitle">请保持本页面可见。切换标签页、休眠或离开页面会被 Session QC 标记为中断。</p>
+      <div class="countdown" id="delayCountdown">—</div>
+    </div>
   </section>
 
-  <!-- Result -->
   <section id="page-result" class="page page-result">
-    <h2>📊 测验完成</h2>
-    <div class="result-grid">
-      <div class="result-item"><div class="ri-label">Trial 1</div><div class="ri-value" id="resT1">0</div></div>
-      <div class="result-item"><div class="ri-label">Trial 2</div><div class="ri-value" id="resT2">0</div></div>
-      <div class="result-item"><div class="ri-label">Trial 3</div><div class="ri-value" id="resT3">0</div></div>
-      <div class="result-item"><div class="ri-label">延迟回忆</div><div class="ri-value" id="resDelayed">0</div></div>
-      <div class="result-item"><div class="ri-label">总学习量</div><div class="ri-value" id="resTotal">0</div></div>
-      <div class="result-item"><div class="ri-label">保持率</div><div class="ri-value" id="resRetention">0%</div></div>
+    <div class="shell">
+      <h2>📊 研究任务完成</h2>
+      <div class="meta-grid">
+        <div class="meta"><b id="r1">—</b><span>学习 1 正确回忆</span></div>
+        <div class="meta"><b id="r2">—</b><span>学习 2 正确回忆</span></div>
+        <div class="meta"><b id="r3">—</b><span>学习 3 正确回忆</span></div>
+        <div class="meta"><b id="rd">—</b><span>延迟正确回忆</span></div>
+      </div>
+      <aside class="norm-ref"><strong>研究版提示：</strong><span>仅显示原始分与研究指标；未应用经验证的 MCCB 常模，不用于“正常/异常”判断或临床诊断解释。</span></aside>
+      <p class="research-note" id="resultMeta"></p>
+      <div class="actions"><button class="btn btn-primary" id="exportBtn" type="button">导出脱敏 JSON</button><a class="btn btn-outline" href="../index.html" style="text-decoration:none">返回测验中心</a></div>
     </div>
-    <aside class="norm-ref" id="normRef">
-      <strong>参考解释：</strong><span id="normInterpretation">完成测试后查看参考解释</span>
-    </aside>
-    <footer class="result-actions">
-      <button type="button" class="btn btn-primary" onclick="showExport()">导出数据</button>
-      <button type="button" class="btn btn-outline" onclick="backToWelcome()">返回首页</button>
-    </footer>
-  
-  <p style="text-align:center;margin-top:20px;"><a href="../index.html" class="btn btn-outline" style="display:inline-block;padding:10px 28px;text-decoration:none;">← 返回测验中心</a></p></section>
-
-  <!-- Overlay -->
-  <div id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
-    <div class="modal">
-      <h3 id="modalTitle">提示</h3>
-      <p id="modalBody">内容</p>
-      <div id="modalActions"></div>
-    </div>
-  </div>
+  </section>
 </main>
-
 <script>
 'use strict';
+const TEST_KEY='hvlt';
+const cfg=(window.PSY_PRIVATE_STIMULI&&window.PSY_PRIVATE_STIMULI.hvlt)||null;
+const state={trial:1,scores:[],summaries:[],delayed:null,clock:null};
+const $=id=>document.getElementById(id);
+function navigate(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active')}
+function normalize(v){return String(v||'').trim().toLocaleLowerCase()}
+function parseRecall(text){return String(text||'').split(/[\s,，、;；]+/).map(normalize).filter(Boolean)}
+function validateConfig(c){if(!c||typeof c!=='object')return'未找到 private/stimuli.js 中的 hvlt 配置。';if(!c.setId||!c.version)return'私有配置必须声明 setId 与 version。';if(!Array.isArray(c.words)||c.words.length<2)return'私有配置 words 必须是非空词表。';const words=c.words.map(normalize);if(words.some(w=>!w)||new Set(words).size!==words.length)return'私有词表包含空值或重复项。';for(const k of ['presentationMsPerWord','interWordMs','delayedRecallMs'])if(!Number.isFinite(Number(c[k]))||Number(c[k])<=0)return`私有配置 ${k} 必须为正数毫秒值。`;return''}
+function configFingerprint(){const text=[cfg.setId,cfg.version,cfg.words.length,cfg.presentationMsPerWord,cfg.interWordMs,cfg.delayedRecallMs].join('|');let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')}
+const configError=validateConfig(cfg);
+if(configError){$('materialStatus').textContent=configError+' 公开仓库不会提供标准词表或授权材料。';$('materialStatus').className='status bad';$('startBtn').disabled=true}else{$('materialStatus').textContent=`已加载私有材料：${cfg.setId} · ${cfg.version}。材料内容不会写入公开结果或 localStorage。`;$('materialStatus').className='status ok';$('startBtn').disabled=false}
 
-// === Mode (DEV / USER) ===
-const urlParams = new URLSearchParams(window.location.search);
-const MODE = urlParams.get('mode') || 'dev';
-const IS_DEV = MODE === 'dev';
-function applyModeStyles() {
-  if (!IS_DEV) {
-    const devEls = document.querySelectorAll('.count-badge, .feedback-area, .dev-hint, .progress-text, .quick-fb, #counterText, #devHintBacs');
-    devEls.forEach(el => el.style.display = 'none');
-  }
-}
-
-// Standard HVLT-R word list (Chinese version, 4 from each of 3 categories)
-// Category A (乐器): 唢呐, 二胡, 萧, 笛子
-// Category B (燃料/材料): 木炭, 煤油, 木头, 汽油
-// Category C (调味品): 糖, 大蒜, 味精, 桂皮
-const WORD_LIST = [
-  '糖', '唢呐', '二胡', '木炭',
-  '大蒜', '煤油', '味精', '木头',
-  '萧', '笛子', '桂皮', '汽油'
-];
-
-const STATE = {
-  currentTrial: 1,     // 1-3, then 'delayed'
-  studyTimer: 30,
-  studyInterval: null,
-  isStudying: false,
-  recalled: [],
-  results: { t1: 0, t2: 0, t3: 0, delayed: 0 },
-};
-
-function navigateTo(pageId) {
-  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  document.getElementById(pageId).classList.add('active');
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function showOverlay(title, bodyText, actions) {
-  const ov = document.getElementById('overlay');
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalBody').textContent = bodyText;
-  const ac = document.getElementById('modalActions');
-  ac.innerHTML = '';
-  actions.forEach(a => {
-    const btn = document.createElement('button');
-    btn.className = `btn ${a.cls || 'btn-primary'}`;
-    btn.textContent = a.label;
-    btn.onclick = () => { hideOverlay(); if (a.cb) a.cb(); };
-    ac.appendChild(btn);
-  });
-  ov.classList.add('show');
-  setTimeout(() => trapFocus(ov), 100);
-}
-function hideOverlay() { document.getElementById('overlay').classList.remove('show'); document.querySelector('.btn, button:not(#overlay button)')?.focus(); }
-
-function backToWelcome() {
-  document.body.classList.remove('testing-active');
-  stopStudyTimer();
-  navigateTo('page-welcome');
-}
-
-// ===== Study Phase =====
-function startTrial(trialNum) {
-  document.body.classList.add('testing-active');
-  if (STATE.studyInterval) return;
-  STATE.currentTrial = trialNum;
-  if (trialNum === 1) STATE.results = { t1: 0, t2: 0, t3: 0, delayed: 0 };
-  STATE.recalled = [];
-  STATE.studyTimer = 30;
-  const label = trialNum === 1 ? '第 1 轮学习' : trialNum === 2 ? '第 2 轮学习' : '第 3 轮学习';
-  document.getElementById('studyTitle').textContent = label;
-  document.getElementById('studyTimer').textContent = '30';
-  document.getElementById('studyTimer').className = 'study-timer';
-
-  // Render word grid
-  const grid = document.getElementById('wordGrid');
-  grid.innerHTML = WORD_LIST.map(w => `<div class="wg-item">${w}</div>`).join('');
-
-  navigateTo('page-study');
-  startStudyTimer();
-}
-
-function startStudyTimer() {
-  STATE.isStudying = true;
-  STATE.studyInterval = setInterval(() => {
-    STATE.studyTimer--;
-    updateStudyTimer();
-    if (STATE.studyTimer <= 0) {
-      stopStudyTimer();
-      startRecall(TRIAL_LABELS[STATE.currentTrial === 'delayed' ? 'delayed' : STATE.currentTrial]);
-    }
-  }, 1000);
-}
-
-function stopStudyTimer() {
-  if (STATE.studyInterval) {
-    clearInterval(STATE.studyInterval);
-    STATE.studyInterval = null;
-  }
-  STATE.isStudying = false;
-}
-
-function updateStudyTimer() {
-  const el = document.getElementById('studyTimer');
-  const fill = document.getElementById('studyFill');
-  el.textContent = STATE.studyTimer;
-  fill.style.width = (STATE.studyTimer / 30) * 100 + '%';
-  el.className = 'study-timer';
-  if (STATE.studyTimer <= 5) el.classList.add('danger');
-  else if (STATE.studyTimer <= 10) el.classList.add('warn');
-}
-
-const TRIAL_LABELS = { 1: '第 1 轮回忆', 2: '第 2 轮回忆', 3: '第 3 轮回忆', delayed: '延迟回忆' };
-
-// ===== Recall Phase =====
-function startRecall(label) {
-  STATE.recalled = [];
-  document.getElementById('recallInput').value = '';
-  document.getElementById('recallTitle').textContent = label;
-  document.getElementById('recallList').innerHTML = '';
-  document.getElementById('recallCount').textContent = '0';
-  navigateTo('page-recall');
-  setTimeout(() => document.getElementById('recallInput').focus(), 300);
-}
-
-function addRecall() {
-  const input = document.getElementById('recallInput');
-  const word = input.value.trim();
-  if (!word) return;
-
-  // Check duplicate (case-insensitive)
-  if (STATE.recalled.some(w => w.toLowerCase() === word.toLowerCase())) return;
-
-  STATE.recalled.push(word);
-  input.value = '';
-  input.focus();
-  renderRecallList();
-}
-
-function renderRecallList() {
-  const list = document.getElementById('recallList');
-  list.innerHTML = STATE.recalled.map(w =>
-    `<span class="rl-item">${w}</span>`
-  ).join('');
-  document.getElementById('recallCount').textContent = STATE.recalled.length;
-}
-
-function finishRecall() {
-  // Count how many are correct matches (case-insensitive)
-  const correct = STATE.recalled.filter(r =>
-    WORD_LIST.some(w => w.toLowerCase() === r.toLowerCase())
-  ).length;
-
-  const trial = STATE.currentTrial;
-  if (trial === 1) STATE.results.t1 = correct;
-  else if (trial === 2) STATE.results.t2 = correct;
-  else if (trial === 3) STATE.results.t3 = correct;
-  else if (trial === 'delayed') STATE.results.delayed = correct;
-
-  if (trial === 1) {
-    startTrial(2);
-  } else if (trial === 2) {
-    startTrial(3);
-  } else if (trial === 3) {
-    navigateTo('page-break');
-  } else {
-    showResults();
-  }
-}
-
-function startDelayedRecall() {
-  STATE.currentTrial = 'delayed';
-  startRecall('延迟回忆');
-}
-
-// ===== Results =====
-function showResults() {
-  document.body.classList.remove('testing-active');
-  const r = STATE.results;
-  const total = r.t1 + r.t2 + r.t3;
-  const retention = r.t3 > 0 ? Math.round((r.delayed / r.t3) * 100) : 0;
-
-  document.getElementById('resT1').textContent = r.t1;
-  document.getElementById('resT2').textContent = r.t2;
-  document.getElementById('resT3').textContent = r.t3;
-  document.getElementById('resDelayed').textContent = r.delayed;
-  document.getElementById('resTotal').textContent = total;
-  document.getElementById('resRetention').textContent = retention + '%';
-
-  // Interpretation
-  let cls, level;
-  if (total >= 28) { cls = 'good'; level = '优秀（总学习≥28）'; }
-  else if (total >= 21) { cls = 'good'; level = '正常范围（总学习21-27）'; }
-  else if (total >= 15) { cls = 'warn'; level = '偏低（总学习15-20），提示言语学习效率偏低'; }
-  else { cls = 'bad'; level = '明显偏低（总学习<15），建议进一步评估'; }
-  document.getElementById('resTotal').className = 'ri-value ' + cls;
-  const interpEl = document.getElementById('normInterpretation');
-  interpEl.textContent = '';
-  const strong = document.createElement('strong');
-  strong.textContent = total;
-  interpEl.appendChild(document.createTextNode('三轮总学习量：'));
-  interpEl.appendChild(strong);
-  interpEl.appendChild(document.createTextNode(` / 36（T1:${r.t1} / T2:${r.t2} / T3:${r.t3}），延迟回忆：${r.delayed} / 12（保持率 ${retention}%）。${level}`));
-
-  saveToLocalStorage();
-  navigateTo('page-result');
-}
-
-function saveToLocalStorage() {
-  const r = STATE.results;
-  const data = {
-    test: 'MCCB HVLT-R Verbal Learning',
-    date: new Date().toISOString(),
-    wordList: WORD_LIST,
-    trial1: r.t1,
-    trial2: r.t2,
-    trial3: r.t3,
-    delayedRecall: r.delayed,
-  };
-  try { localStorage.setItem('mccb-hvlt-result', JSON.stringify(data)); } catch(e) {}
-  ParticipantManager.saveResult('hvlt', data);
-}
-
-function showExport() {
-  const data = {
-    test: 'MCCB HVLT-R',
-    date: new Date().toISOString(),
-    wordList: WORD_LIST,
-    trial1: STATE.results.t1,
-    trial2: STATE.results.t2,
-    trial3: STATE.results.t3,
-    delayedRecall: STATE.results.delayed,
-  };
-  showOverlay('导出数据',
-    `<div class="export-area">${JSON.stringify(data, null, 2)}</div>` +
-    '<p style="font-size:13px;color:var(--text-muted);">可复制上述 JSON 数据保存或分享</p>',
-    [{ label: '关闭', cls: 'btn-outline' },
-     { label: '复制', cls: 'btn-primary', cb: () => {
-       navigator.clipboard.writeText(JSON.stringify(data, null, 2)).catch(()=>{});
-     }}
-    ]
-  );
-}
-
-// Enter key for recall
-document.addEventListener('DOMContentLoaded', () => {
-  applyModeStyles();
-    ParticipantManager.initFromUrl(); ParticipantManager.markInProgress('hvlt');
-  document.getElementById('recallInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); addRecall(); }
-  });
-});
-
-// === 页面离开保护 ===
-function isTestActive() {
-  return STATE.isStudying ||
-         document.getElementById('page-study').classList.contains('active') ||
-         document.getElementById('page-recall').classList.contains('active');
-}
-window.addEventListener('beforeunload', function(e) {
-  if (isTestActive()) {
-    e.preventDefault();
-    e.returnValue = '测试正在进行中，确定要离开吗？';
-  }
-});
-document.addEventListener('visibilitychange', function() {
-  if (document.hidden && isTestActive()) {
-    stopStudyTimer();
-    backToWelcome();
-  }
-});
-
-// === 模态框焦点陷阱 ===
-function trapFocus(container) {
-  const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-  if (focusable.length === 0) return;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  container.addEventListener('keydown', function handler(e) {
-    if (e.key === 'Escape') {
-      hideOverlay();
-      return;
-    }
-    if (e.key !== 'Tab') return;
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  });
-}
-
-// === Wide Mode Toggle ===
-(function(){try{if(window.ParticipantManager)ParticipantManager.initFromUrl();}catch(e){}var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
-b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
-if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
-b.onclick=function(){document.body.classList.toggle('wide-mode');
-b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
-document.body.classList.contains('wide-mode')?'1':'0');};
-document.body.appendChild(b);})();
+function scoreRecall(entries){const target=new Set(cfg.words.map(normalize));const seen=new Set();let correct=0,duplicates=0,intrusions=0;for(const item of entries){if(seen.has(item)){duplicates++;continue}seen.add(item);if(target.has(item))correct++;else intrusions++}return{correct,totalEntered:entries.length,uniqueEntered:seen.size,duplicates,intrusions}}
+function startStudy(){navigate('page-study');const words=cfg.words.slice();const per=Number(cfg.presentationMsPerWord),gap=Number(cfg.interWordMs),cycle=per+gap,total=words.length*cycle;$('studyPhase').textContent=`学习阶段 ${state.trial} / 3`;let lastIndex=-1,lastVisible=false;state.clock=ExperimentRuntime.deadline(total,{testKey:TEST_KEY,label:`learning_trial_${state.trial}`,tickMs:40,onTick:({elapsedMs,remainingMs})=>{const idx=Math.min(words.length-1,Math.floor(elapsedMs/cycle)),within=elapsedMs-idx*cycle,visible=within<per;if(idx!==lastIndex||visible!==lastVisible){$('studyWord').textContent=visible?words[idx]:'·';lastIndex=idx;lastVisible=visible}$('studyCountdown').textContent=`${Math.ceil(remainingMs/1000)} s`;},onDone:()=>{$('studyWord').textContent='—';openRecall(false)}})}
+function openRecall(delayed){navigate('page-recall');$('recallTitle').textContent=delayed?'延迟回忆':'立即回忆';$('recallInput').value='';$('recallInput').focus();$('submitRecallBtn').dataset.delayed=delayed?'1':'0'}
+function submitRecall(){const delayed=$('submitRecallBtn').dataset.delayed==='1',summary=scoreRecall(parseRecall($('recallInput').value));if(delayed){state.delayed=summary;finish()}else{state.scores.push(summary.correct);state.summaries.push(summary);if(state.trial<3){state.trial++;startStudy()}else startDelay()}}
+function startDelay(){navigate('page-delay');const duration=Number(cfg.delayedRecallMs);state.clock=ExperimentRuntime.deadline(duration,{testKey:TEST_KEY,label:'delayed_recall_wait',tickMs:200,onTick:({remainingMs})=>{$('delayCountdown').textContent=`剩余 ${Math.ceil(remainingMs/1000)} s`;},onDone:()=>openRecall(true)})}
+function finish(){const data={test:'Verbal Learning Research Task',protocol:'hvlt-related-private-stimulus-shell',date:new Date().toISOString(),stimulusSet:{id:cfg.setId,version:cfg.version,fingerprint:configFingerprint(),wordCount:cfg.words.length},trial1:state.scores[0]||0,trial2:state.scores[1]||0,trial3:state.scores[2]||0,delayedRecall:state.delayed?state.delayed.correct:0,responseSummary:{learning:state.summaries,delayed:state.delayed},timing:{presentationMsPerWord:Number(cfg.presentationMsPerWord),interWordMs:Number(cfg.interWordMs),delayedRecallMs:Number(cfg.delayedRecallMs)}};ParticipantManager.saveResult(TEST_KEY,data);$('r1').textContent=data.trial1;$('r2').textContent=data.trial2;$('r3').textContent=data.trial3;$('rd').textContent=data.delayedRecall;$('resultMeta').textContent=`私有材料 ${cfg.setId} · ${cfg.version} · fingerprint ${data.stimulusSet.fingerprint}。结果仅保存计数/汇总，不保存标准词表或逐词答案。`;window.__hvltResult=data;navigate('page-result')}
+function exportResult(){if(!window.__hvltResult)return;const blob=new Blob([JSON.stringify(window.__hvltResult,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`verbal-learning-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url)}
+$('startBtn').addEventListener('click',()=>{if(configError)return;ParticipantManager.initFromUrl();if(!ParticipantManager.getCurrent()){alert('请先从测验中心选择/创建被试编号。');return}ParticipantManager.markInProgress(TEST_KEY);state.trial=1;state.scores=[];state.summaries=[];state.delayed=null;startStudy()});
+$('submitRecallBtn').addEventListener('click',submitRecall);$('exportBtn').addEventListener('click',exportResult);
+window.addEventListener('beforeunload',e=>{if(ExperimentRuntime.getActiveTestKeys().includes(TEST_KEY)){e.preventDefault();e.returnValue='研究任务正在进行中，确定离开吗？'}});
 </script>
 </body>
 </html>

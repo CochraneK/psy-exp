@@ -1,26 +1,11 @@
-/** Validate driver strings: stub require/process/etc, slice off run entry, grab DRV. */
-const fs = require('fs');
-const vm = require('vm');
-let src = fs.readFileSync(__dirname + '/full-battery.cjs', 'utf-8');
-src = src.slice(0, src.indexOf('async function runOne'));  // drop run entry & main
-src = src.replace(/const NODE = .*\n/m, '').replace(/const AB = .*\n/m, '');
-src = src.replace(/^const REPORT = .*\n/m, '');
-src = src.replace(/^if \(!fs\.existsSync.*\n/m, '');  // stub-safe: drop runtime checks
-src = src.replace(/^const /gm, 'var ').replace(/^let /gm, 'var ');
-const ctx = {
-  console: { log(){} },
-  process: { env: {}, argv: [], exit(){}, exitCode: 0 },
-  require: (m) => ({ execFile(){}, writeFileSync(){}, existsSync(){return false}, mkdirSync(){}, readFileSync(){''}, statSync(){return {isDirectory:()=>false}} }),
-  setTimeout, clearTimeout, setInterval, clearInterval,
-};
-ctx.require.cache = {};
-vm.createContext(ctx);
-try { vm.runInContext(src, ctx); } catch (e) { console.log('prelude err:', e.message.slice(0, 80)); }
-const DRV = ctx.DRV;
-if (!DRV) { console.log('DRV not found in context'); process.exit(1); }
-let ok = 0;
-for (const [k, v] of Object.entries(DRV)) {
-  try { new vm.Script(v); console.log('OK  ' + k); ok++; }
-  catch (e) { console.log('BAD ' + k + ': ' + e.message); }
-}
-console.log(ok + '/10 valid');
+'use strict';
+/** Static task-entry contract checks for the hardened research architecture. */
+const fs=require('fs');const path=require('path');
+const manifest=require(path.resolve(__dirname,'../task-manifest.json'));
+const resultKey={tmt:'tmt',bacs:'bacs',fluency:'fluency',cpt:'cpt','spatial-span':'spatial-span',lns:'lns',hvlt:'hvlt',bvmt:'bvmt',mazes:'mazes',msceit:'msceit'};
+let pass=0,fail=0;function check(label,ok,detail=''){if(ok){pass++;console.log('OK  '+label)}else{fail++;console.log('BAD '+label+(detail?' — '+detail:''))}}
+const protocolToken={bacs:'symbol-coding-synthetic-v1',fluency:'typed-animal-fluency-v1',cpt:'identical-pairs-4digit-research-v2','spatial-span':'synthetic-spatial-sequence-v1',lns:'synthetic-letter-number-ordering-v1',hvlt:'hvlt-related-private-stimulus-shell',bvmt:'synthetic-visual-pattern-v1',mazes:'generated-perfect-mazes-v1',msceit:'private-social-cognition-shell-v1'};
+for(const task of manifest.tasks){const file=path.resolve(__dirname,`../pages/mccb-${task.key}.html`);check(`${task.key}: page exists`,fs.existsSync(file));if(!fs.existsSync(file))continue;const html=fs.readFileSync(file,'utf8');check(`${task.key}: loads participant runtime`,html.includes('../mccb-participant.js'));check(`${task.key}: initializes/starts session`,html.includes('markInProgress')||task.key==='tmt','missing markInProgress');check(`${task.key}: persists result`,html.includes(`saveResult('${resultKey[task.key]}'`)||html.includes('saveResult(TEST_KEY')||html.includes(`saveResult("${resultKey[task.key]}"`),'missing saveResult');check(`${task.key}: no official-equivalence claim`,!html.includes('mccbEquivalent: true')&&!html.includes('mccbEquivalent:true'));if(protocolToken[task.key])check(`${task.key}: protocol marker`,html.includes(protocolToken[task.key]),protocolToken[task.key]);if(task.materialPolicy==='private-licensed-assets-required')check(`${task.key}: private stimulus loader`,html.includes('../private/stimuli.js'));}
+const tmt=fs.readFileSync(path.resolve(__dirname,'../pages/mccb-tmt.html'),'utf8');check('tmt: Part A exists',/Part A|partA/.test(tmt));
+const runtime=fs.readFileSync(path.resolve(__dirname,'../mccb-participant.js'),'utf8');check('runtime: direct task URL defaults USER',runtime.includes("params.set('mode','user')"));check('runtime: interruption QC installed',runtime.includes('visibilitychange')&&runtime.includes("'interrupted'"));
+console.log(`${pass} passed / ${fail} failed`);process.exit(fail===0?0:1);

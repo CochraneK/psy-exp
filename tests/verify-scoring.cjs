@@ -1,138 +1,37 @@
-/**
- * 评分模块端到端验证
- * 模拟 ParticipantManager，喂入覆盖 10 项测验的样本数据，
- * 验证 mccb-scoring.js 的 getProfile / getAllProfiles / getDomainSummary 逻辑。
- */
-const path = require('path');
-const MCCB = require(path.resolve(__dirname, '../mccb-scoring.js')).MCCBScoring;
-
-// ---- 模拟 ParticipantManager ----
-function makeResults(overrides = {}) {
-  return Object.assign({
-    'mccb-bacs-result':        { correct: 88, attempted: 90 },
-    'mccb-fluency-result':     { total: 32, unique: 30 },
-    'mccb-hvlt-result':        { trial1: 7, trial2: 9, trial3: 10, delayedRecall: 9 },
-    'mccb-bvmt-result':        { trials: [{score:9},{score:11},{score:12}], delayedRecall: 10 },
-    'mccb-cpt-result':         { hits: 180, misses: 5, falseAlarms: 8, meanHitRT: 420, meanFART: 510, dPrime: 3.2, totalTrials: 200 },
-    'mccb-msceit-result':      { total: 24, correct: 18, elapsed: 120000 },
-    'mccb-mazes-result':       { totalScore: 22, maxScore: 26, completed: [1,2,3,4,5,6,7], totalTime: 540 },
-    'mccb-spatial-span-result':{ totalCorrect: 19, maxLevel: 7 },
-    'mccb-lns-result':         { totalCorrect: 21, maxLevel: 8 },
-    'mccb-tmt-result':         { partA: { time: 35, errors: 0 }, partB: { time: 75, errors: 1 } },
-  }, overrides);
-}
-
-const mockData = {
-  'P001': { cohortId: 'P001', results: makeResults() },
-  'P002': { cohortId: 'P002', results: makeResults({
-    'mccb-bacs-result':     { correct: 60, attempted: 90 },
-    'mccb-fluency-result':  { total: 18, unique: 16 },
-    'mccb-cpt-result':      { hits: 150, misses: 20, falseAlarms: 30, meanHitRT: 500, meanFART: 600, dPrime: 1.5, totalTrials: 200 },
-    'mccb-mazes-result':    { totalScore: 12, maxScore: 26, completed: [1,2,3], totalTime: 800 },
-  })},
-  'P003': { cohortId: 'P003', results: makeResults({
-    'mccb-bacs-result':     { correct: 100, attempted: 100 },
-    'mccb-cpt-result':      { hits: 195, misses: 1, falseAlarms: 2, meanHitRT: 380, meanFART: 460, dPrime: 4.1, totalTrials: 200 },
-    'mccb-mazes-result':    { totalScore: 25, maxScore: 26, completed: [1,2,3,4,5,6,7], totalTime: 400 },
-  })},
+'use strict';
+const path=require('path');const {MCCBScoring:MCCB}=require(path.resolve(__dirname,'../mccb-scoring.js'));
+function withQc(result,status='valid',taskVersion='fixture-v1'){return{...result,_meta:{schemaVersion:4,taskVersion,administration:'digital_research_adaptation',mccbEquivalent:false,sessionQc:{status,qc:{visibilityInterruptions:status==='interrupted'?1:0,timingViolation:status==='timing_violation',technicalFailure:status==='technical_failure',reasons:[]}}}}}
+function makeResults(overrides={}){return Object.assign({
+'mccb-bacs-result':withQc({protocol:'synthetic-symbol-coding-v1',correct:88,attempted:90}),
+'mccb-fluency-result':withQc({protocol:'typed-animal-fluency-v1',total:32,unique:30,reviewStatus:'verified'}),
+'mccb-hvlt-result':withQc({protocol:'hvlt-related-private-stimulus-shell',trial1:7,trial2:9,trial3:10,delayedRecall:9,stimulusSet:{id:'set-a',version:'1',fingerprint:'fp-a'}}),
+'mccb-bvmt-result':withQc({protocol:'synthetic-visual-pattern-v1',trials:[{score:9},{score:11},{score:12}],delayedRecall:{score:10},delayedScore:10}),
+'mccb-cpt-result':withQc({protocol:'custom-identical-pairs-v1',hits:110,misses:8,falseAlarms:10,meanHitRT:420,dPrime:3.2,totalTrials:150}),
+'mccb-msceit-result':withQc({protocol:'private-social-cognition-shell-v1',total:24,correct:18,rawScore:18,itemSet:{id:'set-a',version:'1'},scoring:{version:'score-1',rawScore:18,correct:18,total:24}}),
+'mccb-mazes-result':withQc({protocol:'generated-perfect-mazes-v1',totalScore:22,maxScore:26,completed:7,totalTime:540}),
+'mccb-spatial-span-result':withQc({protocol:'synthetic-spatial-sequence-v1',totalCorrect:19,maxLevel:7}),
+'mccb-lns-result':withQc({protocol:'synthetic-letter-number-ordering-v1',totalCorrect:21,maxLevel:8}),
+'mccb-tmt-result':withQc({protocol:'tmt-browser-v1',partA:{time:35,errors:0},partB:{time:75,errors:1}})},overrides)}
+const mockData={
+P001:{cohortId:'P001',results:makeResults()},
+P002:{cohortId:'P002',results:makeResults({'mccb-bacs-result':withQc({protocol:'synthetic-symbol-coding-v1',correct:60,attempted:90}),'mccb-fluency-result':withQc({protocol:'typed-animal-fluency-v1',total:18,unique:16,reviewStatus:'verified'}),'mccb-cpt-result':withQc({protocol:'custom-identical-pairs-v1',hits:80,misses:30,falseAlarms:35,meanHitRT:520,dPrime:1.3,totalTrials:150}),'mccb-mazes-result':withQc({protocol:'generated-perfect-mazes-v1',totalScore:12,maxScore:26,completed:3,totalTime:800}),'mccb-tmt-result':withQc({protocol:'tmt-browser-v1',partA:{time:70,errors:2},partB:{time:40,errors:0}})})},
+P003:{cohortId:'P003',results:makeResults({'mccb-bacs-result':withQc({protocol:'synthetic-symbol-coding-v1',correct:100,attempted:100}),'mccb-cpt-result':withQc({protocol:'custom-identical-pairs-v1',hits:125,misses:3,falseAlarms:3,meanHitRT:380,dPrime:4.1,totalTrials:150}),'mccb-mazes-result':withQc({protocol:'generated-perfect-mazes-v1',totalScore:25,maxScore:26,completed:7,totalTime:400}),'mccb-tmt-result':withQc({protocol:'tmt-browser-v1',partA:{time:25,errors:0},partB:{time:999,errors:20}})})},
+P004:{cohortId:'P004',results:{'mccb-bacs-result':withQc({protocol:'synthetic-symbol-coding-v1',correct:75,attempted:80})}},
+P005:{cohortId:'P005',invalidResults:{'mccb-bacs-result':withQc({protocol:'synthetic-symbol-coding-v1',correct:109,attempted:110},'interrupted')}},
+P006:{cohortId:'P006',results:{'mccb-bacs-result':{correct:110,attempted:110}}},
+P007:{cohortId:'P007',results:makeResults({'mccb-cpt-result':withQc({protocol:'different-cpt-protocol',hits:130,misses:2,falseAlarms:2,dPrime:4.5,totalTrials:150})})},
+P008:{cohortId:'P008',results:makeResults()},
+P009:{cohortId:'P009',results:makeResults({'mccb-fluency-result':withQc({protocol:'typed-animal-fluency-v1',total:99,unique:99})})}
 };
-
-global.window = {
-  ParticipantManager: {
-    getData(id) { return mockData[id] || null; },
-    getAllParticipants() { return Object.keys(mockData); },
-  },
-};
-global.ParticipantManager = global.window.ParticipantManager;
-
-let pass = 0, fail = 0;
-function check(name, cond, detail) {
-  if (cond) { pass++; console.log('  ✅ ' + name); }
-  else { fail++; console.log('  ❌ ' + name + (detail ? ' — ' + detail : '')); }
-}
-
-console.log('=== 1. getProfile 提取正确性 ===');
-const p1 = MCCB.getProfile('P001');
-check('返回 profile', !!p1);
-check('10 项测验全部提取', Object.keys(p1.tests).length === 10, Object.keys(p1.tests).length + ' 项');
-check('BACS 正确数=88', p1.tests.bacs.extracted.correct === 88);
-check('HVLT 总学习=26', p1.tests.hvlt.extracted.totalLearning === 26, 'got ' + p1.tests.hvlt.extracted.totalLearning);
-check('CPT dPrime=3.2', p1.tests.cpt.extracted.dPrime === 3.2);
-check('TMT 总时间=110', p1.tests.tmt.extracted.totalTime === 110, 'got ' + p1.tests.tmt.extracted.totalTime);
-check('BVMT 总学习=32', p1.tests.bvmt.extracted.totalLearning === 32, 'got ' + p1.tests.bvmt.extracted.totalLearning);
-
-console.log('\n=== 2. getAllProfiles 域排名 / T 分 ===');
-const all = MCCB.getAllProfiles();
-check('3 个 profile', all.profiles.length === 3, all.profiles.length + ' 个');
-
-// P003 应该最高（BACS/CPT/Mazes 都很强），P002 最低
-const byId = Object.fromEntries(all.profiles.map(p => [p.id, p]));
-const c003 = byId['P003'].composite, c002 = byId['P002'].composite, c001 = byId['P001'].composite;
-check('综合分存在', [c003,c002,c001].every(v => typeof v === 'number'));
-check('P003 综合分 ≥ P002 (排序合理)', c003 >= c002, `P003=${c003} P002=${c002}`);
-console.log(`    综合分: P001=${c001}, P002=${c002}, P003=${c003}`);
-
-// T 分范围 20-80
-let tInRange = true;
-for (const p of all.profiles) {
-  for (const d of Object.values(p.domains)) {
-    if (d.tScore != null && (d.tScore < 20 || d.tScore > 80)) tInRange = false;
-  }
-}
-check('所有 T 分落在 [20,80]', tInRange);
-
-// P002 在 mazes 域应最低（totalScore=12）
-const mazesDom = 'reasoning';
-const p002MazesPct = byId['P002'].domains[mazesDom].percentile;
-const p003MazesPct = byId['P003'].domains[mazesDom].percentile;
-check('P002 迷宫百分位 ≤ P003', p002MazesPct <= p003MazesPct, `P002=${p002MazesPct} P003=${p003MazesPct}`);
-
-console.log('\n=== 3. getDomainSummary ===');
-const summary = MCCB.getDomainSummary(byId['P001']);
-check('返回 7 个域', summary.length === 7, summary.length + ' 个');
-check('含处理速度域', summary.some(d => d.key === 'speed_processing'));
-check('每个域含 T 分', summary.every(d => typeof d.tScore === 'number'));
-
-console.log('\n=== 4. 边界：空被试 ===');
-const empty = MCCB.getProfile('NONEXIST');
-check('不存在的被试返回 null', empty === null);
-
-console.log('\n=== 5. 常模接口 (registerNorm / setNorm / getNorm) ===');
-const norm0 = MCCB.getNorm();
-check('默认常模 = internal', norm0.name === 'internal', norm0.name);
-check('默认常模含中文标注', /内部相对排名/.test(norm0.label), norm0.label);
-
-// 注册一个自定义常模：固定 T 分 = 50（用于验证可插拔）
-MCCB.registerNorm({
-  name: 'mock-fixed',
-  label: '测试用固定常模（T=50）',
-  apply(allProfiles, domains) {
-    for (const p of allProfiles) {
-      for (const dk of Object.keys(domains)) {
-        p.domains[dk] = { raw: 0, percentile: 50, tScore: 50 };
-      }
-    }
-  },
-});
-MCCB.setNorm('mock-fixed');
-const allFixed = MCCB.getAllProfiles();
-const fixedT = Object.values(allFixed.profiles[0].domains)[0].tScore;
-check('切换自定义常模生效（T=50）', fixedT === 50, 'got ' + fixedT);
-check('getAllProfiles 返回当前常模信息', allFixed.norm && allFixed.norm.name === 'mock-fixed', JSON.stringify(allFixed.norm));
-MCCB.setNorm('internal');
-// 切回后应恢复「相对排名」→ 各被试 speed T 分不再全部等 50（内部排名会拉开差异）
-const back = MCCB.getAllProfiles();
-const backTS = back.profiles.map(p => p.domains.speed_processing.tScore);
-const varied = new Set(backTS).size > 1;
-check('切回 internal 后恢复相对排名（T 分有差异）', varied, 'T 分=' + backTS.join(','));
-
-console.log('\n=== 6. 常模错误处理 ===');
-let threw = false;
-try { MCCB.setNorm('not-exist'); } catch (e) { threw = true; }
-check('setNorm 未知常模抛错', threw);
-let threwReg = false;
-try { MCCB.registerNorm({ name: 'bad' }); } catch (e) { threwReg = true; }
-check('registerNorm 缺 apply 抛错', threwReg);
-
-console.log(`\n=== 结果: ${pass} 通过 / ${fail} 失败 ===`);
-process.exit(fail === 0 ? 0 : 1);
+global.window={ParticipantManager:{getData:id=>mockData[id]||null,getAllParticipants:()=>Object.keys(mockData)}};
+let pass=0,fail=0;function check(name,cond,detail=''){if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}}
+console.log('=== 1. Extraction + QC ===');const p1=MCCB.getProfile('P001');check('all 10 tasks extracted',Object.keys(p1.tests).length===10);check('TMT Part A metric',p1.tests.tmt.extracted.mccbTime===35);check('Part B supplemental',p1.tests.tmt.extracted.partBTime===75);check('BVMT delayed object supported',p1.tests.bvmt.extracted.delayedRecall===10);check('Maze numeric completed supported',p1.tests.mazes.extracted.completed===7);check('task validation never claims equivalence',Object.values(MCCB.TASK_VALIDATION).every(x=>x.mccbEquivalent===false));
+console.log('\n=== 2. Internal research ranking ===');const bundle=MCCB.getAllProfiles(),byId=Object.fromEntries(bundle.profiles.map(p=>[p.id,p]));check('internal norm unvalidated',bundle.norm.name==='internal'&&!bundle.norm.validated);check('no composite',bundle.profiles.every(p=>p.composite===null));check('no T score',bundle.profiles.every(p=>Object.values(p.domains).every(d=>d.tScore===null)));check('complete profile has seven domains',Object.keys(byId.P001.domains).length===7);check('partial speed battery stays missing',!byId.P004.domains.speed_processing);check('better complete profile outranks slower profile',byId.P003.domains.speed_processing.indexScore>byId.P002.domains.speed_processing.indexScore);check('identical profiles tie',byId.P001.domains.speed_processing.indexScore===byId.P008.domains.speed_processing.indexScore);check('score type explicit',Object.values(byId.P001.domains).every(d=>d.scoreType==='research-cohort-rank-index'));
+console.log('\n=== 3. Semantic review gate ===');check('unreviewed typed fluency remains visible',byId.P009.tests.fluency.extracted.unique===99);check('unreviewed typed fluency is ineligible',byId.P009.tests.fluency.eligibleForResearchScoring===false&&byId.P009.tests.fluency.ineligibilityReason==='semantic_review_required');check('unreviewed fluency prevents speed domain',!byId.P009.domains.speed_processing);
+console.log('\n=== 4. Protocol compatibility ===');check('standard CPT group excludes mismatched protocol',byId.P001.domains.attention.referenceN===5,`N=${byId.P001.domains.attention.referenceN}`);check('mismatched CPT isolated',byId.P007.domains.attention.referenceN===1&&byId.P007.domains.attention.indexScore===50,JSON.stringify(byId.P007.domains.attention));
+console.log('\n=== 5. Invalid/unverified isolation ===');check('interrupted raw visible',!!byId.P005.tests.bacs);check('interrupted ineligible',!byId.P005.tests.bacs.eligibleForResearchScoring);check('interrupted-only has no domains',Object.keys(byId.P005.domains).length===0);check('legacy unverified unscored',byId.P006.tests.bacs.qcStatus==='unverified'&&Object.keys(byId.P006.domains).length===0);
+console.log('\n=== 6. Part B leakage ===');check('catastrophic Part B does not erase fast Part A',byId.P003.domains.speed_processing.indexScore>=byId.P001.domains.speed_processing.indexScore);
+console.log('\n=== 7. Private protocol fingerprinting ===');check('HVLT signature includes private material fingerprint',byId.P001.tests.hvlt.signature.includes('fp-a'));check('MSCEIT signature includes scoring version',byId.P001.tests.msceit.signature.includes('score-1'));
+console.log('\n=== 8. Validated adapter contract ===');let rejected=false;try{MCCB.registerNorm({name:'bad-validated',validated:true,version:'1',provenance:'fixture',apply(){}})}catch{rejected=true}check('validated adapter requires supportsTask',rejected);let seen=[];MCCB.registerNorm({name:'mock-validated',label:'Mock validated',validated:true,kind:'test',version:'1',provenance:'fixture only',supportsTask:(key,task)=>task.qcStatus==='valid'&&task.ineligibilityReason!=='semantic_review_required',apply(profiles,domains){seen=profiles.map(p=>({id:p.id,tests:Object.keys(p.tests)}));for(const p of profiles)for(const key of Object.keys(domains))p.domains[key]={tScore:50,scoreType:'validated-t-score'}}});MCCB.setNorm('mock-validated');const validated=MCCB.getAllProfiles(),v=Object.fromEntries(validated.profiles.map(p=>[p.id,p]));check('invalid-only never reaches adapter',!seen.some(x=>x.id==='P005'));check('unverified-only never reaches adapter',!seen.some(x=>x.id==='P006'));check('unreviewed fluency excluded from adapter',!seen.find(x=>x.id==='P009').tests.includes('fluency'));check('validated provenance exposed',validated.norm.version==='1'&&validated.norm.provenance==='fixture only');check('valid complete can receive composite',v.P001.composite===50);check('invalid/unverified composite null',v.P005.composite===null&&v.P006.composite===null);
+console.log('\n=== 9. Unvalidated adapter cannot create composite ===');MCCB.registerNorm({name:'mock-unvalidated',validated:false,apply(profiles,domains){for(const p of profiles)for(const key of Object.keys(domains))p.domains[key]={tScore:50}}});MCCB.setNorm('mock-unvalidated');check('unvalidated adapter cannot create composite',MCCB.getAllProfiles().profiles.every(p=>p.composite===null));MCCB.setNorm('internal');
+console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);process.exit(fail===0?0:1);
