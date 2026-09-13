@@ -1,254 +1,505 @@
 /**
- * mccb-participant.js — MCCB 被试管理系统
+ * mccb-participant.js — participant storage + research session QC
  *
- * 每个被试分配一个队列编号（cohort ID），系统自动追踪：
- * - 已完成/进行中/未开始的测验
- * - 中断后可续做（输入编号 → 显示进度 → 继续）
- * - 所有结果按被试隔离存储
- *
- * 存储结构（localStorage）：
- *   mccb-participant-list   = ["ABC-001", ...]          // 所有被试列表
- *   mccb-current-participant = "ABC-001"                 // 当前登录被试
- *   mccb-participant-ABC-001 = { ... }                   // 被试完整数据
- *   mccb-participant-ABC-001-tmt-result = { ... }        // 单测验结果（向后兼容保留）
+ * The browser tasks in this repository are research adaptations. This module owns
+ * participant-scoped persistence and now also records a conservative session
+ * quality envelope so interrupted runs cannot silently look like valid data.
  */
 
+const RESULT_SCHEMA_VERSION = 2;
+const PARTICIPANT_SCHEMA_VERSION = 2;
+const DEFAULT_TASK_VERSION = 'research-web-0.2.0';
+const VALID_TEST_KEYS = new Set([
+  'tmt', 'bacs', 'fluency', 'cpt', 'spatial-span', 'lns', 'hvlt', 'bvmt', 'mazes', 'msceit'
+]);
+const VALID_QC_STATUSES = new Set([
+  'valid', 'aborted', 'interrupted', 'timing_violation', 'technical_failure', 'unverified'
+]);
+
 const TEST_ORDER = [
-  { key: 'tmt',        name: 'TMT 连线测验',             file: 'pages/mccb-tmt.html' },
-  { key: 'bacs',       name: 'BACS 符号编码',            file: 'pages/mccb-bacs.html' },
-  { key: 'fluency',    name: '语义流畅性',               file: 'pages/mccb-fluency.html' },
-  { key: 'cpt',        name: 'CPT-IP 持续操作',          file: 'pages/mccb-cpt.html' },
-  { key: 'spatial-span', name: 'WMS-III 空间广度',       file: 'pages/mccb-spatial-span.html' },
-  { key: 'lns',        name: '字母-数字广度',            file: 'pages/mccb-lns.html' },
-  { key: 'hvlt',       name: 'HVLT-R 言语学习',          file: 'pages/mccb-hvlt.html' },
-  { key: 'bvmt',       name: 'BVMT-R 视觉空间记忆',      file: 'pages/mccb-bvmt.html' },
-  { key: 'mazes',      name: 'NAB 迷宫',                 file: 'pages/mccb-mazes.html' },
-  { key: 'msceit',     name: 'MSCEIT 情绪管理',          file: 'pages/mccb-msceit.html' },
+  { key: 'tmt',          name: 'TMT 连线测验',        file: 'pages/mccb-tmt.html' },
+  { key: 'bacs',         name: 'BACS 符号编码',       file: 'pages/mccb-bacs.html' },
+  { key: 'fluency',      name: '语义流畅性',          file: 'pages/mccb-fluency.html' },
+  { key: 'cpt',          name: 'CPT-IP 持续操作',     file: 'pages/mccb-cpt.html' },
+  { key: 'spatial-span', name: 'WMS-III 空间广度',    file: 'pages/mccb-spatial-span.html' },
+  { key: 'lns',          name: '字母-数字广度',       file: 'pages/mccb-lns.html' },
+  { key: 'hvlt',         name: 'HVLT-R 言语学习',     file: 'pages/mccb-hvlt.html' },
+  { key: 'bvmt',         name: 'BVMT-R 视觉空间记忆', file: 'pages/mccb-bvmt.html' },
+  { key: 'mazes',        name: 'NAB 迷宫',            file: 'pages/mccb-mazes.html' },
+  { key: 'msceit',       name: 'MSCEIT 情绪管理',     file: 'pages/mccb-msceit.html' },
 ];
 
-// localStorage key 映射
 const KEY_TO_RESULT = {
-  tmt:        'mccb-tmt-result',
-  bacs:       'mccb-bacs-result',
-  fluency:    'mccb-fluency-result',
-  cpt:        'mccb-cpt-result',
+  tmt: 'mccb-tmt-result',
+  bacs: 'mccb-bacs-result',
+  fluency: 'mccb-fluency-result',
+  cpt: 'mccb-cpt-result',
   'spatial-span': 'mccb-spatial-span-result',
-  lns:        'mccb-lns-result',
-  hvlt:       'mccb-hvlt-result',
-  bvmt:       'mccb-bvmt-result',
-  mazes:      'mccb-mazes-result',
-  msceit:     'mccb-msceit-result',
+  lns: 'mccb-lns-result',
+  hvlt: 'mccb-hvlt-result',
+  bvmt: 'mccb-bvmt-result',
+  mazes: 'mccb-mazes-result',
+  msceit: 'mccb-msceit-result',
 };
 
 const RESULT_TO_KEY = Object.fromEntries(
   Object.entries(KEY_TO_RESULT).map(([k, v]) => [v, k])
 );
 
-/** localStorage 安全封装（静默捕获异常） */
 const _ls = {
-  get(key) { try { return localStorage.getItem(key); } catch { return null; } },
-  set(key, val) { try { localStorage.setItem(key, val); return true; } catch { console.warn('localStorage 写入失败（可能已满）:', key); return false; } },
-  remove(key) { try { localStorage.removeItem(key); } catch {} },
-  json(key) { try { const v = this.get(key); return v ? JSON.parse(v) : null; } catch { return null; } },
-  length() { try { return localStorage.length; } catch { return 0; } },
-  key(i) { try { return localStorage.key(i); } catch { return null; } },
+  get(key) {
+    try { return localStorage.getItem(key); }
+    catch { return null; }
+  },
+  set(key, val) {
+    try { localStorage.setItem(key, val); return true; }
+    catch (err) {
+      console.warn('localStorage 写入失败（可能已满或不可用）:', key, err && err.message ? err.message : err);
+      return false;
+    }
+  },
+  remove(key) {
+    try { localStorage.removeItem(key); return true; }
+    catch { return false; }
+  },
+  json(key) {
+    try {
+      const value = this.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch {
+      return null;
+    }
+  },
+  length() {
+    try { return localStorage.length; }
+    catch { return 0; }
+  },
+  key(i) {
+    try { return localStorage.key(i); }
+    catch { return null; }
+  },
 };
 
+function monotonicNow() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
+}
+
+function safeClone(value) {
+  if (value == null) return value;
+  try { return JSON.parse(JSON.stringify(value)); }
+  catch { return null; }
+}
+
+function normalizeCohortId(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function isValidCohortId(value) {
+  const id = normalizeCohortId(value);
+  return id.length >= 1 && id.length <= 64 && /^[A-Za-z0-9._-]+$/.test(id);
+}
+
+/**
+ * ExperimentRuntime keeps a monotonic session clock and a machine-readable QC
+ * state. Existing pages can keep their own task logic; ParticipantManager hooks
+ * into markInProgress/saveResult so every newly saved result gets this metadata.
+ */
+const ExperimentRuntime = (() => {
+  const sessions = new Map();
+
+  function createSession(testKey) {
+    return {
+      testKey,
+      taskVersion: DEFAULT_TASK_VERSION,
+      status: 'valid',
+      startedAt: new Date().toISOString(),
+      completedAt: null,
+      startedPerfMs: monotonicNow(),
+      elapsedMs: null,
+      clock: (typeof performance !== 'undefined' && typeof performance.now === 'function')
+        ? 'performance.now'
+        : 'Date.now',
+      qc: {
+        visibilityInterruptions: 0,
+        timingViolation: false,
+        technicalFailure: false,
+        reasons: [],
+      },
+      events: [],
+    };
+  }
+
+  function ensure(testKey) {
+    if (!VALID_TEST_KEYS.has(testKey)) return null;
+    if (!sessions.has(testKey)) sessions.set(testKey, createSession(testKey));
+    return sessions.get(testKey);
+  }
+
+  function start(testKey) {
+    if (!VALID_TEST_KEYS.has(testKey)) return null;
+    const session = createSession(testKey);
+    sessions.set(testKey, session);
+    return snapshot(testKey);
+  }
+
+  function event(testKey, type, detail) {
+    const session = ensure(testKey);
+    if (!session) return null;
+    session.events.push({
+      type,
+      at: new Date().toISOString(),
+      elapsedMs: Math.max(0, Math.round(monotonicNow() - session.startedPerfMs)),
+      detail: detail || null,
+    });
+    return snapshot(testKey);
+  }
+
+  function invalidate(testKey, status, reason) {
+    const session = ensure(testKey);
+    if (!session) return null;
+    const nextStatus = VALID_QC_STATUSES.has(status) ? status : 'technical_failure';
+
+    // Once invalid, a later normal completion must not silently restore validity.
+    if (session.status === 'valid' || session.status === 'unverified') {
+      session.status = nextStatus;
+    } else if (nextStatus === 'technical_failure') {
+      session.status = nextStatus;
+    } else if (nextStatus === 'timing_violation' && session.status === 'interrupted') {
+      // Preserve interruption as the more directly observable protocol violation.
+    }
+
+    if (nextStatus === 'interrupted') session.qc.visibilityInterruptions += 1;
+    if (nextStatus === 'timing_violation') session.qc.timingViolation = true;
+    if (nextStatus === 'technical_failure') session.qc.technicalFailure = true;
+    if (reason && !session.qc.reasons.includes(reason)) session.qc.reasons.push(reason);
+    return event(testKey, nextStatus, reason || null);
+  }
+
+  function invalidateAll(status, reason) {
+    const result = [];
+    for (const testKey of sessions.keys()) {
+      const session = sessions.get(testKey);
+      if (session && session.completedAt == null) result.push(invalidate(testKey, status, reason));
+    }
+    return result;
+  }
+
+  function complete(testKey) {
+    const session = ensure(testKey);
+    if (!session) {
+      return {
+        testKey,
+        taskVersion: DEFAULT_TASK_VERSION,
+        status: 'unverified',
+        startedAt: null,
+        completedAt: new Date().toISOString(),
+        elapsedMs: null,
+        clock: null,
+        qc: {
+          visibilityInterruptions: 0,
+          timingViolation: false,
+          technicalFailure: false,
+          reasons: ['session_not_started_through_runtime'],
+        },
+        events: [],
+      };
+    }
+    if (session.completedAt == null) {
+      session.completedAt = new Date().toISOString();
+      session.elapsedMs = Math.max(0, Math.round(monotonicNow() - session.startedPerfMs));
+      event(testKey, 'complete', { finalStatus: session.status });
+    }
+    return snapshot(testKey);
+  }
+
+  function snapshot(testKey) {
+    return safeClone(sessions.get(testKey)) || null;
+  }
+
+  function getActiveTestKeys() {
+    return Array.from(sessions.entries())
+      .filter(([, session]) => session && session.completedAt == null)
+      .map(([key]) => key);
+  }
+
+  /**
+   * Absolute-deadline scheduler for future task migrations.
+   * setTimeout is used only to wake the loop; elapsed time is measured against a
+   * monotonic deadline rather than by counting timer callbacks.
+   */
+  function deadline(durationMs, { onTick, onDone, tickMs = 100 } = {}) {
+    const start = monotonicNow();
+    const end = start + Math.max(0, Number(durationMs) || 0);
+    let timer = null;
+    let cancelled = false;
+
+    function step() {
+      if (cancelled) return;
+      const now = monotonicNow();
+      const remainingMs = Math.max(0, end - now);
+      if (typeof onTick === 'function') onTick({ elapsedMs: now - start, remainingMs, deadlineMs: end });
+      if (remainingMs <= 0) {
+        if (typeof onDone === 'function') onDone({ elapsedMs: now - start, overshootMs: Math.max(0, now - end) });
+        return;
+      }
+      timer = setTimeout(step, Math.min(tickMs, remainingMs));
+    }
+
+    step();
+    return {
+      cancel() {
+        cancelled = true;
+        if (timer) clearTimeout(timer);
+      },
+      startedPerfMs: start,
+      deadlinePerfMs: end,
+    };
+  }
+
+  return { start, event, invalidate, invalidateAll, complete, snapshot, getActiveTestKeys, deadline };
+})();
+
 const ParticipantManager = {
-  /** 获取当前登录被试 ID */
   getCurrent() {
     return _ls.get('mccb-current-participant') || '';
   },
 
-  /** 设置当前登录被试 */
   setCurrent(cohortId) {
-    if (!cohortId) {
+    const normalized = normalizeCohortId(cohortId);
+    if (!normalized) {
       _ls.remove('mccb-current-participant');
-      return;
+      return true;
     }
-    _ls.set('mccb-current-participant', cohortId);
-    // 自动注册到列表
+    if (!isValidCohortId(normalized)) {
+      console.warn('无效被试编号。仅允许 1-64 位字母、数字、点、下划线和连字符。');
+      return false;
+    }
+    if (!_ls.set('mccb-current-participant', normalized)) return false;
+
     const list = this.getAllParticipants();
-    if (!list.includes(cohortId)) {
-      list.push(cohortId);
-      _ls.set('mccb-participant-list', JSON.stringify(list));
+    if (!list.includes(normalized)) {
+      list.push(normalized);
+      if (!_ls.set('mccb-participant-list', JSON.stringify(list))) return false;
     }
-    // 确保数据对象存在
-    if (!_ls.get('mccb-participant-' + cohortId)) {
-      this._createParticipant(cohortId);
+    if (!_ls.get('mccb-participant-' + normalized)) {
+      return !!this._createParticipant(normalized);
     }
+    return true;
   },
 
-  /** 获取所有已知被试 */
   getAllParticipants() {
-    return _ls.json('mccb-participant-list') || [];
+    const list = _ls.json('mccb-participant-list');
+    return Array.isArray(list) ? list.filter(isValidCohortId) : [];
   },
 
-  /** 清除当前登录（登出） */
   logout() {
     _ls.remove('mccb-current-participant');
   },
 
-  /** 获取被试完整数据 */
   getData(cohortId) {
-    if (!cohortId) cohortId = this.getCurrent();
-    if (!cohortId) return null;
-    return _ls.json('mccb-participant-' + cohortId);
+    const id = normalizeCohortId(cohortId || this.getCurrent());
+    if (!isValidCohortId(id)) return null;
+    return _ls.json('mccb-participant-' + id);
   },
 
-  /** 保存被试数据 */
   _saveData(cohortId, data) {
-    if (!cohortId) cohortId = this.getCurrent();
-    if (!cohortId) return;
+    const id = normalizeCohortId(cohortId || this.getCurrent());
+    if (!isValidCohortId(id) || !data || typeof data !== 'object') return false;
+    data.schemaVersion = PARTICIPANT_SCHEMA_VERSION;
     data.updatedAt = new Date().toISOString();
-    _ls.set('mccb-participant-' + cohortId, JSON.stringify(data));
+    return _ls.set('mccb-participant-' + id, JSON.stringify(data));
   },
 
-  /** 创建新被试记录 */
   _createParticipant(cohortId) {
+    if (!isValidCohortId(cohortId)) return null;
     const progress = {};
     TEST_ORDER.forEach(t => { progress[t.key] = 'not_started'; });
+    const now = new Date().toISOString();
     const data = {
+      schemaVersion: PARTICIPANT_SCHEMA_VERSION,
       cohortId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       progress,
+      sessions: {},
+      results: {},
     };
-    _ls.set('mccb-participant-' + cohortId, JSON.stringify(data));
-    return data;
+    return this._saveData(cohortId, data) ? data : null;
   },
 
-  /** 获取测验进度状态 */
   getProgress(testKey) {
     const data = this.getData();
     if (!data) return 'not_started';
-    return data.progress[testKey] || 'not_started';
+    return (data.progress && data.progress[testKey]) || 'not_started';
   },
 
-  /** 设置测验进度状态 */
   setProgress(testKey, status) {
+    if (!VALID_TEST_KEYS.has(testKey)) return false;
     const data = this.getData();
-    if (!data) return;
+    if (!data) return false;
+    if (!data.progress) data.progress = {};
     data.progress[testKey] = status;
-    this._saveData(data.cohortId, data);
+    return this._saveData(data.cohortId, data);
   },
 
-  /** 标记测验为进行中（在 startTest 中调用） */
   markInProgress(testKey) {
-    this.setProgress(testKey, 'in_progress');
+    if (!VALID_TEST_KEYS.has(testKey)) return false;
+    ExperimentRuntime.start(testKey);
+    const data = this.getData();
+    if (!data) return false;
+    if (!data.progress) data.progress = {};
+    if (!data.sessions) data.sessions = {};
+    data.progress[testKey] = 'in_progress';
+    data.sessions[testKey] = ExperimentRuntime.snapshot(testKey);
+    return this._saveData(data.cohortId, data);
   },
 
-  /** 保存测验结果并标记完成 */
+  invalidateSession(testKey, status, reason) {
+    if (!VALID_TEST_KEYS.has(testKey)) return false;
+    ExperimentRuntime.invalidate(testKey, status, reason);
+    return this._persistActiveSessionQc();
+  },
+
+  _persistActiveSessionQc() {
+    const data = this.getData();
+    if (!data) return false;
+    if (!data.sessions) data.sessions = {};
+    for (const testKey of VALID_TEST_KEYS) {
+      const session = ExperimentRuntime.snapshot(testKey);
+      if (session) data.sessions[testKey] = session;
+    }
+    return this._saveData(data.cohortId, data);
+  },
+
   saveResult(testKey, resultData) {
     const cohortId = this.getCurrent();
-    if (!cohortId) return;
-
-    // 保存到被试专属结果键（向后兼容）
     const resultKey = KEY_TO_RESULT[testKey];
-    if (resultKey) {
-      _ls.set('mccb-participant-' + cohortId + '-' + resultKey, JSON.stringify(resultData));
+    if (!isValidCohortId(cohortId) || !resultKey || !resultData || typeof resultData !== 'object') return false;
+
+    const sessionQc = ExperimentRuntime.complete(testKey);
+    const enriched = {
+      ...resultData,
+      _meta: {
+        schemaVersion: RESULT_SCHEMA_VERSION,
+        taskVersion: (sessionQc && sessionQc.taskVersion) || DEFAULT_TASK_VERSION,
+        administration: 'digital_research_adaptation',
+        mccbEquivalent: false,
+        participantId: cohortId,
+        recordedAt: new Date().toISOString(),
+        sessionQc,
+      },
+    };
+
+    const data = this.getData(cohortId);
+    if (!data) return false;
+    if (!data.progress) data.progress = {};
+    if (!data.results) data.results = {};
+    if (!data.sessions) data.sessions = {};
+
+    data.sessions[testKey] = sessionQc;
+    data.results[resultKey] = enriched;
+    data.progress[testKey] = sessionQc && sessionQc.status === 'valid' ? 'completed' : 'completed_invalid';
+
+    // Save the canonical participant record first. Do not claim completion if the
+    // canonical write fails; the compatibility key is secondary.
+    if (!this._saveData(cohortId, data)) {
+      console.error('被试结果保存失败:', cohortId, testKey);
+      return false;
     }
 
-    // 更新进度
-    const data = this.getData(cohortId);
-    if (data) {
-      data.progress[testKey] = 'completed';
-      if (!data.results) data.results = {};
-      data.results[resultKey] = resultData;
-      this._saveData(cohortId, data);
-    }
+    _ls.set('mccb-participant-' + cohortId + '-' + resultKey, JSON.stringify(enriched));
+    return true;
   },
 
-  /** 获取测验结果 */
   getResult(testKey) {
     const data = this.getData();
     if (!data || !data.results) return null;
     return data.results[KEY_TO_RESULT[testKey]] || null;
   },
 
-  /** 获取第一个未完成的测验 */
+  getSessionQc(testKey) {
+    const result = this.getResult(testKey);
+    if (result && result._meta && result._meta.sessionQc) return result._meta.sessionQc;
+    const data = this.getData();
+    return data && data.sessions ? data.sessions[testKey] || null : null;
+  },
+
   getFirstIncomplete() {
     const data = this.getData();
     if (!data) return TEST_ORDER[0];
-    for (const t of TEST_ORDER) {
-      if (data.progress[t.key] !== 'completed') return t;
+    for (const test of TEST_ORDER) {
+      if (!data.progress || data.progress[test.key] !== 'completed') return test;
     }
-    return null; // 全部完成
+    return null;
   },
 
-  /** 获取已完成数 / 总数 */
   getProgressSummary() {
     const data = this.getData();
-    if (!data) return { done: 0, total: TEST_ORDER.length };
-    const done = Object.values(data.progress).filter(s => s === 'completed').length;
-    return { done, total: TEST_ORDER.length };
+    if (!data) return { done: 0, invalid: 0, total: TEST_ORDER.length };
+    const statuses = Object.values(data.progress || {});
+    return {
+      done: statuses.filter(s => s === 'completed').length,
+      invalid: statuses.filter(s => s === 'completed_invalid').length,
+      total: TEST_ORDER.length,
+    };
   },
 
-  /** 生成测验文件完整路径（含 mode+participant 参数） */
   getTestUrl(testKey, mode) {
-    const t = TEST_ORDER.find(x => x.key === testKey);
-    if (!t) return '#';
+    const test = TEST_ORDER.find(item => item.key === testKey);
+    if (!test) return '#';
+    const params = new URLSearchParams();
+    if (mode) params.set('mode', mode);
     const cohortId = this.getCurrent();
-    let url = t.file + '?';
-    if (mode) url += 'mode=' + mode + '&';
-    if (cohortId) url += 'p=' + cohortId;
-    // 确保不以 ? 或 & 结尾
-    if (url.endsWith('?') || url.endsWith('&')) url = url.slice(0, -1);
-    return url;
+    if (isValidCohortId(cohortId)) params.set('p', cohortId);
+    const query = params.toString();
+    return test.file + (query ? '?' + query : '');
   },
 
-  /** 获取当前 URL 中的被试 ID（从查询参数读取） */
   getParticipantFromUrl() {
+    if (typeof window === 'undefined' || !window.location) return '';
     const p = new URLSearchParams(window.location.search).get('p');
-    return p || '';
+    return isValidCohortId(p) ? p : '';
   },
 
-  /** 从 URL 设置当前被试（在测验页加载时调用） */
   initFromUrl() {
-    const p = this.getParticipantFromUrl();
-    if (p) this.setCurrent(p);
+    const participantId = this.getParticipantFromUrl();
+    if (participantId) this.setCurrent(participantId);
     return this.getCurrent();
   },
 
-  /** 删除指定被试及其所有数据 */
   deleteParticipant(cohortId) {
-    if (!cohortId) return false;
-    // 删除被试数据对象
-    _ls.remove('mccb-participant-' + cohortId);
-    // 删除所有该被试的结果键（向后兼容遗留数据）
-    const prefix = 'mccb-participant-' + cohortId + '-';
+    const id = normalizeCohortId(cohortId);
+    if (!isValidCohortId(id)) return false;
+    _ls.remove('mccb-participant-' + id);
+    const prefix = 'mccb-participant-' + id + '-';
     const keysToRemove = [];
     for (let i = 0; i < _ls.length(); i++) {
-      const k = _ls.key(i);
-      if (k && k.startsWith(prefix)) keysToRemove.push(k);
+      const key = _ls.key(i);
+      if (key && key.startsWith(prefix)) keysToRemove.push(key);
     }
-    keysToRemove.forEach(k => _ls.remove(k));
-    // 从列表移除
+    keysToRemove.forEach(key => _ls.remove(key));
+
     const list = this.getAllParticipants();
-    const idx = list.indexOf(cohortId);
-    if (idx !== -1) {
-      list.splice(idx, 1);
-      _ls.set('mccb-participant-list', JSON.stringify(list));
-    }
-    // 如果正好是当前登录，清除 current
-    if (this.getCurrent() === cohortId) {
-      _ls.remove('mccb-current-participant');
-    }
+    const next = list.filter(item => item !== id);
+    _ls.set('mccb-participant-list', JSON.stringify(next));
+    if (this.getCurrent() === id) _ls.remove('mccb-current-participant');
     return true;
   },
 
-  /** 获取所有被试的元数据摘要（不含详细结果，用于列表展示） */
   getAllSummaries() {
-    const list = this.getAllParticipants();
-    return list.map(id => {
+    return this.getAllParticipants().map(id => {
       const data = this.getData(id);
       if (!data) {
-        return { id, progress: {}, done: 0, total: TEST_ORDER.length, createdAt: null, updatedAt: null };
+        return { id, done: 0, invalid: 0, total: TEST_ORDER.length, createdAt: null, updatedAt: null };
       }
-      const done = Object.values(data.progress || {}).filter(s => s === 'completed').length;
+      const statuses = Object.values(data.progress || {});
       return {
         id,
-        done,
+        done: statuses.filter(s => s === 'completed').length,
+        invalid: statuses.filter(s => s === 'completed_invalid').length,
         total: TEST_ORDER.length,
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
@@ -257,23 +508,115 @@ const ParticipantManager = {
     });
   },
 
-  /** 导出全部被试数据（JSON 格式） */
   exportAllData() {
     const list = this.getAllParticipants();
-    const result = {};
+    const participants = {};
     list.forEach(id => {
       const data = this.getData(id);
-      if (data) result[id] = data;
+      if (data) participants[id] = data;
     });
     return {
+      schemaVersion: PARTICIPANT_SCHEMA_VERSION,
       exportDate: new Date().toISOString(),
       participantCount: list.length,
-      participants: result,
+      participants,
     };
   },
 };
 
-// === 页面底部入口辅助 ===
-if (typeof window !== 'undefined') {
-  window.ParticipantManager = ParticipantManager;
+function installResearchSafetyUI() {
+  if (typeof document === 'undefined') return;
+  const SAFE_TEXT = '仅显示原始分与研究指标；未应用经验证的 MCCB 常模，不用于“正常/异常”判断或临床诊断解释。';
+
+  function lockNormRef(container) {
+    if (!container) return;
+    const render = () => {
+      if (container.textContent && container.textContent.includes(SAFE_TEXT)) return;
+      container.textContent = '';
+      const strong = document.createElement('strong');
+      strong.textContent = '研究版提示：';
+      const span = document.createElement('span');
+      span.textContent = SAFE_TEXT;
+      container.appendChild(strong);
+      container.appendChild(span);
+    };
+    render();
+    if (typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(() => {
+        if (!container.textContent.includes(SAFE_TEXT)) {
+          observer.disconnect();
+          render();
+          observer.observe(container, { childList: true, subtree: true, characterData: true });
+        }
+      });
+      observer.observe(container, { childList: true, subtree: true, characterData: true });
+    }
+  }
+
+  document.querySelectorAll('.norm-ref').forEach(lockNormRef);
+
+  // Add a visible prototype banner once on task pages and the landing page.
+  if (!document.getElementById('research-prototype-banner')) {
+    const banner = document.createElement('div');
+    banner.id = 'research-prototype-banner';
+    banner.setAttribute('role', 'note');
+    banner.textContent = 'RESEARCH PROTOTYPE · 当前网页任务未经 MCCB 数字等效性验证；结果仅供研究/开发。';
+    banner.style.cssText = [
+      'position:fixed', 'left:12px', 'bottom:12px', 'z-index:99999',
+      'max-width:min(560px,calc(100vw - 24px))', 'padding:8px 12px',
+      'border:1px solid rgba(245,158,11,.45)', 'border-radius:10px',
+      'background:rgba(255,251,235,.96)', 'color:#92400e', 'font-size:12px',
+      'line-height:1.5', 'box-shadow:0 4px 18px rgba(0,0,0,.08)'
+    ].join(';');
+    document.body.appendChild(banner);
+  }
+}
+
+function installRuntimeGuards() {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        ExperimentRuntime.invalidateAll('interrupted', 'document_hidden_during_active_session');
+        ParticipantManager._persistActiveSessionQc();
+      }
+    });
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', installResearchSafetyUI, { once: true });
+    } else {
+      installResearchSafetyUI();
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', () => {
+      ExperimentRuntime.invalidateAll('aborted', 'page_hidden_or_unloaded_before_completion');
+      ParticipantManager._persistActiveSessionQc();
+    });
+
+    // The legacy comprehensive report assumes T-scores. Route it to the new
+    // research-safe report without requiring a large brittle edit to that file.
+    if (window.location && /\/comprehensive-report\.html$/.test(window.location.pathname)) {
+      const next = 'research-report.html' + (window.location.search || '') + (window.location.hash || '');
+      window.location.replace(next);
+    }
+
+    window.ParticipantManager = ParticipantManager;
+    window.ExperimentRuntime = ExperimentRuntime;
+  }
+}
+
+installRuntimeGuards();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    ParticipantManager,
+    ExperimentRuntime,
+    TEST_ORDER,
+    KEY_TO_RESULT,
+    RESULT_TO_KEY,
+    RESULT_SCHEMA_VERSION,
+    PARTICIPANT_SCHEMA_VERSION,
+    isValidCohortId,
+  };
 }
