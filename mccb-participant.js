@@ -4,7 +4,7 @@ const PARTICIPANT_SCHEMA_VERSION=4;
 const RUNTIME_VERSION='research-runtime-0.4.0';
 const DEFAULT_TASK_VERSION='research-web-0.4.0';
 const TASK_VERSIONS={
-  tmt:'tmt-web-0.3.0',bacs:'bacs-web-0.4.0',fluency:'fluency-web-0.4.0',cpt:'cpt-web-0.4.0',
+  tmt:'tmt-web-0.4.0',bacs:'bacs-web-0.4.0',fluency:'fluency-web-0.4.0',cpt:'cpt-web-0.4.0',
   'spatial-span':'spatial-span-web-0.4.0',lns:'lns-web-0.4.0',hvlt:'hvlt-web-0.4.0',bvmt:'bvmt-web-0.4.0',
   mazes:'mazes-web-0.4.0',msceit:'msceit-web-0.4.0'
 };
@@ -18,7 +18,7 @@ const TASK_TIMING_POLICY={
 const VALID_TEST_KEYS=new Set(Object.keys(TASK_VERSIONS));
 const VALID_QC_STATUSES=new Set(['valid','aborted','interrupted','timing_violation','technical_failure','unverified']);
 const TEST_ORDER=[
-  {key:'tmt',name:'TMT 连线测验',file:'pages/mccb-tmt.html'},
+  {key:'tmt',name:'Trail Making 研究任务',file:'pages/mccb-tmt.html'},
   {key:'bacs',name:'符号编码研究任务',file:'pages/mccb-bacs.html'},
   {key:'fluency',name:'语义流畅研究任务',file:'pages/mccb-fluency.html'},
   {key:'cpt',name:'持续操作研究任务',file:'pages/mccb-cpt.html'},
@@ -45,7 +45,7 @@ const ExperimentRuntime=(()=>{
   function snapshot(k){return clone(sessions.get(k))||null}
   function start(k){if(!VALID_TEST_KEYS.has(k))return null;sessions.set(k,make(k));return snapshot(k)}
   function event(k,type,detail){const s=ensure(k);if(!s)return null;if(s.events.length>=1200)s.events.shift();s.events.push({type,at:new Date().toISOString(),elapsedMs:Math.max(0,Math.round(mono()-s.startedPerfMs)),detail:detail||null});return snapshot(k)}
-  function invalidate(k,status,reason){const s=ensure(k);if(!s)return null;const next=VALID_QC_STATUSES.has(status)?status:'technical_failure';if(s.status==='valid'||s.status==='unverified')s.status=next;else if(next==='technical_failure')s.status=next;if(next==='interrupted')s.qc.visibilityInterruptions++;if(next==='timing_violation')s.qc.timingViolation=true;if(next==='technical_failure')s.qc.technicalFailure=true;if(reason&&!s.qc.reasons.includes(reason))s.qc.reasons.push(reason);return event(k,next,reason||null)}
+  function invalidate(k,status,reason){const s=ensure(k);if(!s)return null;const next=VALID_QC_STATUSES.has(status)?status:'technical_failure',prev=s.status;if(s.status==='valid'||s.status==='unverified')s.status=next;else if(next==='technical_failure')s.status=next;if(next==='interrupted'&&prev!=='interrupted')s.qc.visibilityInterruptions++;if(next==='timing_violation')s.qc.timingViolation=true;if(next==='technical_failure')s.qc.technicalFailure=true;if(reason&&!s.qc.reasons.includes(reason))s.qc.reasons.push(reason);return event(k,next,reason||null)}
   function invalidateAll(status,reason){const out=[];for(const [k,s] of sessions.entries())if(s&&s.completedAt==null)out.push(invalidate(k,status,reason));return out}
   function recordTiming(k,label,plannedAtMs,actualAtMs,detail={}){const s=ensure(k);if(!s)return null;const signed=actualAtMs-plannedAtMs,driftMs=Math.abs(signed);s.qc.timerSamples++;s.qc.timerDriftMaxMs=Math.max(s.qc.timerDriftMaxMs,Math.round(driftMs));event(k,'timing_sample',{label,plannedAtMs:Math.round(plannedAtMs),actualAtMs:Math.round(actualAtMs),signedDriftMs:Math.round(signed),driftMs:Math.round(driftMs),...detail});const tolerance=Number(detail.toleranceMs??detail.nominalMs);if(Number.isFinite(tolerance)&&tolerance>0&&driftMs>tolerance)invalidate(k,'timing_violation',`${label}_drift_exceeded_tolerance`);return snapshot(k)}
   function complete(k){const s=ensure(k);if(!s)return{testKey:k,taskVersion:taskVersion(k),runtimeVersion:RUNTIME_VERSION,status:'unverified',startedAt:null,completedAt:new Date().toISOString(),elapsedMs:null,clock:null,qc:{visibilityInterruptions:0,timingViolation:false,technicalFailure:false,timerDriftMaxMs:0,timerSamples:0,reasons:['session_not_started_through_runtime']},events:[]};if(s.completedAt==null){s.completedAt=new Date().toISOString();s.elapsedMs=Math.max(0,Math.round(mono()-s.startedPerfMs));event(k,'complete',{finalStatus:s.status})}return snapshot(k)}
@@ -90,9 +90,8 @@ function installResearchSafetyUI(){
   const SAFE='仅显示原始分与研究指标；未应用经验证的 MCCB 常模，不用于“正常/异常”判断或临床诊断解释。';
   function lock(container){const render=()=>{if(container.textContent&&container.textContent.includes(SAFE))return;container.textContent='';const strong=document.createElement('strong'),span=document.createElement('span');strong.textContent='研究版提示：';span.textContent=SAFE;container.append(strong,span)};render();if(typeof MutationObserver!=='undefined'){const o=new MutationObserver(()=>{if(!container.textContent.includes(SAFE)){o.disconnect();render();o.observe(container,{childList:true,subtree:true,characterData:true})}});o.observe(container,{childList:true,subtree:true,characterData:true})}}
   document.querySelectorAll('.norm-ref').forEach(lock);
-  const charts=document.getElementById('chartsPanel');if(charts){charts.style.setProperty('display','none','important');if(!document.getElementById('legacy-chart-safety-note')){const note=document.createElement('div');note.id='legacy-chart-safety-note';note.style.cssText='margin:16px 0;padding:12px 14px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e40af;font-size:13px;line-height:1.6';note.textContent='旧版 0–100“标准化”图表已停用。请使用“研究版认知报告”查看 raw data、session QC 与项目内探索性指标。';charts.parentNode.insertBefore(note,charts)}}
   document.querySelectorAll('button[onclick*="comprehensive-report.html"]').forEach(btn=>{btn.setAttribute('onclick',"window.location.href='research-report.html'");btn.textContent='📊 研究版报告';btn.title='查看 raw data、session QC 与研究指标'});
-  document.querySelectorAll('button[onclick*="comparison-report.html"]').forEach(btn=>{btn.setAttribute('onclick',"window.location.href='research-comparison.html'");btn.textContent='📈 研究版对比';btn.title='仅比较 QC-valid 研究指标'});
+  document.querySelectorAll('button[onclick*="comparison-report.html"]').forEach(btn=>{btn.setAttribute('onclick',"window.location.href='research-comparison.html'");btn.textContent='📈 研究版对比';btn.title='仅比较 QC-valid research indices'});
   if(!document.getElementById('research-prototype-banner')){const b=document.createElement('div');b.id='research-prototype-banner';b.setAttribute('role','note');b.textContent='RESEARCH PROTOTYPE · 当前网页任务未经 MCCB 数字等效性验证；结果仅供研究/开发。';b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;max-width:min(560px,calc(100vw - 24px));padding:8px 12px;border:1px solid rgba(245,158,11,.45);border-radius:10px;background:rgba(255,251,235,.96);color:#92400e;font-size:12px;line-height:1.5;box-shadow:0 4px 18px rgba(0,0,0,.08)';document.body.appendChild(b)}
 }
 function installRuntimeGuards(){
