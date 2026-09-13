@@ -14,6 +14,7 @@ const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
 const files = [
   'index.html',
+  'participant-runner.html',
   'research-report.html',
   'research-comparison.html',
   'comprehensive-report.html',

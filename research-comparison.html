@@ -1,14 +1,58 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>研究版多被试对比 · psy-exp</title><link rel="stylesheet" href="mccb-common.css"><style>
-:root{--bg:#f6f8fb;--card:#fff;--text:#172033;--muted:#667085;--line:#e5e9f0;--blue:#2563eb;--green:#047857;--amber:#b45309}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}#app{max-width:1360px;margin:auto;padding:28px 20px 72px}.top{display:flex;justify-content:space-between;gap:18px}.top h1{margin:0 0 6px}.muted{color:var(--muted)}.tools,.chips{display:flex;gap:8px;flex-wrap:wrap}.tools button,.tools a,.chip{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 11px;color:inherit;text-decoration:none;font:inherit;cursor:pointer}.chip{border-radius:999px;font-size:12px}.chip.on{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;font-weight:800}.chip.ineligible{opacity:.5}.notice{margin:18px 0;padding:14px 16px;border:1px solid #f9d28b;border-radius:14px;background:#fffaf0;color:#7c4a03;line-height:1.65}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 4px 18px rgba(15,23,42,.035)}.section{margin-top:18px}.section h2,.selector h2{font-size:18px;margin:0 0 12px}.matrix{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff}table{border-collapse:collapse;width:100%;min-width:950px}th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:12px;vertical-align:top}th{background:#fafbfc;color:var(--muted);position:sticky;top:0}tr:last-child td{border-bottom:0}.score{font-size:17px;font-weight:850}.dash{height:7px;background:#edf1f6;border-radius:999px;overflow:hidden;min-width:80px;margin-top:5px}.fill{height:100%;border-radius:999px}.group{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted);word-break:break-all;max-width:360px}.n{display:inline-block;background:#f2f4f7;border-radius:999px;padding:2px 7px;font-size:10px;color:#475467;margin-left:5px}.empty{text-align:center;padding:42px;color:var(--muted)}.foot{margin-top:18px;font-size:12px;color:var(--muted);line-height:1.65}@media(max-width:700px){.top{flex-direction:column}}@media print{body{background:#fff}.tools,#research-prototype-banner{display:none!important}}
-</style></head><body><main id="app"><div class="top"><div><h1>研究版多被试对比</h1><div class="muted">Protocol-compatible cohort rank groups only</div></div><div class="tools"><button id="allBtn">选择可评分</button><button id="clearBtn">清空</button><button onclick="window.print()">打印 / PDF</button><a href="research-report.html">单被试报告</a><a href="index.html">返回首页</a></div></div>
-<div class="notice"><strong>解释边界：</strong>当前研究模式<strong>未应用经验证的 MCCB 常模</strong>。不同 reference group 的 rank index 不在同一尺度上，因此本页按 <strong>认知域 × reference group</strong> 拆行；只有落在同一行的被试才可直接比较。</div>
-<section class="card selector"><h2>选择被试 <span id="count" class="muted"></span></h2><div id="chips" class="chips"></div></section><section class="section"><h2>同协议 reference-group 矩阵</h2><div id="matrix" class="matrix"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></section><p class="foot" id="foot"></p></main>
-<script src="mccb-participant.js"></script><script src="mccb-scoring.js"></script><script>
-'use strict';let bundle=null,selected=new Set();const $=id=>document.getElementById(id),node=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=txt;return n};
-function mapFor(p){return Object.fromEntries(MCCBScoring.getDomainSummary(p).map(d=>[d.key,d]))}function eligible(p){return Object.keys(p.domains||{}).length>0}
+<!doctype html>
+<html lang="zh-CN" class="research-app">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>研究版多被试对比 · psy-exp</title>
+<link rel="stylesheet" href="mccb-common.css">
+<link rel="stylesheet" href="research-ui.css">
+</head>
+<body class="research-app">
+<main id="app" class="research-shell wide">
+  <header class="app-header">
+    <div class="app-title">
+      <div class="eyebrow">Cohort comparison</div>
+      <h1>研究版多被试对比</h1>
+      <p>Protocol-compatible reference groups only · 小样本 rank 显示门槛 N≥5</p>
+    </div>
+    <nav class="header-actions">
+      <button id="allBtn" type="button">选择可评分</button>
+      <button id="clearBtn" type="button">清空</button>
+      <button id="csvBtn" type="button">导出 CSV</button>
+      <button onclick="window.print()" type="button">打印 / PDF</button>
+      <a href="research-report.html">单被试报告</a>
+      <a href="index.html">返回控制台</a>
+    </nav>
+  </header>
+
+  <div class="notice"><strong>解释边界：</strong>当前研究模式<strong>未应用经验证的 MCCB 常模</strong>。不同 reference group 的 rank index 不在同一尺度上，因此本页按 <strong>认知域 × reference group</strong> 拆行。reference N&lt;5 时不显示 0–100 rank；N=5–9 时标为探索性。</div>
+
+  <section class="card">
+    <div class="section-title"><h2>选择参与者</h2><p id="count"></p></div>
+    <div class="toolbar"><input id="searchBox" type="search" placeholder="搜索参与者编号" autocomplete="off"><button id="visibleBtn" type="button">选择搜索结果</button></div>
+    <div id="chips" class="chips" style="margin-top:12px"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><h2>同协议 reference-group 矩阵</h2><p>只在同一行内比较；列可横向滚动</p></div>
+    <div id="matrix" class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  </section>
+  <p class="small" id="foot" style="margin-top:18px"></p>
+</main>
+<script src="mccb-participant.js"></script>
+<script src="mccb-scoring.js"></script>
+<script>
+'use strict';
+const MIN_REFERENCE_N=5,CAUTION_REFERENCE_N=10;let bundle=null,selected=new Set();const $=id=>document.getElementById(id),node=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=txt;return n};
+function mapFor(p){return Object.fromEntries(MCCBScoring.getDomainSummary(p).map(d=>[d.key,d]))}function eligible(p){return Object.keys(p.domains||{}).length>0}function visibleProfiles(){const q=$('searchBox').value.trim().toLowerCase();return bundle.profiles.filter(p=>!q||p.id.toLowerCase().includes(q))}
 function load(){bundle=MCCBScoring.getAllProfiles();selected=new Set(bundle.profiles.filter(eligible).map(p=>p.id));renderSelector();render()}
-function renderSelector(){const box=$('chips');box.textContent='';bundle.profiles.forEach(p=>{const b=node('button','chip'+(selected.has(p.id)?' on':'')+(eligible(p)?'':' ineligible'),p.id);b.type='button';b.title=eligible(p)?`${Object.keys(p.domains).length} 可评分域`:'当前无可评分域';b.onclick=()=>{if(!eligible(p))return;selected.has(p.id)?selected.delete(p.id):selected.add(p.id);renderSelector();render()};box.append(b)});$('count').textContent=`${selected.size} / ${bundle.profiles.filter(eligible).length} 可评分`}
+function renderSelector(){const box=$('chips');box.textContent='';visibleProfiles().forEach(p=>{const b=node('button','rui-btn'+(selected.has(p.id)?' soft':'')+(eligible(p)?'':' muted'),p.id);b.type='button';b.disabled=!eligible(p);b.title=eligible(p)?`${Object.keys(p.domains).length} 可评分域`:'当前无可评分域';b.onclick=()=>{selected.has(p.id)?selected.delete(p.id):selected.add(p.id);renderSelector();render()};box.append(b)});$('count').textContent=`已选 ${selected.size} / ${bundle.profiles.filter(eligible).length} 可评分`}
 function rows(profiles){const out=[];for(const [domainKey,def] of Object.entries(MCCBScoring.DOMAINS)){const groups=new Map();for(const p of profiles){const d=mapFor(p)[domainKey];if(!d)continue;const key=d.referenceKey||'unknown';if(!groups.has(key))groups.set(key,{domainKey,def,key,referenceN:d.referenceN||null,members:new Map()});groups.get(key).members.set(p.id,d)}for(const g of groups.values())out.push(g)}return out}
-function render(){const profiles=bundle.profiles.filter(p=>selected.has(p.id)&&eligible(p)),head=$('thead'),body=$('tbody');head.textContent='';body.textContent='';const hr=document.createElement('tr');hr.append(node('th','','认知域 / reference group'));profiles.forEach(p=>hr.append(node('th','',p.id)));head.append(hr);const rs=rows(profiles);if(!rs.length){const tr=document.createElement('tr'),td=node('td','empty','请选择至少一名具有可评分域的被试。');td.colSpan=Math.max(1,profiles.length+1);tr.append(td);body.append(tr)}else rs.forEach(g=>{const tr=document.createElement('tr'),label=document.createElement('td');const title=node('div','',g.def.label);title.style.fontWeight='800';title.append(node('span','n',`N=${g.referenceN||'—'}`));label.append(title,node('div','group',g.key));tr.append(label);profiles.forEach(p=>{const td=document.createElement('td'),d=g.members.get(p.id);if(!d){td.textContent='—';td.className='muted'}else{td.append(node('div','score',String(d.indexScore)));const bar=node('div','dash'),fill=node('div','fill');fill.style.width=Math.max(0,Math.min(100,d.indexScore))+'%';fill.style.background=g.def.color;bar.append(fill);td.append(bar)}tr.append(td)});body.append(tr)});$('foot').textContent=`scoring ${bundle.scoringVersion} · norm ${bundle.norm.version}. 每一行是独立 reference group；样本组成改变时 rank 可变化。`}
-$('allBtn').onclick=()=>{selected=new Set(bundle.profiles.filter(eligible).map(p=>p.id));renderSelector();render()};$('clearBtn').onclick=()=>{selected.clear();renderSelector();render()};document.addEventListener('DOMContentLoaded',load);
-</script></body></html>
+function groupLabel(g){const wrap=node('div','');const top=node('div','',g.def.label);top.style.fontWeight='800';const n=node('span','badge',`N=${g.referenceN||'—'}`);n.style.marginLeft='6px';top.append(n);wrap.append(top,node('div','small',g.def.labelEn));if(Number(g.referenceN)<MIN_REFERENCE_N)wrap.append(node('div','rank-suppressed',`N<${MIN_REFERENCE_N}：不显示 rank`));else if(Number(g.referenceN)<CAUTION_REFERENCE_N)wrap.append(node('div','badge research','探索性 / 对样本组成敏感'));const details=node('details','advanced'),sum=node('summary','','reference group signature'),mono=node('div','small mono',g.key);details.append(sum,mono);wrap.append(details);return wrap}
+function render(){const profiles=bundle.profiles.filter(p=>selected.has(p.id)&&eligible(p)),head=$('thead'),body=$('tbody');head.textContent='';body.textContent='';const hr=document.createElement('tr');hr.append(node('th','','认知域 / reference group'));profiles.forEach(p=>hr.append(node('th','',p.id)));head.append(hr);const rs=rows(profiles);if(!rs.length){const tr=document.createElement('tr'),td=node('td','empty','请选择至少一名具有可评分域的参与者。');td.colSpan=Math.max(1,profiles.length+1);tr.append(td);body.append(tr)}else rs.forEach(g=>{const tr=document.createElement('tr'),label=document.createElement('td');label.append(groupLabel(g));tr.append(label);profiles.forEach(p=>{const td=document.createElement('td'),d=g.members.get(p.id);if(!d){td.textContent='—';td.className='muted'}else if(Number(g.referenceN)<MIN_REFERENCE_N){td.append(node('div','small','样本不足'));td.title='保留 raw result，但 UI 不展示 0–100 rank'}else{td.append(node('div','rank',String(d.indexScore)));td.append(node('div','rank-note','research cohort rank'));const line=node('div','rank-dotline'),dot=node('span','rank-dot');dot.style.left=Math.max(0,Math.min(100,d.indexScore))+'%';line.append(dot);td.append(line)}tr.append(td)});body.append(tr)});$('foot').textContent=`scoring ${bundle.scoringVersion} · norm ${bundle.norm.version}. 每一行是独立 reference group；样本组成改变时 rank 可变化。UI 显示门槛 N≥${MIN_REFERENCE_N}。`}
+function csvEscape(v){const s=String(v==null?'':v);return/[",\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s}
+function exportCsv(){const profiles=bundle.profiles.filter(p=>selected.has(p.id)&&eligible(p)),rs=rows(profiles),lines=[['domain','reference_n','reference_group',...profiles.map(p=>p.id)]];for(const g of rs){lines.push([g.def.label,g.referenceN||'',g.key,...profiles.map(p=>{const d=g.members.get(p.id);return d&&Number(g.referenceN)>=MIN_REFERENCE_N?d.indexScore:''})])}const csv='\uFEFF'+lines.map(r=>r.map(csvEscape).join(',')).join('\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`psy-exp-comparison-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)}
+$('searchBox').addEventListener('input',renderSelector);$('visibleBtn').onclick=()=>{visibleProfiles().filter(eligible).forEach(p=>selected.add(p.id));renderSelector();render()};$('allBtn').onclick=()=>{selected=new Set(bundle.profiles.filter(eligible).map(p=>p.id));renderSelector();render()};$('clearBtn').onclick=()=>{selected.clear();renderSelector();render()};$('csvBtn').onclick=exportCsv;document.addEventListener('DOMContentLoaded',load);
+</script>
+</body>
+</html>

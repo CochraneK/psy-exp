@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN" class="research-app">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>参与者施测 · psy-exp</title>
+<link rel="stylesheet" href="mccb-common.css">
+<link rel="stylesheet" href="research-ui.css">
+</head>
+<body class="research-app">
+<main id="app" class="runner-shell">
+  <section class="card runner-hero">
+    <div class="eyebrow">Participant session</div>
+    <div class="participant" id="participantLabel">未选择参与者</div>
+    <h1>认知研究任务</h1>
+    <p class="muted">请按研究流程依次完成任务。页面仅显示施测所需信息，不显示 DEV 控件、研究者审核或组内排名。</p>
+    <div class="runner-next" id="nextPanel">
+      <h2 id="nextTitle">正在检查…</h2>
+      <p id="nextDesc">载入参与者状态与设备预检。</p>
+      <a id="nextBtn" class="rui-btn primary" href="#" hidden>开始下一项</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title"><h2>施测进度</h2><p id="progressText">0 / 10</p></div>
+    <div class="progress" aria-label="任务完成进度"><span id="progressBar" style="width:0%"></span></div>
+    <div id="taskList" class="task-list" style="margin-top:12px"></div>
+  </section>
+
+  <section class="section grid two">
+    <article class="card">
+      <h2>设备预检</h2>
+      <p class="small">这不是心理测量等效性验证，只用于在施测前发现明显的软件/设备风险。包含一次约 0.5 秒的浏览器 timer-jitter 快测；摘要会写入当前参与者本地研究记录。</p>
+      <div id="preflightList" class="preflight"></div>
+      <button id="rerunBtn" class="rui-btn" type="button" style="margin-top:12px">重新检测</button>
+    </article>
+    <article class="card">
+      <h2>施测提示</h2>
+      <p class="small">尽量使用同一设备与浏览器完成整个 session。计时任务进行时不要切换标签页、锁屏或让设备休眠。若页面明确提示需要物理键盘，请不要用手机软键盘替代。</p>
+      <div class="notice info" style="margin-bottom:0"><strong>数据边界：</strong>结果保存在当前浏览器。正式研究仍应使用具备备份、权限控制和研究数据治理的数据层。</div>
+    </article>
+  </section>
+
+  <div class="button-row no-print" style="justify-content:center;margin-top:20px"><a class="rui-btn" href="index.html">返回研究者控制台</a></div>
+</main>
+<script src="mccb-participant.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const META={
+ tmt:{desc:'按顺序完成浏览器连线；Part B 仅为可选补充。',keyboard:false},
+ bacs:{desc:'符号编码计时任务，建议桌面设备与物理键盘。',keyboard:true},
+ fluency:{desc:'限时输入动物名称，建议桌面设备与物理键盘。',keyboard:true},
+ cpt:{desc:'持续注意计时任务，建议稳定桌面环境。',keyboard:true},
+ 'spatial-span':{desc:'观察并复现空间序列。',keyboard:false},
+ lns:{desc:'观察并按规则重排字母数字序列。',keyboard:true},
+ hvlt:{desc:'私有词语学习协议；需要本地授权材料。',keyboard:true},
+ bvmt:{desc:'视觉图形学习研究任务。',keyboard:false},
+ mazes:{desc:'迷宫规划任务。',keyboard:false},
+ msceit:{desc:'私有情绪管理协议；需要本地授权材料。',keyboard:false}
+};
+let activeParticipant='';
+function statusClass(s){return ['completed','completed_invalid','in_progress','aborted','interrupted','timing_violation','technical_failure'].includes(s)?s:'not_started'}
+function statusText(s){return({not_started:'未开始',in_progress:'进行中',completed:'已完成',completed_invalid:'无效完成',aborted:'已中止',interrupted:'被中断',timing_violation:'计时异常',technical_failure:'技术失败'}[s]||s)}
+function storageCheck(){try{const k='psy-exp-preflight-probe';localStorage.setItem(k,'1');localStorage.removeItem(k);return true}catch{return false}}
+function timerJitter(samples=12,intervalMs=40){return new Promise(resolve=>{if(!(window.performance&&typeof performance.now==='function')){resolve({samples:0,maxDriftMs:null,p95DriftMs:null});return}const drifts=[],start=performance.now();let i=1;function step(){const planned=start+i*intervalMs,now=performance.now();drifts.push(Math.abs(now-planned));if(i>=samples){const sorted=[...drifts].sort((a,b)=>a-b),p95=sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*.95)-1)];resolve({samples:drifts.length,maxDriftMs:Math.round(Math.max(...drifts)*10)/10,p95DriftMs:Math.round(p95*10)/10});return}i++;setTimeout(step,Math.max(0,start+i*intervalMs-performance.now()))}setTimeout(step,intervalMs)})}
+function addCheck(c){const row=document.createElement('div');row.className='check '+c.level;const left=document.createElement('span');left.textContent=c.label;const right=document.createElement('strong');right.textContent=(c.level==='ok'?'通过':c.level==='warn'?'注意':'失败')+' · '+c.detail;row.append(left,right);$('preflightList').append(row)}
+async function preflight(){
+  $('preflightList').textContent='';addCheck({label:'预检状态',level:'warn',detail:'正在测量 timer jitter…'});const jitter=await timerJitter();
+  const storageOk=storageCheck(),clockOk=!!(window.performance&&typeof performance.now==='function'),visible=document.visibilityState==='visible',viewportOk=innerWidth>=900,secure=window.isSecureContext;
+  const jitterLevel=jitter.maxDriftMs==null?'bad':jitter.maxDriftMs<=100?'ok':jitter.maxDriftMs<=250?'warn':'bad';
+  const checks=[
+    {key:'storage',label:'本地存储可写',ok:storageOk,level:storageOk?'ok':'bad',detail:storageOk?'可保存本次结果':'浏览器阻止 localStorage，不能可靠保存结果'},
+    {key:'clock',label:'高精度单调时钟',ok:clockOk,level:clockOk?'ok':'bad',detail:clockOk?'performance.now() 可用':'缺少 performance.now()'},
+    {key:'timerJitter',label:'Timer jitter 快测',ok:jitterLevel!=='bad',level:jitterLevel,detail:jitter.maxDriftMs==null?'无法测量':`p95 ${jitter.p95DriftMs} ms · max ${jitter.maxDriftMs} ms（仅软件预检）`},
+    {key:'visible',label:'页面当前可见',ok:visible,level:visible?'ok':'bad',detail:`visibilityState = ${document.visibilityState}`},
+    {key:'viewport',label:'桌面尺寸建议',ok:viewportOk,level:viewportOk?'ok':'warn',detail:`viewport ${innerWidth} × ${innerHeight}px${viewportOk?'':'；部分计时/键盘任务建议更宽屏幕'}`},
+    {key:'secure',label:'安全上下文',ok:secure,level:secure?'ok':'warn',detail:secure?'HTTPS/localhost secure context':'当前不是 secure context'},
+    {key:'motion',label:'动态效果偏好',ok:true,level:'ok',detail:matchMedia('(prefers-reduced-motion: reduce)').matches?'已启用 reduced motion':'未要求 reduced motion'}
+  ];
+  $('preflightList').textContent='';checks.forEach(addCheck);
+  const summary={checkedAt:new Date().toISOString(),participantId:activeParticipant||null,userAgent:navigator.userAgent,language:navigator.language||null,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio||1},screen:{width:screen.width,height:screen.height},hardwareConcurrency:navigator.hardwareConcurrency||null,maxTouchPoints:navigator.maxTouchPoints||0,secureContext:secure,timerJitter:jitter,checks:Object.fromEntries(checks.map(c=>[c.key,{ok:c.ok,level:c.level,detail:c.detail}]))};
+  if(activeParticipant){const d=ParticipantManager.getData(activeParticipant);if(d){d.preflight=summary;ParticipantManager._saveData(d.cohortId,d)}}
+  const hardBlocked=!storageOk||!clockOk||!visible;if(hardBlocked){$('nextBtn').hidden=true;$('nextTitle').textContent='预检未通过';$('nextDesc').textContent='存在会影响结果保存或计时的基础问题。请研究者处理后重新检测。'}
+  return summary;
+}
+function taskUrl(key){return ParticipantManager.getTestUrl(key,'user')}
+function render(){
+  activeParticipant=ParticipantManager.initFromUrl();$('participantLabel').textContent=activeParticipant?`参与者 ${activeParticipant}`:'未选择参与者';const data=activeParticipant?ParticipantManager.getData(activeParticipant):null;
+  if(!data){$('nextTitle').textContent='需要参与者编号';$('nextDesc').textContent='请由研究者从控制台选择参与者后进入此页面。';$('nextBtn').hidden=true;$('taskList').innerHTML='<div class="card empty">没有可显示的施测记录。</div>';return}
+  const summary=ParticipantManager.getProgressSummary(),pct=Math.round(summary.done/summary.total*100);$('progressText').textContent=`${summary.done} / ${summary.total} valid completed`;$('progressBar').style.width=pct+'%';const next=ParticipantManager.getFirstIncomplete();
+  if(next){$('nextTitle').textContent=next.name;$('nextDesc').textContent=META[next.key].desc;$('nextBtn').href=taskUrl(next.key);$('nextBtn').textContent='开始下一项';$('nextBtn').hidden=false}else{$('nextTitle').textContent='本轮任务已完成';$('nextDesc').textContent='所有任务都有 valid canonical result。请联系研究者进行 QC/审核与数据导出。';$('nextBtn').hidden=true}
+  const list=$('taskList');list.textContent='';TEST_ORDER.forEach((t,i)=>{const s=data.progress&&data.progress[t.key]||'not_started',row=document.createElement('div');row.className='task-row';const idx=document.createElement('div');idx.className='task-index';idx.textContent=String(i+1);const body=document.createElement('div');const h=document.createElement('h3');h.textContent=t.name;const p=document.createElement('p');p.textContent=META[t.key].desc;body.append(h,p);const tail=document.createElement('div');const st=document.createElement('span');st.className='status '+statusClass(s);st.textContent=statusText(s);tail.append(st);if(s!=='completed'){const a=document.createElement('a');a.className='rui-btn';a.style.marginLeft='7px';a.style.padding='6px 8px';a.style.minHeight='0';a.href=taskUrl(t.key);a.textContent=s==='not_started'?'开始':'重试';tail.append(a)}row.append(idx,body,tail);list.append(row)})
+}
+$('rerunBtn').onclick=async()=>{render();await preflight()};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&activeParticipant)preflight()});
+document.addEventListener('DOMContentLoaded',async()=>{render();await preflight()});
+</script>
+</body>
+</html>
