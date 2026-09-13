@@ -501,7 +501,7 @@ def main():
 
     if n == 1:
         # 无参数 → 单文件默认
-        process_one(str(BASE_DIR / "0327王赫斌.trep"))
+        process_one(str(BASE_DIR / "被试001.trep"))
 
     elif n == 2 and sys.argv[1] in ('--all', '--batch'):
         # --all / --batch → 批量处理所有 .trep

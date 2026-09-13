@@ -1,15 +1,21 @@
-# ---- 运行产物 / 可再生输出（不入库） ----
-# CPT HTML 报告可由 tests/cpt_report.py --all 重新生成
-data/cpt-reports/*.html
-# 自动化测试报表（data/autotest）可由 tests/full-battery.cjs 重新生成
-data/autotest/*.json
-data/autotest/*.html
+# ---- 代码库：只传程序，不传数据 ----
+
+# ---- 被试原始数据（含真实姓名，PHI 隐私） ----
+data/cpt-results/
+
+# ---- 运行产物 / 可再生输出 ----
+data/cpt-reports/
+data/autotest/
+
+# ---- 文档 / PDF 大文件（含队列 PHI 风险） ----
+docs/*.pdf
+
+# ---- WorkBuddy 项目记忆（含对话摘要与个人背景） ----
+.workbuddy/
 
 # ---- 环境 / 系统杂项 ----
 .DS_Store
 Thumbs.db
 *.log
 node_modules/
-
-# ---- 保留 ----
-# data/cpt-results/ 下的原始 `.rep`/`.dat`/`.raw`/`.trep` 是被试源数据（不可再生），入库保留
+nul

@@ -121,7 +121,7 @@ node tests/full-battery.cjs --list / --help
 
 ```bash
 # 处理单文件
-python tests/cpt_report.py data/cpt-results/0327王赫斌.trep
+python tests/cpt_report.py data/cpt-results/被试001.trep
 
 # 批量处理所有 .trep 文件（241 个被试）
 python tests/cpt_report.py --all
