@@ -30,8 +30,12 @@ jobs:
           node --check mccb-scoring.js
           node --check mccb-participant.js
           node --check tests/verify-scoring.cjs
+          node --check tests/verify-participant.cjs
           node --check tests/validate-drivers.cjs
           node --check tests/full-battery.cjs
+
+      - name: Participant and session-QC safety tests
+        run: node tests/verify-participant.cjs
 
       - name: Scoring safety tests
         run: node tests/verify-scoring.cjs
@@ -41,6 +45,15 @@ jobs:
 
       - name: Python syntax check
         run: python -m py_compile tests/cpt_report.py
+
+      - name: Research report safety contract
+        shell: bash
+        run: |
+          test -f research-report.html
+          grep -q "RESEARCH PROTOTYPE" research-report.html
+          grep -q "未应用经验证的 MCCB 常模" research-report.html
+          grep -q "completed_invalid" mccb-participant.js
+          grep -q "eligibleForResearchScoring" mccb-scoring.js
 
       - name: Guard against accidental research-T-score regression
         shell: bash
