@@ -8,62 +8,36 @@
  * values labelled as MCCB T scores, clinical percentiles, or an MCCB composite.
  *
  * Default behaviour:
- *   raw task result -> exploratory domain contribution -> within-project rank
+ *   valid raw task result -> exploratory domain contribution -> within-project rank
  *
- * The default `internal` norm therefore exposes `rawIndex`, `indexScore`, and
+ * The default `internal` norm exposes `rawIndex`, `indexScore`, and
  * `cohortPercentile` only. `tScore` and `composite` remain null.
+ * Sessions without an explicit QC status of `valid` remain visible as raw data but
+ * are excluded from research group comparisons.
  */
 
 const MCCBScoring = (() => {
   const DOMAINS = {
     speed_processing: {
-      label: '处理速度',
-      labelEn: 'Speed of Processing',
-      tests: ['bacs', 'fluency', 'tmt'],
-      color: '#3498db',
-      desc: '信息处理效率',
+      label: '处理速度', labelEn: 'Speed of Processing', tests: ['bacs', 'fluency', 'tmt'], color: '#3498db', desc: '信息处理效率',
     },
     attention: {
-      label: '注意/警觉',
-      labelEn: 'Attention / Vigilance',
-      tests: ['cpt'],
-      color: '#2ecc71',
-      desc: '持续注意力与警觉性',
+      label: '注意/警觉', labelEn: 'Attention / Vigilance', tests: ['cpt'], color: '#2ecc71', desc: '持续注意力与警觉性',
     },
     working_memory: {
-      label: '工作记忆',
-      labelEn: 'Working Memory',
-      tests: ['lns', 'spatial-span'],
-      color: '#e67e22',
-      desc: '言语与非言语工作记忆',
+      label: '工作记忆', labelEn: 'Working Memory', tests: ['lns', 'spatial-span'], color: '#e67e22', desc: '言语与非言语工作记忆',
     },
     verbal_learning: {
-      label: '言语学习',
-      labelEn: 'Verbal Learning',
-      tests: ['hvlt'],
-      color: '#9b59b6',
-      desc: '言语材料的习得与记忆',
+      label: '言语学习', labelEn: 'Verbal Learning', tests: ['hvlt'], color: '#9b59b6', desc: '言语材料的习得与记忆',
     },
     visual_learning: {
-      label: '视觉学习',
-      labelEn: 'Visual Learning',
-      tests: ['bvmt'],
-      color: '#1abc9c',
-      desc: '视觉信息的习得与记忆',
+      label: '视觉学习', labelEn: 'Visual Learning', tests: ['bvmt'], color: '#1abc9c', desc: '视觉信息的习得与记忆',
     },
     reasoning: {
-      label: '推理与问题解决',
-      labelEn: 'Reasoning & Problem Solving',
-      tests: ['mazes'],
-      color: '#e74c3c',
-      desc: '执行功能与规划能力',
+      label: '推理与问题解决', labelEn: 'Reasoning & Problem Solving', tests: ['mazes'], color: '#e74c3c', desc: '执行功能与规划能力',
     },
     social_cognition: {
-      label: '社会认知',
-      labelEn: 'Social Cognition',
-      tests: ['msceit'],
-      color: '#f39c12',
-      desc: '情绪管理与社交推理',
+      label: '社会认知', labelEn: 'Social Cognition', tests: ['msceit'], color: '#f39c12', desc: '情绪管理与社交推理',
     },
   };
 
@@ -80,11 +54,6 @@ const MCCBScoring = (() => {
     msceit: 'mccb-msceit-result',
   };
 
-  /**
-   * Validation status is deliberately conservative.
-   * `mccbEquivalent: false` means the current browser administration must not be
-   * treated as psychometrically interchangeable with the licensed MCCB procedure.
-   */
   const TASK_VALIDATION = {
     tmt: {
       mccbComponent: 'Trail Making Test Part A only',
@@ -106,6 +75,15 @@ const MCCBScoring = (() => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
   };
+
+  function getResultQcStatus(result) {
+    const status = result && result._meta && result._meta.sessionQc && result._meta.sessionQc.status;
+    return typeof status === 'string' ? status : 'unverified';
+  }
+
+  function isResearchScorable(result) {
+    return getResultQcStatus(result) === 'valid';
+  }
 
   const TEST_METRICS = {
     bacs: {
@@ -202,7 +180,6 @@ const MCCBScoring = (() => {
           partAErrors: n(a.errors),
           partBTime: n(b.time),
           partBErrors: n(b.errors),
-          // MCCB contains TMT Part A only. Part B remains supplemental.
           mccbTime: partATime,
         };
       },
@@ -214,7 +191,7 @@ const MCCBScoring = (() => {
       speed_processing: {
         bacs: e => e.correct / 110,
         fluency: e => e.total / 50,
-        // IMPORTANT: MCCB uses TMT Part A only.
+        // MCCB-related TMT contribution is Part A only. Part B stays supplemental.
         tmt: e => Math.max(0, 1 - n(e.partATime, 300) / 300),
       },
       attention: { cpt: e => e.dPrime / 5 },
@@ -258,12 +235,11 @@ const MCCBScoring = (() => {
           const contributions = [];
           for (const testKey of domains[domainKey].tests) {
             const task = profile.tests[testKey];
-            if (!task || !task.extracted) continue;
+            // Only explicitly valid sessions may enter group-comparison indices.
+            if (!task || !task.extracted || task.eligibleForResearchScoring !== true) continue;
             const contribution = estimateDomainContribution(domainKey, testKey, task.extracted);
             if (contribution != null) contributions.push(contribution);
           }
-          // Missing domains are missing, not zero. This avoids ranking incomplete
-          // participants as if they had performed at the floor.
           if (contributions.length === 0) continue;
           const rawIndex = contributions.reduce((sum, value) => sum + value, 0) / contributions.length;
           values.push({ id: profile.id, value: rawIndex, testCount: contributions.length });
@@ -325,17 +301,26 @@ const MCCBScoring = (() => {
       domains: {},
       composite: null,
       scoringStatus: 'raw-only',
+      qcSummary: { valid: 0, invalid: 0, unverified: 0 },
     };
 
     for (const [testKey, metrics] of Object.entries(TEST_METRICS)) {
       const storageKey = KEY_TO_RESULT[testKey];
       const result = data.results[storageKey] || data.results[testKey];
       if (!result) continue;
+      const qcStatus = getResultQcStatus(result);
+      const eligibleForResearchScoring = isResearchScorable(result);
+      if (qcStatus === 'valid') profile.qcSummary.valid++;
+      else if (qcStatus === 'unverified') profile.qcSummary.unverified++;
+      else profile.qcSummary.invalid++;
+
       profile.tests[testKey] = {
         label: metrics.label,
         labelEn: metrics.labelEn,
         extracted: metrics.extract(result),
         raw: result,
+        qcStatus,
+        eligibleForResearchScoring,
         validation: TASK_VALIDATION[testKey],
       };
     }
@@ -360,8 +345,6 @@ const MCCBScoring = (() => {
       const validatedScores = domainEntries.map(d => d && d.tScore).filter(Number.isFinite);
       const allSevenDomainsPresent = Object.keys(DOMAINS).every(key => profile.domains[key] && Number.isFinite(profile.domains[key].tScore));
 
-      // Never manufacture an MCCB-style composite from a research norm or an
-      // incomplete domain set.
       if (norm.validated === true && allSevenDomainsPresent && validatedScores.length === 7) {
         profile.composite = Math.round(validatedScores.reduce((sum, value) => sum + value, 0) / validatedScores.length);
         profile.scoringStatus = 'validated-norm';
@@ -391,6 +374,8 @@ const MCCBScoring = (() => {
         tests: domain.tests.map(testKey => ({
           key: testKey,
           label: (profile.tests[testKey] || {}).label || testKey,
+          qcStatus: (profile.tests[testKey] || {}).qcStatus || 'missing',
+          eligibleForResearchScoring: (profile.tests[testKey] || {}).eligibleForResearchScoring === true,
           validation: TASK_VALIDATION[testKey],
           ...((profile.tests[testKey] || {}).extracted || {}),
         })),
@@ -403,6 +388,8 @@ const MCCBScoring = (() => {
     getProfile,
     getAllProfiles,
     getDomainSummary,
+    getResultQcStatus,
+    isResearchScorable,
     registerNorm,
     setNorm,
     getNorm,
