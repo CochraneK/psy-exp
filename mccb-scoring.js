@@ -9,6 +9,7 @@
  */
 
 const MCCBScoring = (() => {
+  const SCORING_VERSION='research-scoring-0.3.0';
   const DOMAINS = {
     speed_processing: { label: '处理速度', labelEn: 'Speed of Processing', tests: ['bacs', 'fluency', 'tmt'], color: '#3498db', desc: '信息处理效率' },
     attention: { label: '注意/警觉', labelEn: 'Attention / Vigilance', tests: ['cpt'], color: '#2ecc71', desc: '持续注意力与警觉性' },
@@ -26,31 +27,21 @@ const MCCBScoring = (() => {
   };
 
   const TASK_VALIDATION = {
-    tmt: { mccbComponent: 'Trail Making Test Part A only', mccbEquivalent: false, note: 'Part B is supplemental and must not enter MCCB processing-speed scoring.' },
-    bacs: { mccbComponent: 'BACS Symbol Coding', mccbEquivalent: false, note: 'Digital administration not equivalence-validated.' },
-    fluency: { mccbComponent: 'Category Fluency: Animal Naming', mccbEquivalent: false, note: 'Typed self-administration differs from standard oral administration.' },
-    cpt: { mccbComponent: 'CPT-IP', mccbEquivalent: false, note: 'Current browser implementation does not reproduce the full standardized CPT-IP protocol.' },
-    'spatial-span': { mccbComponent: 'WMS-III Spatial Span', mccbEquivalent: false, note: 'Screen-based implementation differs from standardized board administration.' },
-    lns: { mccbComponent: 'Letter-Number Span', mccbEquivalent: false, note: 'Visual self-administration differs from standardized oral administration.' },
-    hvlt: { mccbComponent: 'HVLT-R', mccbEquivalent: false, note: 'Current visual/self-administered procedure differs from standardized oral presentation.' },
-    bvmt: { mccbComponent: 'BVMT-R', mccbEquivalent: false, note: 'Digital drawing/scoring equivalence has not been established.' },
-    mazes: { mccbComponent: 'NAB Mazes', mccbEquivalent: false, note: 'Digital implementation equivalence has not been established.' },
-    msceit: { mccbComponent: 'MSCEIT Managing Emotions', mccbEquivalent: false, note: 'Digital implementation and scoring are not licensed/validated as official MCCB scoring.' },
+    tmt: { mccbComponent: 'Trail Making Test Part A only', mccbEquivalent: false, timingStatus:'monotonic-elapsed', note: 'Part B is supplemental and must not enter MCCB processing-speed scoring.' },
+    bacs: { mccbComponent: 'BACS Symbol Coding', mccbEquivalent: false, timingStatus:'absolute-second-interval', note: 'Digital administration not equivalence-validated; countdown uses a monotonic absolute schedule.' },
+    fluency: { mccbComponent: 'Category Fluency: Animal Naming', mccbEquivalent: false, timingStatus:'absolute-second-interval', note: 'Typed self-administration differs from standard oral administration; countdown uses a monotonic absolute schedule.' },
+    cpt: { mccbComponent: 'CPT-IP', mccbEquivalent: false, timingStatus:'instrumented-timeout', note: 'Current browser protocol is not standardized CPT-IP; callback drift is recorded in session QC.' },
+    'spatial-span': { mccbComponent: 'WMS-III Spatial Span', mccbEquivalent: false, timingStatus:'legacy-scheduled', note: 'Screen-based implementation differs from standardized board administration.' },
+    lns: { mccbComponent: 'Letter-Number Span', mccbEquivalent: false, timingStatus:'legacy-scheduled', note: 'Visual self-administration differs from standardized oral administration.' },
+    hvlt: { mccbComponent: 'HVLT-R', mccbEquivalent: false, timingStatus:'absolute-second-interval', note: 'Current visual/self-administered procedure differs from standardized oral presentation; countdown uses a monotonic absolute schedule.' },
+    bvmt: { mccbComponent: 'BVMT-R', mccbEquivalent: false, timingStatus:'legacy-scheduled', note: 'Digital drawing/scoring equivalence has not been established.' },
+    mazes: { mccbComponent: 'NAB Mazes', mccbEquivalent: false, timingStatus:'legacy-scheduled', note: 'Digital implementation equivalence has not been established.' },
+    msceit: { mccbComponent: 'MSCEIT Managing Emotions', mccbEquivalent: false, timingStatus:'legacy-scheduled', note: 'Digital implementation and scoring are not licensed/validated as official MCCB scoring.' },
   };
 
-  const n = (value, fallback = 0) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  };
-
-  function getResultQcStatus(result) {
-    const status = result && result._meta && result._meta.sessionQc && result._meta.sessionQc.status;
-    return typeof status === 'string' ? status : 'unverified';
-  }
-
-  function isResearchScorable(result) {
-    return getResultQcStatus(result) === 'valid';
-  }
+  const n = (value, fallback = 0) => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : fallback; };
+  function getResultQcStatus(result) { const status = result && result._meta && result._meta.sessionQc && result._meta.sessionQc.status; return typeof status === 'string' ? status : 'unverified'; }
+  function isResearchScorable(result) { return getResultQcStatus(result) === 'valid'; }
 
   const TEST_METRICS = {
     bacs: { label: '符号编码', labelEn: 'BACS Symbol Coding', extract(result) { const correct=n(result.correct),attempted=n(result.attempted); return { correct, attempted, accuracy: attempted>0?Math.round(correct/attempted*100):0 }; } },
@@ -81,42 +72,36 @@ const MCCBScoring = (() => {
     while(i<total){let j=i+1;while(j<total&&Math.abs(sorted[j].value-sorted[i].value)<1e-12)j++;const averageRank=(i+j-1)/2,percentile=total===1?50:Math.round(averageRank/(total-1)*100);for(let k=i;k<j;k++)sorted[k].cohortPercentile=percentile;i=j;}return sorted;
   }
 
-  const internalNorm={name:'internal',label:'项目内探索性相对排名（非 MCCB 常模；不生成 T 分）',kind:'research',validated:false,apply(allProfiles,domains){for(const domainKey of Object.keys(domains)){const values=[];for(const profile of allProfiles){const contributions=[];for(const testKey of domains[domainKey].tests){const task=profile.tests[testKey];if(!task||!task.extracted)continue;const contribution=estimateDomainContribution(domainKey,testKey,task.extracted);if(contribution!=null)contributions.push(contribution);}if(!contributions.length)continue;values.push({id:profile.id,value:contributions.reduce((s,v)=>s+v,0)/contributions.length,testCount:contributions.length});}for(const ranked of rankWithTies(values)){const profile=allProfiles.find(p=>p.id===ranked.id);if(!profile)continue;profile.domains[domainKey]={rawIndex:Math.round(ranked.value*1000)/1000,indexScore:ranked.cohortPercentile,cohortPercentile:ranked.cohortPercentile,testCount:ranked.testCount,tScore:null,scoreType:'research-cohort-index'};}}}};
+  const internalNorm={name:'internal',version:'internal-rank-0.3.0',provenance:'psy-exp project-local exploratory ranking',label:'项目内探索性相对排名（非 MCCB 常模；不生成 T 分）',kind:'research',validated:false,apply(allProfiles,domains){for(const domainKey of Object.keys(domains)){const values=[];for(const profile of allProfiles){const contributions=[];for(const testKey of domains[domainKey].tests){const task=profile.tests[testKey];if(!task||!task.extracted)continue;const contribution=estimateDomainContribution(domainKey,testKey,task.extracted);if(contribution!=null)contributions.push(contribution);}if(!contributions.length)continue;values.push({id:profile.id,value:contributions.reduce((s,v)=>s+v,0)/contributions.length,testCount:contributions.length});}for(const ranked of rankWithTies(values)){const profile=allProfiles.find(p=>p.id===ranked.id);if(!profile)continue;profile.domains[domainKey]={rawIndex:Math.round(ranked.value*1000)/1000,indexScore:ranked.cohortPercentile,cohortPercentile:ranked.cohortPercentile,testCount:ranked.testCount,tScore:null,scoreType:'research-cohort-index',scoringVersion:SCORING_VERSION,normVersion:'internal-rank-0.3.0'};}}}};
 
   const NORM_REGISTRY={internal:internalNorm};let activeNorm='internal';
-  function registerNorm(norm){if(!norm||!norm.name||typeof norm.apply!=='function')throw new Error('norm 需含 name 和 apply(allProfiles, domains)');NORM_REGISTRY[norm.name]={kind:norm.kind||'custom',validated:norm.validated===true,label:norm.label||norm.name,...norm};return NORM_REGISTRY;}
+  function registerNorm(norm){if(!norm||!norm.name||typeof norm.apply!=='function')throw new Error('norm 需含 name 和 apply(allProfiles, domains)');if(norm.validated===true&&(!norm.version||!norm.provenance))throw new Error('validated norm 必须声明 version 和 provenance');NORM_REGISTRY[norm.name]={kind:norm.kind||'custom',validated:norm.validated===true,label:norm.label||norm.name,version:norm.version||'unversioned',provenance:norm.provenance||'unspecified',...norm};return NORM_REGISTRY[norm.name];}
   function setNorm(name){if(!NORM_REGISTRY[name])throw new Error(`常模 "${name}" 未注册`);activeNorm=name;return activeNorm;}
-  function getNorm(){const norm=NORM_REGISTRY[activeNorm];return{name:activeNorm,label:norm.label,kind:norm.kind,validated:norm.validated===true};}
+  function getNorm(){const norm=NORM_REGISTRY[activeNorm];return{name:activeNorm,label:norm.label,kind:norm.kind,validated:norm.validated===true,version:norm.version,provenance:norm.provenance,scoringVersion:SCORING_VERSION};}
 
   function getProfile(participantId) {
     const pm=typeof window!=='undefined'?window.ParticipantManager:null;if(!participantId||!pm)return null;const data=pm.getData(participantId);if(!data)return null;
     const validResults=data.results||{},invalidResults=data.invalidResults||{};if(!Object.keys(validResults).length&&!Object.keys(invalidResults).length)return null;
-    const profile={id:participantId,date:data.updatedAt||data.createdAt||null,tests:{},domains:{},composite:null,scoringStatus:'raw-only',qcSummary:{valid:0,invalid:0,unverified:0}};
-    for(const [testKey,metrics] of Object.entries(TEST_METRICS)){const storageKey=KEY_TO_RESULT[testKey],result=validResults[storageKey]||validResults[testKey]||invalidResults[storageKey]||invalidResults[testKey];if(!result)continue;const qcStatus=getResultQcStatus(result),eligibleForResearchScoring=isResearchScorable(result);if(qcStatus==='valid')profile.qcSummary.valid++;else if(qcStatus==='unverified')profile.qcSummary.unverified++;else profile.qcSummary.invalid++;profile.tests[testKey]={label:metrics.label,labelEn:metrics.labelEn,extracted:metrics.extract(result),raw:result,qcStatus,eligibleForResearchScoring,validation:TASK_VALIDATION[testKey]};}
+    const profile={id:participantId,date:data.updatedAt||data.createdAt||null,tests:{},domains:{},composite:null,scoringStatus:'raw-only',scoringVersion:SCORING_VERSION,qcSummary:{valid:0,invalid:0,unverified:0}};
+    for(const [testKey,metrics] of Object.entries(TEST_METRICS)){const storageKey=KEY_TO_RESULT[testKey],result=validResults[storageKey]||validResults[testKey]||invalidResults[storageKey]||invalidResults[testKey];if(!result)continue;const qcStatus=getResultQcStatus(result),eligibleForResearchScoring=isResearchScorable(result);if(qcStatus==='valid')profile.qcSummary.valid++;else if(qcStatus==='unverified')profile.qcSummary.unverified++;else profile.qcSummary.invalid++;profile.tests[testKey]={label:metrics.label,labelEn:metrics.labelEn,extracted:metrics.extract(result),raw:result,qcStatus,eligibleForResearchScoring,validation:TASK_VALIDATION[testKey],provenance:result._meta&&result._meta.provenance||null};}
     return profile;
   }
 
   function makeScoringProfiles(profiles) {
-    return profiles.map(profile => {
-      const tests=Object.fromEntries(Object.entries(profile.tests).filter(([,task])=>task.eligibleForResearchScoring===true));
-      return { id:profile.id,date:profile.date,tests,domains:{},composite:null,scoringStatus:'raw-only' };
-    }).filter(profile=>Object.keys(profile.tests).length>0);
+    return profiles.map(profile => { const tests=Object.fromEntries(Object.entries(profile.tests).filter(([,task])=>task.eligibleForResearchScoring===true)); return { id:profile.id,date:profile.date,tests,domains:{},composite:null,scoringStatus:'raw-only',scoringVersion:SCORING_VERSION }; }).filter(profile=>Object.keys(profile.tests).length>0);
   }
 
   function getAllProfiles() {
-    const pm=typeof window!=='undefined'?window.ParticipantManager:null;if(!pm)return{profiles:[],domains:DOMAINS,metrics:TEST_METRICS,validation:TASK_VALIDATION,norm:getNorm()};
+    const pm=typeof window!=='undefined'?window.ParticipantManager:null;if(!pm)return{profiles:[],domains:DOMAINS,metrics:TEST_METRICS,validation:TASK_VALIDATION,norm:getNorm(),scoringVersion:SCORING_VERSION};
     const profiles=[];for(const participantId of pm.getAllParticipants()){const profile=getProfile(participantId);if(profile&&Object.keys(profile.tests).length)profiles.push(profile);}
-    const norm=NORM_REGISTRY[activeNorm];
-    // QC boundary is enforced before any adapter sees data, not merely by the
-    // default internal norm. Invalid/unverified raw tasks remain reportable only.
-    const scoringProfiles=makeScoringProfiles(profiles);norm.apply(scoringProfiles,DOMAINS);const scoredById=new Map(scoringProfiles.map(p=>[p.id,p]));
+    const norm=NORM_REGISTRY[activeNorm];const scoringProfiles=makeScoringProfiles(profiles);norm.apply(scoringProfiles,DOMAINS);const scoredById=new Map(scoringProfiles.map(p=>[p.id,p]));
     for(const profile of profiles){const scored=scoredById.get(profile.id);profile.domains=scored?scored.domains:{};const entries=Object.values(profile.domains),validatedScores=entries.map(d=>d&&d.tScore).filter(Number.isFinite),allSeven=Object.keys(DOMAINS).every(k=>profile.domains[k]&&Number.isFinite(profile.domains[k].tScore));if(norm.validated===true&&scored&&allSeven&&validatedScores.length===7){profile.composite=Math.round(validatedScores.reduce((s,v)=>s+v,0)/7);profile.scoringStatus='validated-norm';}else{profile.composite=null;profile.scoringStatus=!scored?'qc-ineligible':norm.validated===true?'validated-norm-incomplete':'research-index-only';}}
-    return{profiles,domains:DOMAINS,metrics:TEST_METRICS,validation:TASK_VALIDATION,norm:getNorm()};
+    return{profiles,domains:DOMAINS,metrics:TEST_METRICS,validation:TASK_VALIDATION,norm:getNorm(),scoringVersion:SCORING_VERSION};
   }
 
-  function getDomainSummary(profile){const summary=[];for(const[key,domain]of Object.entries(DOMAINS)){const d=profile.domains[key];if(!d)continue;summary.push({key,label:domain.label,labelEn:domain.labelEn,color:domain.color,tScore:Number.isFinite(d.tScore)?d.tScore:null,indexScore:Number.isFinite(d.indexScore)?d.indexScore:null,percentile:Number.isFinite(d.cohortPercentile)?d.cohortPercentile:null,scoreType:d.scoreType||(Number.isFinite(d.tScore)?'validated-t-score':'unknown'),tests:domain.tests.map(testKey=>({key:testKey,label:(profile.tests[testKey]||{}).label||testKey,qcStatus:(profile.tests[testKey]||{}).qcStatus||'missing',eligibleForResearchScoring:(profile.tests[testKey]||{}).eligibleForResearchScoring===true,validation:TASK_VALIDATION[testKey],...((profile.tests[testKey]||{}).extracted||{})}))});}return summary;}
+  function getDomainSummary(profile){const summary=[];for(const[key,domain]of Object.entries(DOMAINS)){const d=profile.domains[key];if(!d)continue;summary.push({key,label:domain.label,labelEn:domain.labelEn,color:domain.color,tScore:Number.isFinite(d.tScore)?d.tScore:null,indexScore:Number.isFinite(d.indexScore)?d.indexScore:null,percentile:Number.isFinite(d.cohortPercentile)?d.cohortPercentile:null,scoreType:d.scoreType||(Number.isFinite(d.tScore)?'validated-t-score':'unknown'),scoringVersion:d.scoringVersion||SCORING_VERSION,normVersion:d.normVersion||getNorm().version,tests:domain.tests.map(testKey=>({key:testKey,label:(profile.tests[testKey]||{}).label||testKey,qcStatus:(profile.tests[testKey]||{}).qcStatus||'missing',eligibleForResearchScoring:(profile.tests[testKey]||{}).eligibleForResearchScoring===true,validation:TASK_VALIDATION[testKey],...((profile.tests[testKey]||{}).extracted||{})}))});}return summary;}
 
-  return{getProfile,getAllProfiles,getDomainSummary,getResultQcStatus,isResearchScorable,registerNorm,setNorm,getNorm,DOMAINS,TEST_METRICS,TASK_VALIDATION};
+  return{SCORING_VERSION,getProfile,getAllProfiles,getDomainSummary,getResultQcStatus,isResearchScorable,registerNorm,setNorm,getNorm,DOMAINS,TEST_METRICS,TASK_VALIDATION};
 })();
 
 if(typeof window!=='undefined')window.MCCBScoring=MCCBScoring;
