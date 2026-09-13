@@ -44,7 +44,7 @@ console.log('\n=== 2. Participant schema and valid completion ===');
 check('set current succeeds', ParticipantManager.setCurrent('P001') === true);
 let data = ParticipantManager.getData('P001');
 check('participant schema version stored', data.schemaVersion === PARTICIPANT_SCHEMA_VERSION);
-check('new participant has result/session containers', data.results && data.sessions);
+check('new participant has result/session/audit containers', data.results && data.invalidResults && data.sessions);
 
 check('markInProgress starts QC session', ParticipantManager.markInProgress('cpt') === true);
 const running = ExperimentRuntime.snapshot('cpt');
@@ -60,24 +60,39 @@ check('result explicitly research adaptation', cpt._meta.mccbEquivalent === fals
 check('valid QC persisted', cpt._meta.sessionQc.status === 'valid');
 check('participant ID persisted in result metadata', cpt._meta.participantId === 'P001');
 
-console.log('\n=== 3. Interrupted session cannot become valid completion ===');
+console.log('\n=== 3. Interrupted session is isolated from canonical results ===');
+// Simulate page-level legacy storage written immediately before saveResult().
+localStorage.setItem('mccb-bacs-result', JSON.stringify({ correct: 99, attempted: 100 }));
 check('start BACS', ParticipantManager.markInProgress('bacs') === true);
 check('invalidate BACS on interruption', ParticipantManager.invalidateSession('bacs', 'interrupted', 'test_hidden') === true);
-check('save interrupted result succeeds as raw record', ParticipantManager.saveResult('bacs', { correct: 99, attempted: 100 }) === true);
+check('save interrupted result succeeds as audit record', ParticipantManager.saveResult('bacs', { correct: 99, attempted: 100 }) === true);
 data = ParticipantManager.getData('P001');
-const bacs = data.results['mccb-bacs-result'];
+const bacsInvalid = data.invalidResults['mccb-bacs-result'];
+check('interrupted attempt is not canonical result', !data.results['mccb-bacs-result']);
+check('interrupted attempt is stored in invalidResults', !!bacsInvalid);
 check('interrupted session is completed_invalid', data.progress.bacs === 'completed_invalid');
-check('interrupted status preserved after save', bacs._meta.sessionQc.status === 'interrupted');
-check('interruption count captured', bacs._meta.sessionQc.qc.visibilityInterruptions >= 1);
-check('reason captured', bacs._meta.sessionQc.qc.reasons.includes('test_hidden'));
+check('interrupted status preserved after save', bacsInvalid._meta.sessionQc.status === 'interrupted');
+check('interruption count captured', bacsInvalid._meta.sessionQc.qc.visibilityInterruptions >= 1);
+check('reason captured', bacsInvalid._meta.sessionQc.qc.reasons.includes('test_hidden'));
+check('legacy unscoped result removed', localStorage.getItem('mccb-bacs-result') === null);
+check('getResult excludes invalid attempt', ParticipantManager.getResult('bacs') === null);
+check('getInvalidResult exposes audit attempt', ParticipantManager.getInvalidResult('bacs')._meta.sessionQc.status === 'interrupted');
 
-console.log('\n=== 4. Progress summary separates valid and invalid ===');
+console.log('\n=== 4. Later valid retest becomes canonical ===');
+check('start BACS retest', ParticipantManager.markInProgress('bacs') === true);
+check('save valid BACS retest', ParticipantManager.saveResult('bacs', { correct: 80, attempted: 90 }) === true);
+data = ParticipantManager.getData('P001');
+check('valid retest becomes canonical', data.results['mccb-bacs-result']._meta.sessionQc.status === 'valid');
+check('invalid slot cleared after valid retest', !data.invalidResults['mccb-bacs-result']);
+check('progress upgraded to completed', data.progress.bacs === 'completed');
+
+console.log('\n=== 5. Progress summary separates completion states ===');
 const summary = ParticipantManager.getProgressSummary();
-check('one valid completion', summary.done === 1, JSON.stringify(summary));
-check('one invalid completion', summary.invalid === 1, JSON.stringify(summary));
-check('invalid result remains first incomplete candidate', ParticipantManager.getFirstIncomplete().key === 'tmt');
+check('two valid completions after retest', summary.done === 2, JSON.stringify(summary));
+check('no remaining invalid completion after valid retest', summary.invalid === 0, JSON.stringify(summary));
+check('first incomplete remains TMT', ParticipantManager.getFirstIncomplete().key === 'tmt');
 
-console.log('\n=== 5. Export preserves schema ===');
+console.log('\n=== 6. Export preserves schema ===');
 const exported = ParticipantManager.exportAllData();
 check('export has schema version', exported.schemaVersion === PARTICIPANT_SCHEMA_VERSION);
 check('export contains participant', exported.participants.P001 && exported.participantCount === 1);
