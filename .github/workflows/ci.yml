@@ -36,20 +36,8 @@ jobs:
           node --check tests/validate-inline-scripts.cjs
           node --check tests/full-battery.cjs
 
-      - name: Inline HTML JavaScript syntax
-        run: node tests/validate-inline-scripts.cjs
-
-      - name: Participant and session-QC safety tests
-        run: node tests/verify-participant.cjs
-
-      - name: Scoring safety tests
-        run: node tests/verify-scoring.cjs
-
-      - name: Task manifest and material-policy tests
-        run: node tests/verify-manifest.cjs
-
-      - name: Browser-driver syntax validation
-        run: node tests/validate-drivers.cjs
+      - name: Portable full battery
+        run: node tests/full-battery.cjs
 
       - name: Python syntax check
         run: python -m py_compile tests/cpt_report.py
@@ -61,9 +49,12 @@ jobs:
           test -f research-comparison.html
           test -f task-manifest.json
           test -f docs/README.md
+          test -f docs/HISTORY_PURGE.md
           grep -q "RESEARCH PROTOTYPE" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-report.html
           grep -q "未应用经验证的 MCCB 常模" research-comparison.html
+          grep -q "referenceN" research-report.html
+          grep -q "reference group" research-comparison.html
           grep -q "attemptHistory" mccb-participant.js
           grep -q "eligibleForResearchScoring" mccb-scoring.js
           grep -q "semantic_review_required" mccb-scoring.js
@@ -74,12 +65,14 @@ jobs:
           grep -q "mccb_mode.*user" mccb-participant.js
           grep -q "legacy-chart-safety-note" mccb-participant.js
 
-      - name: Protected material guard
+      - name: Protected material and obsolete-harness guard
         shell: bash
         run: |
           test ! -e "docs/7.简版MCCB操作者表格（A）_vlm.txt"
           test ! -e "docs/8.简版MCCB操作者表格（B）_vlm.txt"
-          ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' "WORD_LIST" pages docs
+          test ! -d tests/archive
+          ! grep -R -n --exclude-dir=.git --exclude='private-stimuli.example.js' "WORD_LIST" .
+          ! grep -R -n --exclude-dir=.git "C:/Users/\|D:/Software/\|agent-browser/bin" tests
           grep -q "../private/stimuli.js" pages/mccb-hvlt.html
           grep -q "../private/stimuli.js" pages/mccb-msceit.html
 
