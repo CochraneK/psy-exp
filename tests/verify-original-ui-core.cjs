@@ -23,6 +23,7 @@ check('local delete clears participant and research layers',controller.includes(
 check('research-safe charts use scoring adapter',controller.includes('MCCBScoring.getAllProfiles')&&controller.includes('MCCBScoring.getDomainSummary'));
 check('small-N chart guard is retained',controller.includes('Number(d.referenceN)>=5'));
 check('legacy arbitrary denominators are absent from controller',!/(\/110|\/40|\/24|\/36|\/26|\/4\))/.test(controller));
+check('chart handoff destroys any legacy Chart.js instance',controller.includes('Chart.getChart')&&controller.includes('oldRadar.destroy()')&&controller.includes('oldBar.destroy()'));
 check('homepage viewport is hardened without changing its CSS',runtime.includes("viewport.setAttribute('content','width=device-width, initial-scale=1.0')"));
 check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));
 check('shared session bridge checkpoints participant history',session.includes('syncParticipantData')&&session.includes('stageBundle'));
