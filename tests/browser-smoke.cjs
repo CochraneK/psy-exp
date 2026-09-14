@@ -132,42 +132,62 @@ async function main() {
       catch (err) { results.push([name, false, err.message]); console.error(`FAIL ${name}: ${err.message}`); }
     }
 
-    await test('researcher console loads as scrollable research app', async () => {
+    await test('researcher console creates isolated participant state', async () => {
       await navigate(`${BASE}/index.html`, 'document.readyState === "complete" && !!document.querySelector(".research-shell")');
-      const ok = await evaluate(`document.querySelector('.eyebrow').textContent.includes('Researcher console') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && document.querySelectorAll('#cohortMetrics .metric').length === 4`);
-      if (!ok) throw new Error('researcher console shell/metrics contract failed');
-      await evaluate(`ParticipantManager.setCurrent('E2E1')`);
+      const shellOk = await evaluate(`document.querySelector('.eyebrow').textContent.includes('Researcher console') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && document.querySelectorAll('#cohortMetrics .metric').length === 4`);
+      if (!shellOk) throw new Error('researcher console shell/metrics contract failed');
+      const participantOk = await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);
+      if (!participantOk) throw new Error('could not create clean E2E participant');
     });
 
     await test('participant runner resolves deep link and renders ten tasks', async () => {
       await navigate(`${BASE}/participant-runner.html?p=E2E1`, `document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
       await waitFor(`document.querySelectorAll('#taskList .task-row').length === 10 && document.querySelectorAll('#preflightList .check').length >= 6`, 8000);
-      const ok = await evaluate(`!document.body.textContent.includes('DEV mode') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user')`);
-      if (!ok) throw new Error('runner leaked DEV controls or did not force USER mode');
+      const ok = await evaluate(`!document.body.textContent.includes('DEV mode') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && document.getElementById('progressText').textContent.startsWith('0 / 10')`);
+      if (!ok) throw new Error('runner leaked DEV controls, wrong mode, or wrong initial progress');
     });
 
-    await test('single report executes and exposes research norm label', async () => {
-      await navigate(`${BASE}/research-report.html`, `document.readyState === 'complete' && document.getElementById('normBadge').textContent !== '载入中…'`);
-      const ok = await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && document.body.textContent.includes('reference N < 5')`);
-      if (!ok) throw new Error('research report guardrail/norm label missing');
+    await test('complete TMT Part A through real task UI and persist valid canonical result', async () => {
+      await navigate(`${BASE}/pages/mccb-tmt.html?p=E2E1&mode=user`, `document.readyState === 'complete' && !!document.getElementById('startA')`);
+      await evaluate(`document.getElementById('startA').click()`);
+      await waitFor(`document.getElementById('task').classList.contains('active') && !!document.querySelector('#board .node.next')`);
+      const clicked = await evaluate(`(()=>{for(let i=0;i<25;i++){const n=document.querySelector('#board .node.next');if(!n)return false;n.click()}return true})()`);
+      if (!clicked) throw new Error('could not traverse all 25 TMT Part A targets');
+      await waitFor(`document.getElementById('result').classList.contains('active') && !!ParticipantManager.getResult('tmt')`);
+      const ok = await evaluate(`(()=>{const r=ParticipantManager.getResult('tmt');return r&&r.protocol==='trail-making-browser-synthetic-v2'&&r.partA&&r.partA.completed===true&&r.partA.errors===0&&r.partA.clickData.length===25&&r._meta&&r._meta.sessionQc&&r._meta.sessionQc.status==='valid'&&ParticipantManager.getProgress('tmt')==='completed'})()`);
+      if (!ok) throw new Error('TMT canonical result/QC/protocol persistence failed');
     });
 
-    await test('comparison page executes selection model', async () => {
-      await navigate(`${BASE}/research-comparison.html`, `document.readyState === 'complete' && document.getElementById('count').textContent.length > 0`);
-      const ok = await evaluate(`document.body.textContent.includes('导出 CSV') && document.body.textContent.includes('N≥5')`);
-      if (!ok) throw new Error('comparison controls/guardrail missing');
-    });
-
-    await test('USER-mode task return routes back to participant runner', async () => {
-      await navigate(`${BASE}/participant-runner.html?p=E2E1`, `document.getElementById('participantLabel').textContent.includes('E2E1')`);
-      await evaluate(`location.href='${BASE}/pages/mccb-tmt.html?p=E2E1&mode=user'`);
-      await waitFor(`location.pathname.endsWith('/pages/mccb-tmt.html') && !!document.getElementById('startA')`);
-      await evaluate(`location.href='${BASE}/index.html'`);
+    await test('task return restores runner progress and advances to BACS', async () => {
+      await evaluate(`document.querySelector('#result a[href*="participant-runner"]').click()`);
       await waitFor(`location.pathname.endsWith('/participant-runner.html') && document.getElementById('participantLabel').textContent.includes('E2E1')`, 8000);
+      const ok = await evaluate(`document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user')`);
+      if (!ok) throw new Error('runner did not reflect valid completion or advance to BACS');
+    });
+
+    await test('single report executes and exposes persisted TMT raw result', async () => {
+      await navigate(`${BASE}/research-report.html`, `document.readyState === 'complete' && document.getElementById('normBadge').textContent !== '载入中…'`);
+      const ok = await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && document.body.textContent.includes('reference N < 5') && document.body.textContent.includes('Trail Making')`);
+      if (!ok) throw new Error('research report guardrail or persisted TMT result missing');
+    });
+
+    await test('comparison page executes participant selection and CSV model', async () => {
+      await navigate(`${BASE}/research-comparison.html`, `document.readyState === 'complete' && document.getElementById('count').textContent.length > 0`);
+      const ok = await evaluate(`document.body.textContent.includes('导出 CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);
+      if (!ok) throw new Error('comparison controls, participant, or small-N guardrail missing');
+    });
+
+    await test('private-material task shells fail closed without bundled assets', async () => {
+      await navigate(`${BASE}/pages/mccb-hvlt.html?p=E2E1&mode=user`, `document.readyState === 'complete' && !!document.getElementById('startBtn')`);
+      const hvltOk = await evaluate(`document.getElementById('startBtn').disabled===true && document.getElementById('materialStatus').classList.contains('bad')`);
+      if (!hvltOk) throw new Error('HVLT public shell did not fail closed without private material');
+      await navigate(`${BASE}/pages/mccb-msceit.html?p=E2E1&mode=user`, `document.readyState === 'complete' && !!document.getElementById('start')`);
+      const msceitOk = await evaluate(`document.getElementById('start').disabled===true && document.getElementById('status').classList.contains('bad')`);
+      if (!msceitOk) throw new Error('MSCEIT public shell did not fail closed without private material');
     });
 
     const failures = results.filter(x => !x[1]);
-    console.log(`\nBrowser smoke: ${results.length - failures.length} passed / ${failures.length} failed`);
+    console.log(`\nBrowser E2E smoke: ${results.length - failures.length} passed / ${failures.length} failed`);
     if (failures.length) process.exitCode = 1;
   } finally {
     try { if (cdp) cdp.ws.close(); } catch {}
