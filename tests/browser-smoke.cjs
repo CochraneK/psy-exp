@@ -77,10 +77,24 @@ async function main() {
     await test('researcher console renders quiet v5 workbench and creates isolated participant state', async()=>{
       await navigate(`${BASE}/index.html`,'document.readyState === "complete" && !!document.querySelector(".research-shell")');
       await waitFor(`document.querySelectorAll('#tasks .task-card').length===10`);
-      const shellOk=await evaluate(`!!document.querySelector('.workbench-header') && !!document.querySelector('.subject-bar') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && !!document.querySelector('.participant-panel') && document.querySelectorAll('#tasks .task-card').length===10 && !document.getElementById('cohortMetrics') && !!document.querySelector('a[href="data-governance.html"]') && !document.body.textContent.includes('Researcher console') && !document.body.textContent.includes('RESEARCH PROTOTYPE') && [...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css?v=5.0.0'))`);
-      if(!shellOk)throw new Error('v5 quiet workbench/governance/cache-busted stylesheet contract failed');
-      const localized=await evaluate(`[...document.querySelectorAll('#tasks .status')].every(x=>!['not_started','completed','in_progress'].includes(x.textContent.trim()))`);if(!localized)throw new Error('task statuses are not localized');
-      const participantOk=await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);if(!participantOk)throw new Error('could not create clean E2E participant');
+      const shell=await evaluate(`(()=>({
+        header:!!document.querySelector('.workbench-header'),
+        subjectBar:!!document.querySelector('.subject-bar'),
+        scrolling:getComputedStyle(document.documentElement).overflowY!=='hidden',
+        participantPanel:!!document.querySelector('.participant-panel'),
+        tenTasks:document.querySelectorAll('#tasks .task-card').length===10,
+        noCohortDashboard:!document.getElementById('cohortMetrics'),
+        governanceEntry:!!document.querySelector('a[href="data-governance.html"]'),
+        noOldEyebrow:!document.body.textContent.includes('Researcher console'),
+        noPrototypeBadge:!document.body.textContent.includes('RESEARCH PROTOTYPE'),
+        v5Stylesheet:[...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css?v=5.0.0'))
+      }))()`);
+      const localized=await evaluate(`[...document.querySelectorAll('#tasks .status')].every(x=>!['not_started','completed','in_progress'].includes(x.textContent.trim()))`);
+      const participantOk=await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);
+      if(!participantOk)throw new Error('could not create clean E2E participant');
+      const failed=Object.entries(shell||{}).filter(([,ok])=>!ok).map(([name])=>name);
+      if(failed.length)throw new Error(`v5 workbench browser contract failed: ${failed.join(', ')}`);
+      if(!localized)throw new Error('task statuses are not localized');
     });
 
     await test('data governance enables consent version and runner fails closed before grant', async()=>{
