@@ -1,9 +1,10 @@
 {
-  "manifestVersion": 4,
+  "manifestVersion": 5,
   "projectMode": "research-prototype",
   "runtimeVersion": "research-runtime-0.4.0",
   "scoringVersion": "research-scoring-0.4.0",
-  "dataModelVersion": "research-data-model-1.0.0",
+  "dataModelVersion": "research-data-model-1.1.0",
+  "storageArchitecture": "local-primary-http-replica-1.0.0",
   "protocolGovernance": "protocol-lock-v1",
   "tasks": [
     {"key":"tmt","taskVersion":"tmt-web-0.4.0","protocolId":"trail-making-browser-synthetic-v2","officialComponent":"Trail Making Test Part A only","administration":"deterministic browser trail-making research task","mccbEquivalent":false,"timingStatus":"monotonic-elapsed","materialPolicy":"public-domain-related","publicExecutable":true,"notes":"Part A is the MCCB-related raw metric; Part B is optional supplemental data and is excluded from the research processing-speed rank."},
