@@ -7,7 +7,7 @@ let pass=0,fail=0;function check(name,cond,detail=''){if(cond){pass++;console.lo
 console.log('=== Original UI / modern core contract ===');
 check('exact original index.html blob is frozen',gitBlobSha(index)==='979f0be61c3a916bc7085bd74f1293190ad64a2f',gitBlobSha(index));
 check('original title preserved',index.includes('<title>MCCB 认知成套测验</title>'));
-check('original visual shell preserved',index.includes('class="header"')&&index.includes('class="dashboard" id="dashboard"')&&index.includes('id="modeToggle"')&&index.includes('id="wm-toggle"'));
+check('original visual shell preserved',index.includes('class="header"')&&index.includes('class="dashboard" id="dashboard"')&&index.includes('id="modeToggle"')&&index.includes('#wm-toggle'));
 check('seven original domain sections preserved',(index.match(/class="domain-section"/g)||[]).length===7);
 check('ten original task cards preserved',(index.match(/class="test-card"/g)||[]).length===10);
 check('original homepage remains independent from research-ui.css',!index.includes('research-ui.css'));
@@ -24,6 +24,6 @@ check('research-safe charts use scoring adapter',controller.includes('MCCBScorin
 check('small-N chart guard is retained',controller.includes('Number(d.referenceN)>=5'));
 check('legacy arbitrary denominators are absent from controller',!/(\/110|\/40|\/24|\/36|\/26|\/4\))/.test(controller));
 check('homepage viewport is hardened without changing its CSS',runtime.includes("viewport.setAttribute('content','width=device-width, initial-scale=1.0')"));
-check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('ResearchData.beginSession'));
+check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));
 check('shared session bridge checkpoints participant history',session.includes('syncParticipantData')&&session.includes('stageBundle'));
 console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);process.exit(fail===0?0:1);
