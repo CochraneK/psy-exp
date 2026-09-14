@@ -15,6 +15,7 @@ const ROOT = path.resolve(__dirname, '..');
 const files = [
   'index.html',
   'participant-runner.html',
+  'data-governance.html',
   'research-report.html',
   'research-comparison.html',
   'comprehensive-report.html',
@@ -55,16 +56,17 @@ for (const rel of files) {
     console.log(`SKIP ${rel} — no inline JavaScript`);
     continue;
   }
+  let fileFailed = false;
   scripts.forEach((source, i) => {
     try {
       new vm.Script(source, { filename: `${rel}#inline-${i + 1}` });
       checked++;
     } catch (err) {
-      failed++;
+      failed++;fileFailed=true;
       console.error(`BAD  ${rel} inline script ${i + 1}: ${err.message}`);
     }
   });
-  if (!failed) console.log(`OK   ${rel} (${scripts.length} inline script${scripts.length === 1 ? '' : 's'})`);
+  if (!fileFailed) console.log(`OK   ${rel} (${scripts.length} inline script${scripts.length === 1 ? '' : 's'})`);
 }
 
 console.log(`\nInline scripts parsed: ${checked}; failures: ${failed}`);
