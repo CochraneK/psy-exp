@@ -74,11 +74,12 @@ async function main() {
     async function navigate(url,readyExpression='document.readyState === "complete"'){const before=exceptions.length;await cdp.send('Page.navigate',{url});await waitFor(readyExpression);await sleep(150);const pageExceptions=exceptions.slice(before);if(pageExceptions.length)throw new Error(`Runtime exceptions on ${url}: ${pageExceptions.join(' | ')}`)}
     async function test(name,fn){try{await fn();results.push([name,true]);console.log(`PASS ${name}`)}catch(err){results.push([name,false,err.message]);console.error(`FAIL ${name}: ${err.message}`)}}
 
-    await test('researcher console renders task-first v4 workspace and creates isolated participant state', async()=>{
+    await test('researcher console renders quiet v5 workbench and creates isolated participant state', async()=>{
       await navigate(`${BASE}/index.html`,'document.readyState === "complete" && !!document.querySelector(".research-shell")');
       await waitFor(`document.querySelectorAll('#tasks .task-card').length===10`);
-      const shellOk=await evaluate(`document.querySelector('.eyebrow').textContent.includes('Researcher console') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && !!document.querySelector('.console-identity') && !!document.querySelector('.participant-panel') && document.querySelectorAll('#tasks .task-card').length===10 && !document.getElementById('cohortMetrics') && !!document.querySelector('a[href="data-governance.html"]') && [...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css?v=4.0.0'))`);
-      if(!shellOk)throw new Error('v4 researcher workspace/governance/cache-busted stylesheet contract failed');
+      const shellOk=await evaluate(`!!document.querySelector('.workbench-header') && !!document.querySelector('.subject-bar') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && !!document.querySelector('.participant-panel') && document.querySelectorAll('#tasks .task-card').length===10 && !document.getElementById('cohortMetrics') && !!document.querySelector('a[href="data-governance.html"]') && !document.body.textContent.includes('Researcher console') && !document.body.textContent.includes('RESEARCH PROTOTYPE') && [...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css?v=5.0.0'))`);
+      if(!shellOk)throw new Error('v5 quiet workbench/governance/cache-busted stylesheet contract failed');
+      const localized=await evaluate(`[...document.querySelectorAll('#tasks .status')].every(x=>!['not_started','completed','in_progress'].includes(x.textContent.trim()))`);if(!localized)throw new Error('task statuses are not localized');
       const participantOk=await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);if(!participantOk)throw new Error('could not create clean E2E participant');
     });
 
@@ -86,17 +87,17 @@ async function main() {
       await navigate(`${BASE}/data-governance.html`,`document.readyState === 'complete' && typeof ResearchGovernance!=='undefined' && !!document.getElementById('saveStudyBtn')`);
       const configured=await evaluate(`(()=>{document.getElementById('consentVersion').value='consent-e2e-v1';document.getElementById('saveStudyBtn').click();const e=ResearchData.sessionEligibility('E2E1');return ResearchData.MODEL_VERSION==='research-data-model-1.1.0'&&ResearchStorage.STORAGE_ARCH_VERSION==='local-primary-http-replica-1.0.0'&&e.eligible===false&&e.reason==='consent_required'})()`);if(!configured)throw new Error('governance page did not persist consent version gate');
       await navigate(`${BASE}/participant-runner.html?p=E2E1`,`document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
-      await waitFor(`document.querySelectorAll('#preflightList .check').length >= 6 && document.getElementById('nextTitle').textContent.includes('未获准')`,8000);
+      await waitFor(`document.querySelectorAll('#preflightList .check').length >= 6 && document.getElementById('nextTitle').textContent.includes('暂不能开始施测')`,8000);
       const blocked=await evaluate(`(()=>{const d=ResearchData.snapshot();return Object.keys(d.sessions).length===0&&document.getElementById('nextBtn').hidden===true&&document.getElementById('nextDesc').textContent.includes('consent-e2e-v1')&&[...document.querySelectorAll('#taskList a')].every(a=>!a.hasAttribute('href'))})()`);if(!blocked)throw new Error('runner did not fail closed on missing consent');
     });
 
-    await test('governance grant releases participant and v4 runner creates fingerprinted session', async()=>{
+    await test('governance grant releases participant and v5 runner creates fingerprinted session', async()=>{
       await navigate(`${BASE}/data-governance.html`,`document.readyState === 'complete' && !!document.getElementById('grantConsentBtn')`);
       const granted=await evaluate(`(()=>{document.getElementById('grantConsentBtn').click();const e=ResearchData.sessionEligibility('E2E1'),p=ResearchData.snapshot().participants.E2E1;return e.eligible===true&&p.consent&&p.consent.version==='consent-e2e-v1'})()`);if(!granted)throw new Error('consent grant did not unlock participant');
       await navigate(`${BASE}/participant-runner.html?p=E2E1`,`document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
       await waitFor(`document.querySelectorAll('#taskList .task-row').length === 10 && document.querySelectorAll('#preflightList .check').length >= 6`,8000);
       await waitFor(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return d.modelVersion==='research-data-model-1.1.0'&&d.participants.E2E1&&s&&s.participantId==='E2E1'&&s.status==='active'&&s.consentVersion==='consent-e2e-v1'&&s.environment&&s.protocolManifest&&typeof s.protocolManifest.manifestHash==='string'&&s.protocolManifest.manifestHash.length===64&&typeof s.protocolManifest.protocolLockHash==='string'&&s.protocolManifest.protocolLockHash.length===64})()`,8000);
-      const ok=await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !!document.querySelector('.runner-focus')&&!!document.querySelector('.runner-roadmap')&&!document.body.textContent.includes('DEV mode')&&!document.querySelector('a[href="data-governance.html"]')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.1.0'&&s.build.storageArchitecture==='local-primary-http-replica-1.0.0'})()`);if(!ok)throw new Error('runner/session provenance or v4 participant-surface contract failed');
+      const ok=await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !!document.querySelector('.runner-focus')&&!!document.querySelector('.runner-roadmap')&&!document.body.textContent.includes('DEV mode')&&!document.querySelector('a[href="data-governance.html"]')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.1.0'&&s.build.storageArchitecture==='local-primary-http-replica-1.0.0'})()`);if(!ok)throw new Error('runner/session provenance or v5 participant-surface contract failed');
     });
 
     await test('complete TMT Part A through real task UI and persist valid canonical result', async()=>{
@@ -113,12 +114,12 @@ async function main() {
 
     await test('single report executes in document layout and exposes persisted TMT raw result', async()=>{
       await navigate(`${BASE}/research-report.html`,`document.readyState === 'complete' && document.getElementById('normBadge').textContent !== '载入中…'`);
-      const ok=await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && !!document.querySelector('.report-masthead') && document.body.textContent.includes('reference N < 5') && document.body.textContent.includes('Trail Making')`);if(!ok)throw new Error('research report guardrail, v4 layout, or persisted TMT result missing');
+      const ok=await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && !!document.querySelector('.report-masthead') && document.body.textContent.includes('reference N < 5') && document.body.textContent.includes('Trail Making')`);if(!ok)throw new Error('research report guardrail, layout, or persisted TMT result missing');
     });
 
     await test('comparison page executes participant selection and CSV matrix', async()=>{
       await navigate(`${BASE}/research-comparison.html`,`document.readyState === 'complete' && document.getElementById('count').textContent.length > 0`);
-      const ok=await evaluate(`!!document.querySelector('.comparison-layout') && document.body.textContent.includes('导出 CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);if(!ok)throw new Error('comparison controls, participant, v4 matrix, or small-N guardrail missing');
+      const ok=await evaluate(`!!document.querySelector('.comparison-layout') && document.body.textContent.includes('导出 CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);if(!ok)throw new Error('comparison controls, participant, matrix, or small-N guardrail missing');
     });
 
     await test('private-material task shells fail closed without bundled assets', async()=>{
