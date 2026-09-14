@@ -28,6 +28,7 @@ jobs:
           node --check tests/verify-scoring.cjs
           node --check tests/verify-participant.cjs
           node --check tests/verify-manifest.cjs
+          node --check tests/verify-protocol-lock.cjs
           node --check tests/validate-drivers.cjs
           node --check tests/validate-inline-scripts.cjs
           node --check tests/verify-ui.cjs
@@ -40,7 +41,7 @@ jobs:
       - name: UI and accessibility contracts
         run: node tests/verify-ui.cjs
 
-      - name: Chromium browser smoke
+      - name: Chromium browser E2E smoke
         run: node tests/browser-smoke.cjs
 
       - name: Research workspace/report/runtime contract
@@ -51,9 +52,12 @@ jobs:
           test -f research-report.html
           test -f research-comparison.html
           test -f task-manifest.json
+          test -f protocol-lock.json
           test -f docs/README.md
           test -f docs/HISTORY_PURGE.md
           test -f docs/UI_UX_V2.md
+          grep -q '"protocolGovernance": "protocol-lock-v1"' task-manifest.json
+          grep -q '"lockVersion": 1' protocol-lock.json
           grep -q "认知任务研究工作台" index.html
           grep -q "Researcher console" index.html
           grep -q "participant-runner.html" index.html
