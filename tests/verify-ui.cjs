@@ -6,7 +6,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const taskDir = path.join(ROOT, 'pages');
 const taskFiles = fs.readdirSync(taskDir).filter(name => /^mccb-.*\.html$/i.test(name)).sort();
-const researchAppFiles = ['participant-runner.html', 'data-governance.html', 'research-report.html', 'research-comparison.html'];
+const researchAppFiles = ['participant-runner.html', 'data-governance.html'];
 let passed = 0;
 let failed = 0;
 
@@ -35,7 +35,7 @@ const css = fs.readFileSync(path.join(ROOT, 'research-ui.css'), 'utf8');
 check(/overflow:auto/.test(css), 'research app restores long-page scrolling');
 check(/prefers-reduced-motion/.test(css), 'research UI honors reduced-motion preference');
 check(/focus-visible/.test(css), 'research UI exposes keyboard focus styling');
-check(/\.runner-focus/.test(css) && /\.comparison-layout/.test(css), 'research-only layout primitives remain available');
+check(/\.runner-focus/.test(css), 'research-only runner layout primitives remain available');
 
 const consoleHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 check(/<title>MCCB 认知成套测验<\/title>/.test(consoleHtml), 'console restores the original uploaded title');
@@ -75,10 +75,12 @@ check(/id="hardDeleteBtn"/.test(governance), 'data governance exposes explicit h
 
 const report = fs.readFileSync(path.join(ROOT, 'research-report.html'), 'utf8');
 const comparison = fs.readFileSync(path.join(ROOT, 'research-comparison.html'), 'utf8');
-check(/MIN_REFERENCE_N=5/.test(report), 'single report preserves small-N display guardrail');
-check(/report-masthead/.test(report) && /domain-grid/.test(report), 'single report uses current research-safe hierarchy');
-check(/MIN_REFERENCE_N=5/.test(comparison), 'comparison report preserves small-N display guardrail');
-check(/comparison-layout/.test(comparison) && /selector-panel/.test(comparison), 'comparison uses participant selector plus evidence matrix');
+check(/MCCB 综合认知报告/.test(report) && /class="header"/.test(report) && /subject-card/.test(report), 'single report uses original visual language');
+check(!/report-masthead|research-app|Research report/.test(report), 'single report removes later research-report UI shell');
+check(/MIN_REFERENCE_N=5/.test(report) && /非 MCCB T 分/.test(report), 'single report preserves small-N and non-clinical guardrails');
+check(/MCCB 多被试对比报告/.test(comparison) && /class="header"/.test(comparison) && /participant-chip/.test(comparison), 'comparison uses original visual language');
+check(!/selector-panel|research-app|Cohort comparison/.test(comparison), 'comparison removes later research-comparison UI shell');
+check(/MIN_REFERENCE_N=5/.test(comparison) && /reference group/.test(comparison), 'comparison preserves protocol/reference-group guardrails');
 
 console.log(`\nUI contracts: ${passed} passed / ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);
