@@ -6,7 +6,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const taskDir = path.join(ROOT, 'pages');
 const taskFiles = fs.readdirSync(taskDir).filter(name => /^mccb-.*\.html$/i.test(name)).sort();
-const appFiles = ['index.html', 'participant-runner.html', 'data-governance.html', 'research-report.html', 'research-comparison.html'];
+const appFiles = ['participant-runner.html', 'data-governance.html', 'research-report.html', 'research-comparison.html'];
 let passed = 0;
 let failed = 0;
 
@@ -23,6 +23,9 @@ for (const name of taskFiles) {
   check(/<html\b[^>]*lang=["']zh-CN["']/i.test(html), `${name}: document language declared`);
 }
 
+const consoleHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+check(/research-ui\.css/.test(consoleHtml), 'index.html: shared research stylesheet remains available for compatibility');
+check(/class=["'][^"']*research-shell/.test(consoleHtml), 'index.html: original long-form console shell enabled');
 for (const name of appFiles) {
   const html = fs.readFileSync(path.join(ROOT, name), 'utf8');
   check(/research-ui\.css/.test(html), `${name}: unified research UI stylesheet loaded`);
@@ -40,12 +43,12 @@ check(/prefers-reduced-motion/.test(css), 'research UI honors reduced-motion pre
 check(/focus-visible/.test(css), 'research UI exposes keyboard focus styling');
 check(/\.task-grid/.test(css) && /\.runner-focus/.test(css) && /\.comparison-layout/.test(css), 'task-first layout primitives remain available');
 
-const consoleHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-check(/workbench-header/.test(consoleHtml) && /subject-bar/.test(consoleHtml), 'console uses quiet v5 workbench header and participant strip');
-check(/task-grid/.test(consoleHtml) && /participant-panel/.test(consoleHtml), 'console keeps task workspace plus lightweight participant sidebar');
+check(/hero workbench-header/.test(consoleHtml) && /workspace subject-bar/.test(consoleHtml), 'console restores original hero and two-column participant workspace');
+check(/tasks task-grid/.test(consoleHtml) && /participant-panel/.test(consoleHtml), 'console restores original two-column task cards plus participant management card');
+check(/status-grid/.test(consoleHtml) && /grid-template-columns:repeat\(3,1fr\)/.test(consoleHtml), 'console restores original three-stat strip');
 check(!/id=["']cohortMetrics["']/.test(consoleHtml), 'console carries no cohort dashboard strip');
-check(!/Researcher console|RESEARCH PROTOTYPE|task-first researcher workspace/.test(consoleHtml), 'console removes engineering-dashboard hero copy');
-check(!/protocol-compatible research rank|local primary → outbox|authenticated replica/.test(consoleHtml), 'console removes storage/protocol implementation jargon from primary view');
+check(!/Researcher console|RESEARCH PROTOTYPE|task-first researcher workspace/.test(consoleHtml), 'console removes later engineering-dashboard hero copy');
+check(!/protocol-compatible research rank|local primary → outbox|authenticated replica/.test(consoleHtml), 'console keeps backend implementation jargon out of primary view');
 check(/STATUS_TEXT/.test(consoleHtml) && /未开始/.test(consoleHtml) && /已完成/.test(consoleHtml), 'console localizes task status labels');
 check(/href=["']data-governance\.html["']/.test(consoleHtml), 'console keeps researcher-only data governance entry');
 check(/research-storage\.js/.test(consoleHtml) && /sessionEligibility/.test(consoleHtml), 'console remains wired to storage config and session eligibility');
