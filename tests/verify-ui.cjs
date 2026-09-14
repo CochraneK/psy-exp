@@ -6,8 +6,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const taskDir = path.join(ROOT, 'pages');
 const taskFiles = fs.readdirSync(taskDir).filter(name => /^mccb-.*\.html$/i.test(name)).sort();
-const v4Files = ['index.html', 'participant-runner.html', 'research-report.html', 'research-comparison.html'];
-const appFiles = [...v4Files, 'data-governance.html'];
+const appFiles = ['index.html', 'participant-runner.html', 'data-governance.html', 'research-report.html', 'research-comparison.html'];
 let passed = 0;
 let failed = 0;
 
@@ -29,32 +28,35 @@ for (const name of appFiles) {
   check(/research-ui\.css/.test(html), `${name}: unified research UI stylesheet loaded`);
   check(/research-app/.test(html), `${name}: long-form research shell enabled`);
 }
-for (const name of v4Files) {
+for (const name of ['index.html','participant-runner.html']) {
   const html = fs.readFileSync(path.join(ROOT, name), 'utf8');
-  check(/research-ui\.css\?v=4\.0\.0/.test(html), `${name}: v4 stylesheet URL is cache-busted`);
+  check(/research-ui\.css\?v=5\.0\.0/.test(html), `${name}: v5 stylesheet URL is cache-busted`);
 }
 
 const css = fs.readFileSync(path.join(ROOT, 'research-ui.css'), 'utf8');
-check(/UI v4/.test(css), 'shared stylesheet identifies UI v4');
+check(/UI v5/.test(css), 'shared stylesheet identifies UI v5');
 check(/overflow:auto/.test(css), 'research app restores long-page scrolling');
 check(/prefers-reduced-motion/.test(css), 'research UI honors reduced-motion preference');
 check(/focus-visible/.test(css), 'research UI exposes keyboard focus styling');
-check(/\.task-grid/.test(css) && /\.runner-focus/.test(css) && /\.comparison-layout/.test(css), 'v4 task-first layout primitives exist');
+check(/\.task-grid/.test(css) && /\.runner-focus/.test(css) && /\.comparison-layout/.test(css), 'task-first layout primitives remain available');
 
 const consoleHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-check(/console-identity/.test(consoleHtml), 'console has compact active-participant strip');
-check(/task-grid/.test(consoleHtml) && /participant-panel/.test(consoleHtml), 'console uses task-first workspace plus participant sidebar');
-check(!/id=["']cohortMetrics["']/.test(consoleHtml), 'console no longer carries the old cohort dashboard strip');
-check(!/① 施测|② QC|③ 分析/.test(consoleHtml), 'console removes explanatory process-card clutter');
-check(/href=["']data-governance\.html["']/.test(consoleHtml), 'console exposes researcher-only data governance entry');
-check(/research-storage\.js/.test(consoleHtml) && /sessionEligibility/.test(consoleHtml), 'console is wired to storage config and session eligibility');
+check(/workbench-header/.test(consoleHtml) && /subject-bar/.test(consoleHtml), 'console uses quiet v5 workbench header and participant strip');
+check(/task-grid/.test(consoleHtml) && /participant-panel/.test(consoleHtml), 'console keeps task workspace plus lightweight participant sidebar');
+check(!/id=["']cohortMetrics["']/.test(consoleHtml), 'console carries no cohort dashboard strip');
+check(!/Researcher console|RESEARCH PROTOTYPE|task-first researcher workspace/.test(consoleHtml), 'console removes engineering-dashboard hero copy');
+check(!/protocol-compatible research rank|local primary → outbox|authenticated replica/.test(consoleHtml), 'console removes storage/protocol implementation jargon from primary view');
+check(/STATUS_TEXT/.test(consoleHtml) && /未开始/.test(consoleHtml) && /已完成/.test(consoleHtml), 'console localizes task status labels');
+check(/href=["']data-governance\.html["']/.test(consoleHtml), 'console keeps researcher-only data governance entry');
+check(/research-storage\.js/.test(consoleHtml) && /sessionEligibility/.test(consoleHtml), 'console remains wired to storage config and session eligibility');
 
 const runner = fs.readFileSync(path.join(ROOT, 'participant-runner.html'), 'utf8');
 check(/getTestUrl\(key,'user'\)/.test(runner), 'participant runner forces USER mode');
 check(/timerJitter/.test(runner), 'participant runner includes timer-jitter preflight');
 check(!/modeSelect/.test(runner), 'participant runner exposes no DEV-mode selector');
 check(/runner-focus/.test(runner) && /runner-roadmap/.test(runner), 'participant runner centers one next action plus compact roadmap');
-check(/<details>[\s\S]*设备预检与技术状态/.test(runner), 'participant technical preflight is secondary/collapsible');
+check(/<summary>设备检查<\/summary>/.test(runner), 'participant technical preflight is secondary/collapsible');
+check(!/Next task|Participant session|valid canonical result/.test(runner), 'participant runner removes engineering-facing English copy');
 check(/research-storage\.js/.test(runner) && /applySessionGate/.test(runner), 'participant runner loads storage layer and applies fail-closed session gate');
 check(/ResearchStorage\.stageBundle/.test(runner) && /syncParticipantData/.test(runner), 'participant runner checkpoints provenance through async outbox path');
 check(!/href=["']data-governance\.html["']/.test(runner), 'participant runner does not expose researcher governance controls');

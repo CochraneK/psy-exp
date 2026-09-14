@@ -5,72 +5,76 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>认知任务研究工作台 · psy-exp</title>
 <link rel="stylesheet" href="mccb-common.css">
-<link rel="stylesheet" href="research-ui.css?v=4.0.0">
+<link rel="stylesheet" href="research-ui.css?v=5.0.0">
 <script>
 (()=>{try{const ref=new URL(document.referrer);if(/\/pages\/mccb-[^/]+\.html$/.test(ref.pathname)&&ref.searchParams.get('mode')!=='dev'){const id=localStorage.getItem('mccb-current-participant'),q=id?`?p=${encodeURIComponent(id)}`:'';location.replace('participant-runner.html'+q)}}catch{}})();
 </script>
 </head>
 <body class="research-app">
 <main id="app" class="research-shell">
-  <header class="topbar">
+  <header class="workbench-header">
     <div>
-      <div class="brand-row"><div class="brand-mark">PX</div><div><div class="eyebrow">Researcher console</div><h1>认知任务研究工作台</h1></div></div>
-      <p>MCCB-related browser research prototype · task-first researcher workspace</p>
-      <div class="badges" style="margin-top:8px"><span class="badge research">RESEARCH PROTOTYPE</span><span class="badge">非临床常模</span><span class="badge info" id="buildBadge">loading…</span></div>
+      <div class="workbench-kicker">psy-exp</div>
+      <h1>认知任务研究工作台</h1>
+      <div class="workbench-meta"><span class="prototype-dot"></span><span>研究原型</span><span>·</span><span id="buildBadge">载入版本…</span></div>
     </div>
-    <nav class="header-actions" aria-label="研究工具">
-      <a class="primary" id="runnerLink" href="participant-runner.html">参与者施测</a>
-      <a href="research-report.html">单人报告</a>
-      <a href="research-comparison.html">多人对比</a>
-      <a href="data-governance.html">数据治理</a>
-      <button id="exportBtn" type="button">导出数据</button>
+    <nav class="workbench-nav" aria-label="研究工具">
+      <a class="primary" id="runnerLink" href="participant-runner.html">开始施测</a>
+      <a href="research-report.html">报告</a>
+      <a href="research-comparison.html">对比</a>
+      <details class="nav-more">
+        <summary>更多</summary>
+        <div class="nav-menu">
+          <a href="data-governance.html">数据治理</a>
+          <button id="exportBtn" type="button">导出数据</button>
+        </div>
+      </details>
     </nav>
   </header>
+  <div class="prototype-note">非官方 MCCB 数字版 · 不输出临床常模、临床百分位或诊断结论</div>
 
-  <div class="boundary-note"><strong>研究边界：</strong>不是官方 MCCB 数字版；默认仅保存 raw data、session QC 与 protocol-compatible research rank，不生成临床 T 分、临床 percentile 或诊断结论。</div>
-
-  <section class="console-identity" aria-label="当前参与者">
+  <section class="subject-bar" aria-label="当前参与者">
     <div>
-      <div class="section-title" style="margin-bottom:7px"><h2>当前参与者</h2><p id="participantCount">0 人</p></div>
-      <div class="participant-controls toolbar">
-        <select id="participantSelect" aria-label="选择参与者"><option value="">— 请选择/创建 —</option></select>
+      <div class="subject-label">当前参与者 <span id="participantCount">0 人</span></div>
+      <div class="subject-controls">
+        <select id="participantSelect" aria-label="选择参与者"><option value="">— 选择参与者 —</option></select>
         <input id="newId" maxlength="64" autocomplete="off" placeholder="新编号，如 P001" aria-label="新参与者编号">
-        <button id="createBtn" class="primary" type="button">创建并选择</button>
+        <button id="createBtn" type="button">创建并选择</button>
       </div>
-      <div id="currentHint" class="small" style="margin-top:7px">未选择参与者。</div>
-      <div class="current-summary" aria-label="当前参与者状态">
-        <span class="mini-stat"><b id="doneCount">0</b> / 10 valid</span>
-        <span class="mini-stat"><b id="invalidCount">0</b> QC 异常</span>
-        <span class="mini-stat"><b id="pendingReviewCount">0</b> Fluency 待审核</span>
+      <div id="currentHint" class="subject-hint">尚未选择参与者。</div>
+    </div>
+    <div class="subject-actions">
+      <div class="subject-progress" aria-label="有效完成进度"><strong id="doneCount">0</strong><span>/ 10</span></div>
+      <div class="button-row">
+        <a id="startSessionBtn" class="rui-btn primary" href="participant-runner.html">继续施测</a>
+        <a id="currentReportBtn" class="rui-btn" href="research-report.html">查看报告</a>
       </div>
     </div>
-    <div class="button-row">
-      <a id="startSessionBtn" class="rui-btn primary" href="participant-runner.html">开始 / 继续施测</a>
-      <a id="currentReportBtn" class="rui-btn" href="research-report.html">当前报告</a>
-    </div>
+    <span id="invalidCount" hidden>0</span><span id="pendingReviewCount" hidden>0</span>
   </section>
 
-  <section class="console-main">
+  <section class="workbench-body">
     <div class="task-panel">
-      <div class="section-title"><h2>研究任务</h2><p>点击卡片用于研究者单项检查或重测；连续流程优先进入 Participant Runner</p></div>
+      <div class="task-heading"><h2>任务</h2><p>点击单项可检查或重测；连续流程请使用“开始施测”</p></div>
       <div id="tasks" class="task-grid"></div>
     </div>
 
-    <aside class="card participant-panel" aria-label="参与者管理">
-      <div class="section-title"><h2>参与者</h2><p>同步 local primary</p></div>
-      <p class="small" style="margin:0 0 8px">任务结果优先写入当前浏览器；consent、session lifecycle、导入/删除与异步 replica 在“数据治理”中管理。</p>
-      <div id="participantList" class="participant-list"></div>
-      <details class="advanced">
-        <summary>高级 / 调试设置</summary>
-        <div class="toolbar"><label class="small" for="modeSelect">单项任务模式</label><select id="modeSelect"><option value="user">USER mode</option><option value="dev">DEV mode</option></select></div>
-        <p class="small" style="margin:7px 0 0">Participant Runner 始终为 USER mode；DEV 仅用于软件调试。</p>
-      </details>
+    <aside class="participant-panel" aria-label="参与者管理">
+      <div class="panel-inner">
+        <div class="section-title"><h2>参与者</h2><p>本机记录</p></div>
+        <div id="participantList" class="participant-list"></div>
+        <details class="advanced">
+          <summary>调试设置</summary>
+          <div class="toolbar"><label class="small" for="modeSelect">单项模式</label><select id="modeSelect"><option value="user">普通</option><option value="dev">开发</option></select></div>
+          <p class="small" style="margin:7px 0 0">连续施测始终使用普通模式。</p>
+        </details>
+      </div>
     </aside>
   </section>
 
   <footer class="console-footer">
-    <p class="small" style="margin:0">任务状态与材料策略以 <code>task-manifest.json</code> 为准。私有授权材料缺失时相关任务会 fail closed。</p>
-    <p class="small" style="margin:0;text-align:right">local primary → outbox → authenticated replica</p>
+    <p class="small" style="margin:0">私有授权材料缺失时，对应任务会直接拒绝启动。</p>
+    <p class="small" style="margin:0;text-align:right">研究同意、会话、导入/删除与远端同步请进入“数据治理”。</p>
   </footer>
 </main>
 <script src="mccb-participant.js"></script>
@@ -80,27 +84,39 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const META={
- tmt:{domain:'处理速度',desc:'浏览器连线任务；MCCB-related scoring 只使用 Part A。',material:'public-domain-related'},
- bacs:{domain:'处理速度',desc:'合成符号编码，90 秒 absolute deadline。',material:'synthetic-public-stimuli'},
- fluency:{domain:'处理速度',desc:'键盘 Animal Naming；需人工语义核验后才进入 cohort rank。',material:'public-domain-related'},
- cpt:{domain:'注意/警觉',desc:'自定义 4 位 identical-pairs；记录 trial onset/RT timing。',material:'synthetic-public-stimuli'},
- 'spatial-span':{domain:'工作记忆',desc:'算法生成 3×3 forward/reverse 空间序列。',material:'synthetic-public-stimuli'},
- lns:{domain:'工作记忆',desc:'算法生成字母数字排序序列；非标准口头施测。',material:'synthetic-public-stimuli'},
- hvlt:{domain:'言语学习',desc:'私有词表协议壳；公开仓库不附带词表。',material:'private-licensed-assets-required'},
- bvmt:{domain:'视觉学习',desc:'合成符号网格视觉学习任务；不含标准 BVMT-R 图形。',material:'synthetic-public-stimuli'},
- mazes:{domain:'推理/规划',desc:'算法生成迷宫；不含 NAB 标准迷宫布局。',material:'synthetic-public-stimuli'},
- msceit:{domain:'社会认知',desc:'私有题目 + 私有 score() 协议壳；公开仓库不含正式题目/权重。',material:'private-licensed-assets-required'}
+ tmt:{domain:'处理速度',desc:'浏览器连线 · Part A',material:'public-domain-related'},
+ bacs:{domain:'处理速度',desc:'符号编码 · 90 秒',material:'synthetic-public-stimuli'},
+ fluency:{domain:'处理速度',desc:'动物命名 · 完成后需审核',material:'public-domain-related'},
+ cpt:{domain:'注意 / 警觉',desc:'持续操作 · 反应时',material:'synthetic-public-stimuli'},
+ 'spatial-span':{domain:'工作记忆',desc:'空间序列 · 顺背 / 倒背',material:'synthetic-public-stimuli'},
+ lns:{domain:'工作记忆',desc:'字母数字排序',material:'synthetic-public-stimuli'},
+ hvlt:{domain:'言语学习',desc:'需授权词表',material:'private-licensed-assets-required'},
+ bvmt:{domain:'视觉学习',desc:'视觉图形学习',material:'synthetic-public-stimuli'},
+ mazes:{domain:'推理 / 规划',desc:'迷宫规划',material:'synthetic-public-stimuli'},
+ msceit:{domain:'社会认知',desc:'需授权题目',material:'private-licensed-assets-required'}
 };
+const STATUS_TEXT={not_started:'未开始',in_progress:'进行中',completed:'已完成',completed_invalid:'结果无效',aborted:'已中止',interrupted:'被中断',timing_violation:'计时异常',technical_failure:'技术失败'};
 function mode(){return $('modeSelect').value||'user'}
 function siteId(){return window.ResearchStorage?ResearchStorage.getConfig().siteId:ResearchData.DEFAULT_SITE_ID}
+function removeTaskSafetyBanner(){const banner=$('research-prototype-banner');if(banner)banner.remove()}
 function participantStats(id){const d=ParticipantManager.getData(id);if(!d)return{done:0,invalid:0,pending:0,validResults:0};const s=Object.values(d.progress||{}),bad=new Set(['completed_invalid','aborted','interrupted','timing_violation','technical_failure']);const flu=d.results&&d.results['mccb-fluency-result'];return{done:s.filter(x=>x==='completed').length,invalid:s.filter(x=>bad.has(x)).length,pending:flu&&flu.reviewStatus!=='verified'?1:0,validResults:Object.keys(d.results||{}).length}}
-function refreshParticipants(){const sel=$('participantSelect'),current=ParticipantManager.getCurrent(),ids=ParticipantManager.getAllParticipants();sel.textContent='';const o=document.createElement('option');o.value='';o.textContent='— 请选择/创建 —';sel.append(o);ids.forEach(id=>{const x=document.createElement('option');x.value=id;x.textContent=id;sel.append(x)});sel.value=ids.includes(current)?current:'';$('participantCount').textContent=`${ids.length} 人`;const list=$('participantList');list.textContent='';if(!ids.length){list.innerHTML='<div class="empty">暂无参与者。</div>'}else ids.forEach(id=>{const r=document.createElement('div');r.className='participant-row';const left=document.createElement('div'),name=document.createElement('strong'),sub=document.createElement('div'),actions=document.createElement('div'),use=document.createElement('button'),del=document.createElement('button');name.textContent=id;const st=participantStats(id);sub.className='small';sub.textContent=`${st.done}/10 valid${st.invalid?` · ${st.invalid} QC issue`:''}${st.pending?' · Fluency 待审核':''}`;left.append(name,sub);actions.className='actions';use.textContent=id===current?'已选择':'选择';use.disabled=id===current;del.textContent='删除任务数据';del.className='danger';use.onclick=()=>{ParticipantManager.setCurrent(id);if(window.ResearchData)ResearchData.ensureParticipant(id,{siteId:siteId()});refresh()};del.onclick=()=>{const typed=prompt(`删除会清除 ${id} 在当前浏览器中的本地任务数据，但 Research Data provenance 默认保留。完整硬删除请使用“数据治理”。请输入参与者编号确认：`);if(typed===id){ParticipantManager.deleteParticipant(id);refresh()}};actions.append(use,del);r.append(left,actions);list.append(r)})}
+function refreshParticipants(){
+  const sel=$('participantSelect'),current=ParticipantManager.getCurrent(),ids=ParticipantManager.getAllParticipants();sel.textContent='';const o=document.createElement('option');o.value='';o.textContent='— 选择参与者 —';sel.append(o);ids.forEach(id=>{const x=document.createElement('option');x.value=id;x.textContent=id;sel.append(x)});sel.value=ids.includes(current)?current:'';$('participantCount').textContent=`· ${ids.length} 人`;
+  const list=$('participantList');list.textContent='';if(!ids.length){list.innerHTML='<div class="empty" style="padding:18px 0">暂无参与者</div>';return}
+  ids.forEach(id=>{const r=document.createElement('div');r.className='participant-row';const left=document.createElement('div'),name=document.createElement('strong'),sub=document.createElement('div'),actions=document.createElement('div'),use=document.createElement('button'),del=document.createElement('button');name.textContent=id;const st=participantStats(id);sub.className='small';sub.textContent=`已完成 ${st.done}/10${st.invalid?` · ${st.invalid} 项异常`:''}${st.pending?' · 1 项待审核':''}`;left.append(name,sub);actions.className='actions';use.textContent=id===current?'当前':'选择';use.disabled=id===current;del.textContent='删除';del.className='danger';use.onclick=()=>{ParticipantManager.setCurrent(id);if(window.ResearchData)ResearchData.ensureParticipant(id,{siteId:siteId()});refresh()};del.onclick=()=>{const typed=prompt(`将删除 ${id} 在本机的任务数据。完整研究数据删除请使用“数据治理”。\n请输入参与者编号确认：`);if(typed===id){ParticipantManager.deleteParticipant(id);refresh()}};actions.append(use,del);r.append(left,actions);list.append(r)})
+}
 function taskStatus(key){const d=ParticipantManager.getData();return d&&d.progress&&d.progress[key]||'not_started'}
-function renderTasks(){const box=$('tasks');box.textContent='';TEST_ORDER.forEach((t,i)=>{const m=META[t.key],st=taskStatus(t.key),c=document.createElement('article');c.className='task-card';c.tabIndex=0;const head=document.createElement('div');head.className='task-card-head';const left=document.createElement('div');left.className='task-card-title';const no=document.createElement('div');no.className='task-no';no.textContent=String(i+1);const title=document.createElement('h3');title.textContent=t.name;left.append(no,title);const badge=document.createElement('span');badge.className='status '+(st==='completed'?'completed':st);badge.textContent=st;head.append(left,badge);const p=document.createElement('p');p.textContent=m.desc;const tags=document.createElement('div');tags.className='task-tags';const d=document.createElement('span');d.className='task-tag';d.textContent=m.domain;const mat=document.createElement('span');mat.className='task-tag '+(m.material.startsWith('private')?'private':m.material.startsWith('synthetic')?'synthetic':'');mat.textContent=m.material.startsWith('private')?'private materials':m.material.startsWith('synthetic')?'synthetic stimuli':'public-domain-related';tags.append(d,mat);c.append(head,p,tags);const open=()=>{if(!ParticipantManager.getCurrent()){alert('请先选择或创建参与者编号。');return}location.href=ParticipantManager.getTestUrl(t.key,mode())};c.onclick=open;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}};box.append(c)})}
-function updateSummary(){const id=ParticipantManager.getCurrent(),s=ParticipantManager.getProgressSummary(),st=id?participantStats(id):{pending:0};if(id&&window.ResearchData)ResearchData.ensureParticipant(id,{siteId:siteId()});$('doneCount').textContent=s.done;$('invalidCount').textContent=s.invalid;$('pendingReviewCount').textContent=st.pending;let hint=id?`当前参与者 ${id} · ${s.done}/10 valid completed`:'未选择参与者；任务不会启动。';if(id&&window.ResearchData){const eligibility=ResearchData.sessionEligibility(id);if(!eligibility.eligible)hint+=` · session gate: ${eligibility.reason}${eligibility.requiredConsentVersion?` (${eligibility.requiredConsentVersion})`:''}`} $('currentHint').textContent=hint;$('runnerLink').href=id?`participant-runner.html?p=${encodeURIComponent(id)}`:'participant-runner.html';$('startSessionBtn').href=$('runnerLink').href;$('currentReportBtn').href=id?`research-report.html?p=${encodeURIComponent(id)}`:'research-report.html'}
-function refresh(){refreshParticipants();renderTasks();updateSummary();$('buildBadge').textContent=`${PSY_EXP_BUILD.runtimeVersion} · ${window.ResearchData?ResearchData.MODEL_VERSION:'data-model unavailable'}`}
+function renderTasks(){
+  const box=$('tasks');box.textContent='';TEST_ORDER.forEach((t,i)=>{const m=META[t.key],st=taskStatus(t.key),c=document.createElement('article');c.className='task-card';c.tabIndex=0;const no=document.createElement('div');no.className='task-no';no.textContent=String(i+1);const copy=document.createElement('div');copy.className='task-copy';const title=document.createElement('h3');title.textContent=t.name;const p=document.createElement('p');p.textContent=`${m.domain} · ${m.desc}`;if(m.material.startsWith('private'))p.classList.add('private-note');copy.append(title,p);const badge=document.createElement('span');badge.className='status '+(st==='completed'?'completed':st);badge.textContent=STATUS_TEXT[st]||st;c.append(no,copy,badge);const open=()=>{if(!ParticipantManager.getCurrent()){alert('请先选择或创建参与者。');return}location.href=ParticipantManager.getTestUrl(t.key,mode())};c.onclick=open;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}};box.append(c)})
+}
+function updateSummary(){
+  const id=ParticipantManager.getCurrent(),s=ParticipantManager.getProgressSummary(),st=id?participantStats(id):{pending:0};if(id&&window.ResearchData)ResearchData.ensureParticipant(id,{siteId:siteId()});$('doneCount').textContent=s.done;$('invalidCount').textContent=s.invalid;$('pendingReviewCount').textContent=st.pending;
+  let hint='尚未选择参与者。';if(id){hint=`${id} · 已完成 ${s.done}/10`;if(s.invalid)hint+=` · ${s.invalid} 项需处理`;if(st.pending)hint+=' · 流畅性待审核';if(window.ResearchData){const e=ResearchData.sessionEligibility(id);if(!e.eligible){const friendly={consent_required:'需先记录研究同意',consent_version_mismatch:'研究同意版本需更新',participant_withdrawn:'参与者已撤回',participant_declined:'参与者未同意'};hint+=` · ${friendly[e.reason]||'暂不能开始新会话'}`}}}
+  $('currentHint').textContent=hint;$('currentHint').classList.toggle('subject-alert',/需先|需更新|撤回|未同意|暂不能/.test(hint));$('runnerLink').href=id?`participant-runner.html?p=${encodeURIComponent(id)}`:'participant-runner.html';$('startSessionBtn').href=$('runnerLink').href;$('currentReportBtn').href=id?`research-report.html?p=${encodeURIComponent(id)}`:'research-report.html'
+}
+function refresh(){removeTaskSafetyBanner();refreshParticipants();renderTasks();updateSummary();$('buildBadge').textContent=`${PSY_EXP_BUILD.runtimeVersion.replace('research-runtime-','')} · data ${window.ResearchData?ResearchData.MODEL_VERSION.replace('research-data-model-',''):'—'}`}
 $('participantSelect').onchange=e=>{if(e.target.value){ParticipantManager.setCurrent(e.target.value);if(window.ResearchData)ResearchData.ensureParticipant(e.target.value,{siteId:siteId()})}else ParticipantManager.logout();refresh()};
-$('createBtn').onclick=()=>{const id=$('newId').value.trim();if(!ParticipantManager.setCurrent(id)){alert('参与者编号无效：仅允许 1–64 位字母、数字、点、下划线和连字符。');return}if(window.ResearchData)ResearchData.ensureParticipant(id,{siteId:siteId()});$('newId').value='';refresh()};
+$('createBtn').onclick=()=>{const id=$('newId').value.trim();if(!ParticipantManager.setCurrent(id)){alert('编号无效：仅允许 1–64 位字母、数字、点、下划线和连字符。');return}if(window.ResearchData)ResearchData.ensureParticipant(id,{siteId:siteId()});$('newId').value='';refresh()};
 $('modeSelect').onchange=()=>{try{localStorage.setItem('mccb_mode',mode())}catch{}};try{$('modeSelect').value=localStorage.getItem('mccb_mode')==='dev'?'dev':'user'}catch{}
 $('exportBtn').onclick=()=>{const participantData=ParticipantManager.exportAllData();if(window.ResearchData){ResearchData.downloadBundle({participantData});return}const blob=new Blob([JSON.stringify(participantData,null,2)],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`psy-exp-export-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(u)};
 document.addEventListener('DOMContentLoaded',refresh);

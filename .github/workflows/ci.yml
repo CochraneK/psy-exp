@@ -97,15 +97,18 @@ jobs:
           grep -q "PSY_EXP_API_TOKEN" server/research-backend.cjs
           grep -q "127.0.0.1" server/research-backend.cjs
           grep -q "认知任务研究工作台" index.html
-          grep -q "Researcher console" index.html
+          if grep -q "Researcher console" index.html; then
+            echo "UI v5 must not restore the engineering-dashboard eyebrow."
+            exit 1
+          fi
           grep -q "participant-runner.html" index.html
-          grep -q "Participant session" participant-runner.html
+          grep -q "认知研究任务" participant-runner.html
           grep -q "timerJitter" participant-runner.html
           grep -q "research-app" research-ui.css
           grep -q "overflow:auto" research-ui.css
-          grep -q "UI v4" research-ui.css
-          grep -q "research-ui.css?v=4.0.0" index.html
-          grep -q "research-ui.css?v=4.0.0" participant-runner.html
+          grep -q "UI v5" research-ui.css
+          grep -q "research-ui.css?v=5.0.0" index.html
+          grep -q "research-ui.css?v=5.0.0" participant-runner.html
           grep -q "MIN_REFERENCE_N=5" research-report.html
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
           grep -q "导出 CSV" research-comparison.html
