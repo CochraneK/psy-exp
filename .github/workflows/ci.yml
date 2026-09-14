@@ -108,9 +108,16 @@ jobs:
           grep -q "research-app" research-ui.css
           grep -q "overflow:auto" research-ui.css
           grep -q "research-ui.css?v=5.0.0" participant-runner.html
+          grep -q "MCCB 综合认知报告" research-report.html
+          grep -q "MCCB 多被试对比报告" research-comparison.html
           grep -q "MIN_REFERENCE_N=5" research-report.html
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
-          grep -q "导出 CSV" research-comparison.html
+          grep -q "非 MCCB T 分" research-report.html
+          grep -q "reference group" research-comparison.html
+          if grep -q "report-masthead\|selector-panel\|Cohort comparison\|Research report" research-report.html research-comparison.html; then
+            echo "Later research-report/research-comparison UI shell must not reappear."
+            exit 1
+          fi
           grep -q "protocol_time_limit_reached_incomplete" pages/mccb-tmt.html
           if grep -q "timing_violation.*tmt_part_.*time_limit" pages/mccb-tmt.html; then
             echo "TMT protocol time limit must not be mislabeled as timing_violation."
@@ -120,9 +127,6 @@ jobs:
             echo "Task pages must not disable browser zoom."
             exit 1
           fi
-          grep -q "RESEARCH PROTOTYPE" research-report.html
-          grep -q "未应用经验证的 MCCB 常模" research-report.html
-          grep -q "未应用经验证的 MCCB 常模" research-comparison.html
           grep -q "referenceN" research-report.html
           grep -q "reference group" research-comparison.html
           grep -q "attemptHistory" mccb-participant.js
@@ -133,8 +137,6 @@ jobs:
           grep -q "supportsTask" mccb-scoring.js
           grep -q "private-licensed-assets-required" task-manifest.json
           grep -q "mccb_mode.*user" mccb-participant.js
-          grep -q "research-report.html" comprehensive-report.html
-          grep -q "research-comparison.html" comparison-report.html
 
       - name: Protected material and obsolete-harness guard
         shell: bash
@@ -167,6 +169,10 @@ jobs:
           fi
           if grep -nE '/(110|40|24|36|26)([^0-9]|$)' original-ui-controller.js; then
             echo "Original UI controller must not use arbitrary fixed-denominator scoring."
+            exit 1
+          fi
+          if grep -nE 'd\.tScore|d\.percentile|近似 T 分转换' research-report.html research-comparison.html; then
+            echo "Restored report UIs must use research-safe indices rather than pseudo-standardization."
             exit 1
           fi
           grep -q "research-cohort-rank-index" mccb-scoring.js

@@ -116,14 +116,14 @@ async function main() {
       const ok=await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && Object.values(d.sessions).length===1 && d.attempts.some(a=>a.testKey==='tmt'&&a.sessionId===s.id)})()`);if(!ok)throw new Error('runner did not reflect completion, advance, reuse session, or sync attempt');
     });
 
-    await test('single report executes and exposes persisted TMT raw result', async()=>{
-      await navigate(`${BASE}/research-report.html`,`document.readyState === 'complete' && document.getElementById('normBadge').textContent !== '载入中…'`);
-      const ok=await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && !!document.querySelector('.report-masthead') && document.body.textContent.includes('reference N < 5') && document.body.textContent.includes('Trail Making')`);if(!ok)throw new Error('research report guardrail, layout, or persisted TMT result missing');
+    await test('single report executes in restored visual language and exposes raw result', async()=>{
+      await navigate(`${BASE}/research-report.html`,`document.readyState === 'complete' && document.getElementById('participantSelect').options.length > 1`);
+      const ok=await evaluate(`!!document.querySelector('.header') && !!document.querySelector('.subject-card') && !document.querySelector('.report-masthead') && document.getElementById('normBadge').textContent.includes('非临床常模') && document.body.textContent.includes('Trail Making')`);if(!ok)throw new Error('restored report visual shell, guardrail, or persisted TMT result missing');
     });
 
-    await test('comparison page executes participant selection and CSV matrix', async()=>{
-      await navigate(`${BASE}/research-comparison.html`,`document.readyState === 'complete' && document.getElementById('count').textContent.length > 0`);
-      const ok=await evaluate(`!!document.querySelector('.comparison-layout') && document.body.textContent.includes('导出 CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);if(!ok)throw new Error('comparison controls, participant, matrix, or small-N guardrail missing');
+    await test('comparison page executes restored participant chips and safe matrix', async()=>{
+      await navigate(`${BASE}/research-comparison.html`,`document.readyState === 'complete' && document.getElementById('reportCount').textContent.length > 0`);
+      const ok=await evaluate(`!!document.querySelector('.comparison-layout') && !!document.querySelector('.participant-chip') && !document.querySelector('.selector-panel') && document.body.textContent.includes('CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);if(!ok)throw new Error('restored comparison controls, participant, matrix, or small-N guardrail missing');
     });
 
     await test('private-material task shells fail closed without bundled assets', async()=>{
