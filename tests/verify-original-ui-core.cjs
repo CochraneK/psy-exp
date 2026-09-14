@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('fs');const path=require('path');const crypto=require('crypto');const ROOT=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(ROOT,f),'utf8');
-const index=read('index.html'),runtime=read('mccb-participant.js'),controller=read('original-ui-controller.js'),session=read('research-session.js'),polish=read('original-ui-polish.css');
+const index=read('index.html'),runtime=read('mccb-participant.js'),controller=read('original-ui-controller.js'),session=read('research-session.js'),polish=read('original-ui-polish.css'),demo=read('demo-data.js');
 const gitBlobSha=text=>crypto.createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex');
 let pass=0,fail=0;function check(name,cond,detail=''){if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}}
 console.log('=== Original UI / modern core contract ===');
@@ -34,4 +34,10 @@ check('polish stays scoped to opt-in body class',/\.psy-polish\s/.test(polish)&&
 check('visible polish differentiates cards and dashboard',polish.includes('.psy-polish .test-card::before')&&polish.includes('translateY(-4px)')&&polish.includes('linear-gradient(180deg,#f7fbfe'));
 check('polish visibly differentiates report actions',polish.includes('[onclick*="comprehensive-report"]')&&polish.includes('[onclick*="comparison-report"]'));
 check('polish improves focus and reduced-motion behavior',polish.includes(':focus-visible')&&polish.includes('prefers-reduced-motion'));
+check('demo generator is not bundled into original index',!index.includes('demo-data.js'));
+check('demo mode only activates for explicit seed/clear query',session.includes("action!=='seed'&&action!=='clear'")&&session.includes("params.get('demo')"));
+check('demo loader is lazy and cache-busted',session.includes("demo-data.js?v=1.0.0")&&session.includes('loadScriptOnce'));
+check('demo dataset is visibly marked synthetic',demo.includes('SYNTHETIC DEMO DATA')&&demo.includes('NOT_REAL_PARTICIPANT_DATA')&&demo.includes("administration:'synthetic_demo_only'"));
+check('demo uses isolated task/protocol versions',demo.includes('demo-${key}-1.0.0')&&demo.includes('demo-${key}-protocol-v1'));
+check('demo clear only targets known demo IDs',demo.includes('IDS.includes(id)')&&demo.includes('d&&d.demoSynthetic===true'));
 console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);process.exit(fail===0?0:1);
