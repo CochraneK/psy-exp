@@ -25,10 +25,16 @@ jobs:
         run: |
           node --check mccb-scoring.js
           node --check mccb-participant.js
+          node --check research-storage.js
           node --check research-data.js
+          node --check research-governance.js
+          node --check server/research-backend.cjs
           node --check tests/verify-scoring.cjs
           node --check tests/verify-participant.cjs
           node --check tests/verify-research-data.cjs
+          node --check tests/verify-storage.cjs
+          node --check tests/verify-governance.cjs
+          node --check tests/verify-backend.cjs
           node --check tests/verify-manifest.cjs
           node --check tests/verify-protocol-lock.cjs
           node --check tests/validate-drivers.cjs
@@ -50,24 +56,46 @@ jobs:
         shell: bash
         run: |
           test -f research-ui.css
+          test -f research-storage.js
           test -f research-data.js
+          test -f research-governance.js
           test -f participant-runner.html
+          test -f data-governance.html
           test -f research-report.html
           test -f research-comparison.html
+          test -f server/research-backend.cjs
           test -f task-manifest.json
           test -f protocol-lock.json
           test -f docs/README.md
           test -f docs/HISTORY_PURGE.md
           test -f docs/UI_UX_V2.md
+          test -f docs/UI_V4_REFACTOR.md
           test -f docs/RESEARCH_DATA_MODEL.md
+          test -f docs/BACKEND_V1.md
           grep -q '"protocolGovernance": "protocol-lock-v1"' task-manifest.json
-          grep -q '"dataModelVersion": "research-data-model-1.0.0"' task-manifest.json
+          grep -q '"dataModelVersion": "research-data-model-1.1.0"' task-manifest.json
+          grep -q '"storageArchitecture": "local-primary-http-replica-1.0.0"' task-manifest.json
           grep -q '"lockVersion": 1' protocol-lock.json
-          grep -q "MODEL_VERSION='research-data-model-1.0.0'" research-data.js
+          grep -q "MODEL_VERSION='research-data-model-1.1.0'" research-data.js
+          grep -q "STORAGE_ARCH_VERSION='local-primary-http-replica-1.0.0'" research-storage.js
+          grep -q "Research Data Model v1.1" docs/RESEARCH_DATA_MODEL.md
           grep -q "Study → Site → Participant → Session → Attempt" docs/RESEARCH_DATA_MODEL.md
+          grep -q "local-primary-http-replica-1.0.0" docs/BACKEND_V1.md
+          grep -q "research-storage.js" participant-runner.html
           grep -q "research-data.js" participant-runner.html
           grep -q "protocolLockHash" participant-runner.html
           grep -q "manifestHash" participant-runner.html
+          grep -q "applySessionGate" participant-runner.html
+          grep -q "ResearchStorage.stageBundle" participant-runner.html
+          grep -q "sessionEligibility" index.html
+          grep -q "data-governance.html" index.html
+          grep -q 'id="consentVersion"' data-governance.html
+          grep -q 'id="replicaToken"' data-governance.html
+          grep -q 'id="importFile"' data-governance.html
+          grep -q 'id="hardDeleteBtn"' data-governance.html
+          grep -q ".psy-exp-data/" .gitignore
+          grep -q "PSY_EXP_API_TOKEN" server/research-backend.cjs
+          grep -q "127.0.0.1" server/research-backend.cjs
           grep -q "认知任务研究工作台" index.html
           grep -q "Researcher console" index.html
           grep -q "participant-runner.html" index.html
@@ -75,6 +103,9 @@ jobs:
           grep -q "timerJitter" participant-runner.html
           grep -q "research-app" research-ui.css
           grep -q "overflow:auto" research-ui.css
+          grep -q "UI v4" research-ui.css
+          grep -q "research-ui.css?v=4.0.0" index.html
+          grep -q "research-ui.css?v=4.0.0" participant-runner.html
           grep -q "MIN_REFERENCE_N=5" research-report.html
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
           grep -q "导出 CSV" research-comparison.html
