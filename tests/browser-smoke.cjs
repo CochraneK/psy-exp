@@ -12,8 +12,8 @@ const PORT = 8765;
 const CDP_PORT = 9222;
 const BASE = `http://${HOST}:${PORT}`;
 const MIME = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml'};
-
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 function findChrome() {
   for (const candidate of ['google-chrome-stable','google-chrome','chromium','chromium-browser']) {
     const r = spawnSync('which', [candidate], { encoding: 'utf8' });
@@ -21,45 +21,30 @@ function findChrome() {
   }
   return null;
 }
-
 function makeServer() {
   return http.createServer((req, res) => {
     try {
       const url = new URL(req.url, BASE);
-      let rel = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
+      const rel = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
       const abs = path.resolve(ROOT, rel);
-      if (!abs.startsWith(ROOT + path.sep) && abs !== ROOT) {
-        res.writeHead(403); res.end('forbidden'); return;
-      }
-      if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
-        res.writeHead(404, {'content-type':'text/plain; charset=utf-8'}); res.end('not found'); return;
-      }
+      if (!abs.startsWith(ROOT + path.sep) && abs !== ROOT) { res.writeHead(403); res.end('forbidden'); return; }
+      if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) { res.writeHead(404, {'content-type':'text/plain; charset=utf-8'}); res.end('not found'); return; }
       res.writeHead(200, {'content-type': MIME[path.extname(abs)] || 'application/octet-stream', 'cache-control':'no-store'});
       fs.createReadStream(abs).pipe(res);
-    } catch (err) {
-      res.writeHead(500); res.end(String(err));
-    }
+    } catch (err) { res.writeHead(500); res.end(String(err)); }
   });
 }
-
 async function pollJson(url, timeoutMs=10000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    try {
-      const r = await fetch(url);
-      if (r.ok) return await r.json();
-    } catch {}
+    try { const r = await fetch(url); if (r.ok) return await r.json(); } catch {}
     await sleep(100);
   }
   throw new Error(`Timed out waiting for ${url}`);
 }
-
 async function connectCdp(wsUrl) {
   if (typeof WebSocket !== 'function') throw new Error('Node WebSocket global is unavailable; use Node 22+');
-  const ws = new WebSocket(wsUrl);
-  let nextId = 1;
-  const pending = new Map();
-  const eventHandlers = new Map();
+  const ws = new WebSocket(wsUrl), pending = new Map(), eventHandlers = new Map(); let nextId = 1;
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('CDP websocket open timeout')), 5000);
     ws.addEventListener('open', () => { clearTimeout(timer); resolve(); }, { once: true });
@@ -67,137 +52,72 @@ async function connectCdp(wsUrl) {
   });
   ws.addEventListener('message', event => {
     const msg = JSON.parse(String(event.data));
-    if (msg.id && pending.has(msg.id)) {
-      const { resolve, reject } = pending.get(msg.id); pending.delete(msg.id);
-      if (msg.error) reject(new Error(`${msg.error.message || 'CDP error'} (${msg.error.code || ''})`)); else resolve(msg.result);
-      return;
-    }
+    if (msg.id && pending.has(msg.id)) { const {resolve,reject}=pending.get(msg.id); pending.delete(msg.id); msg.error?reject(new Error(`${msg.error.message||'CDP error'} (${msg.error.code||''})`)):resolve(msg.result); return; }
     if (msg.method && eventHandlers.has(msg.method)) for (const fn of eventHandlers.get(msg.method)) fn(msg.params || {});
   });
-  const send = (method, params={}) => new Promise((resolve, reject) => {
-    const id = nextId++; pending.set(id, { resolve, reject }); ws.send(JSON.stringify({ id, method, params }));
-  });
-  const on = (method, fn) => { if (!eventHandlers.has(method)) eventHandlers.set(method, new Set()); eventHandlers.get(method).add(fn); };
-  return { ws, send, on };
+  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=nextId++;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}))});
+  const on=(method,fn)=>{if(!eventHandlers.has(method))eventHandlers.set(method,new Set());eventHandlers.get(method).add(fn)};
+  return {ws,send,on};
 }
 
 async function main() {
-  const chrome = findChrome();
-  if (!chrome) throw new Error('No Chrome/Chromium executable found on runner');
-  const server = makeServer();
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(PORT, HOST, resolve); });
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'psy-exp-chrome-'));
-  const chromeProc = spawn(chrome, [
-    '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
-    `--remote-debugging-port=${CDP_PORT}`, `--user-data-dir=${profile}`, 'about:blank'
-  ], { stdio: ['ignore','ignore','pipe'] });
-  let chromeErr = '';
-  chromeProc.stderr.on('data', d => { chromeErr += String(d); if (chromeErr.length > 20000) chromeErr = chromeErr.slice(-20000); });
-
-  const results = [];
-  let cdp;
+  const chrome=findChrome(); if(!chrome) throw new Error('No Chrome/Chromium executable found on runner');
+  const server=makeServer(); await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(PORT,HOST,resolve)});
+  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'psy-exp-chrome-'));
+  const chromeProc=spawn(chrome,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',`--remote-debugging-port=${CDP_PORT}`,`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
+  let chromeErr='',cdp; const results=[]; chromeProc.stderr.on('data',d=>{chromeErr+=String(d);if(chromeErr.length>20000)chromeErr=chromeErr.slice(-20000)});
   try {
-    const targets = await pollJson(`http://${HOST}:${CDP_PORT}/json/list`);
-    const page = targets.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
-    if (!page) throw new Error('No debuggable page target found');
-    cdp = await connectCdp(page.webSocketDebuggerUrl);
-    const exceptions = [];
-    cdp.on('Runtime.exceptionThrown', p => exceptions.push(p.exceptionDetails && (p.exceptionDetails.text || (p.exceptionDetails.exception && p.exceptionDetails.exception.description)) || 'unknown runtime exception'));
-    await cdp.send('Page.enable');
-    await cdp.send('Runtime.enable');
+    const targets=await pollJson(`http://${HOST}:${CDP_PORT}/json/list`),page=targets.find(t=>t.type==='page'&&t.webSocketDebuggerUrl); if(!page)throw new Error('No debuggable page target found');
+    cdp=await connectCdp(page.webSocketDebuggerUrl); const exceptions=[]; cdp.on('Runtime.exceptionThrown',p=>exceptions.push(p.exceptionDetails&&(p.exceptionDetails.text||(p.exceptionDetails.exception&&p.exceptionDetails.exception.description))||'unknown runtime exception')); await cdp.send('Page.enable'); await cdp.send('Runtime.enable');
+    async function evaluate(expression){const r=await cdp.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(`Evaluation failed: ${r.exceptionDetails.text}`);return r.result&&r.result.value}
+    async function waitFor(expression,timeoutMs=6000){const start=Date.now();while(Date.now()-start<timeoutMs){try{if(await evaluate(expression))return true}catch{}await sleep(100)}throw new Error(`Timed out waiting for expression: ${expression}`)}
+    async function navigate(url,readyExpression='document.readyState === "complete"'){const before=exceptions.length;await cdp.send('Page.navigate',{url});await waitFor(readyExpression);await sleep(150);const pageExceptions=exceptions.slice(before);if(pageExceptions.length)throw new Error(`Runtime exceptions on ${url}: ${pageExceptions.join(' | ')}`)}
+    async function test(name,fn){try{await fn();results.push([name,true]);console.log(`PASS ${name}`)}catch(err){results.push([name,false,err.message]);console.error(`FAIL ${name}: ${err.message}`)}}
 
-    async function evaluate(expression) {
-      const r = await cdp.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-      if (r.exceptionDetails) throw new Error(`Evaluation failed: ${r.exceptionDetails.text}`);
-      return r.result && r.result.value;
-    }
-    async function waitFor(expression, timeoutMs=6000) {
-      const start = Date.now();
-      while (Date.now() - start < timeoutMs) {
-        try { if (await evaluate(expression)) return true; } catch {}
-        await sleep(100);
-      }
-      throw new Error(`Timed out waiting for expression: ${expression}`);
-    }
-    async function navigate(url, readyExpression='document.readyState === "complete"') {
-      const before = exceptions.length;
-      await cdp.send('Page.navigate', { url });
-      await waitFor(readyExpression);
-      await sleep(150);
-      const pageExceptions = exceptions.slice(before);
-      if (pageExceptions.length) throw new Error(`Runtime exceptions on ${url}: ${pageExceptions.join(' | ')}`);
-    }
-    async function test(name, fn) {
-      try { await fn(); results.push([name, true]); console.log(`PASS ${name}`); }
-      catch (err) { results.push([name, false, err.message]); console.error(`FAIL ${name}: ${err.message}`); }
-    }
-
-    await test('researcher console creates isolated participant state', async () => {
-      await navigate(`${BASE}/index.html`, 'document.readyState === "complete" && !!document.querySelector(".research-shell")');
-      const shellOk = await evaluate(`document.querySelector('.eyebrow').textContent.includes('Researcher console') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && document.querySelectorAll('#cohortMetrics .metric').length === 4`);
-      if (!shellOk) throw new Error('researcher console shell/metrics contract failed');
-      const participantOk = await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);
-      if (!participantOk) throw new Error('could not create clean E2E participant');
+    await test('researcher console renders task-first v4 workspace and creates isolated participant state', async()=>{
+      await navigate(`${BASE}/index.html`,'document.readyState === "complete" && !!document.querySelector(".research-shell")');
+      await waitFor(`document.querySelectorAll('#tasks .task-card').length===10`);
+      const shellOk=await evaluate(`document.querySelector('.eyebrow').textContent.includes('Researcher console') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && !!document.querySelector('.console-identity') && !!document.querySelector('.participant-panel') && document.querySelectorAll('#tasks .task-card').length===10 && !document.getElementById('cohortMetrics') && [...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css?v=4.0.0'))`);
+      if(!shellOk)throw new Error('v4 researcher workspace/cache-busted stylesheet contract failed');
+      const participantOk=await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);if(!participantOk)throw new Error('could not create clean E2E participant');
     });
 
-    await test('participant runner creates a fingerprinted research session', async () => {
-      await navigate(`${BASE}/participant-runner.html?p=E2E1`, `document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
-      await waitFor(`document.querySelectorAll('#taskList .task-row').length === 10 && document.querySelectorAll('#preflightList .check').length >= 6`, 8000);
+    await test('participant runner creates a fingerprinted research session', async()=>{
+      await navigate(`${BASE}/participant-runner.html?p=E2E1`,`document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
+      await waitFor(`document.querySelectorAll('#taskList .task-row').length === 10 && document.querySelectorAll('#preflightList .check').length >= 6`,8000);
       await waitFor(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return d.modelVersion==='research-data-model-1.0.0'&&d.participants.E2E1&&s&&s.participantId==='E2E1'&&s.status==='active'&&s.environment&&s.protocolManifest&&typeof s.protocolManifest.manifestHash==='string'&&s.protocolManifest.manifestHash.length===64&&typeof s.protocolManifest.protocolLockHash==='string'&&s.protocolManifest.protocolLockHash.length===64})()`,8000);
-      const ok = await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !document.body.textContent.includes('DEV mode')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.0.0'})()`);
-      if (!ok) throw new Error('runner/session provenance contract failed');
+      const ok=await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !!document.querySelector('.runner-focus')&&!!document.querySelector('.runner-roadmap')&&!document.body.textContent.includes('DEV mode')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.0.0'})()`);if(!ok)throw new Error('runner/session provenance or v4 next-action contract failed');
     });
 
-    await test('complete TMT Part A through real task UI and persist valid canonical result', async () => {
-      await navigate(`${BASE}/pages/mccb-tmt.html?p=E2E1&mode=user`, `document.readyState === 'complete' && !!document.getElementById('startA')`);
-      await evaluate(`document.getElementById('startA').click()`);
-      await waitFor(`document.getElementById('task').classList.contains('active') && !!document.querySelector('#board .node.next')`);
-      const clicked = await evaluate(`(()=>{for(let i=0;i<25;i++){const n=document.querySelector('#board .node.next');if(!n)return false;n.click()}return true})()`);
-      if (!clicked) throw new Error('could not traverse all 25 TMT Part A targets');
-      await waitFor(`document.getElementById('result').classList.contains('active') && !!ParticipantManager.getResult('tmt')`);
-      const ok = await evaluate(`(()=>{const r=ParticipantManager.getResult('tmt');return r&&r.protocol==='trail-making-browser-synthetic-v2'&&r.partA&&r.partA.completed===true&&r.partA.errors===0&&r.partA.clickData.length===25&&r._meta&&r._meta.sessionQc&&r._meta.sessionQc.status==='valid'&&ParticipantManager.getProgress('tmt')==='completed'})()`);
-      if (!ok) throw new Error('TMT canonical result/QC/protocol persistence failed');
+    await test('complete TMT Part A through real task UI and persist valid canonical result', async()=>{
+      await navigate(`${BASE}/pages/mccb-tmt.html?p=E2E1&mode=user`,`document.readyState === 'complete' && !!document.getElementById('startA')`);await evaluate(`document.getElementById('startA').click()`);await waitFor(`document.getElementById('task').classList.contains('active') && !!document.querySelector('#board .node.next')`);
+      const clicked=await evaluate(`(()=>{for(let i=0;i<25;i++){const n=document.querySelector('#board .node.next');if(!n)return false;n.click()}return true})()`);if(!clicked)throw new Error('could not traverse all 25 TMT Part A targets');await waitFor(`document.getElementById('result').classList.contains('active') && !!ParticipantManager.getResult('tmt')`);
+      const ok=await evaluate(`(()=>{const r=ParticipantManager.getResult('tmt');return r&&r.protocol==='trail-making-browser-synthetic-v2'&&r.partA&&r.partA.completed===true&&r.partA.errors===0&&r.partA.clickData.length===25&&r._meta&&r._meta.sessionQc&&r._meta.sessionQc.status==='valid'&&ParticipantManager.getProgress('tmt')==='completed'})()`);if(!ok)throw new Error('TMT canonical result/QC/protocol persistence failed');
     });
 
-    await test('task return restores runner progress and reuses research session', async () => {
-      await evaluate(`document.querySelector('#result a[href*="participant-runner"]').click()`);
-      await waitFor(`location.pathname.endsWith('/participant-runner.html') && document.getElementById('participantLabel').textContent.includes('E2E1')`, 8000);
-      await waitFor(`typeof ResearchData!=='undefined' && Object.values(ResearchData.snapshot().sessions).length===1 && Object.values(ResearchData.snapshot().sessions)[0].environment`,8000);
-      const ok = await evaluate(`document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && Object.values(ResearchData.snapshot().sessions).length===1`);
-      if (!ok) throw new Error('runner did not reflect valid completion, advance to BACS, or reuse session');
+    await test('task return restores runner progress and reuses research session', async()=>{
+      await evaluate(`document.querySelector('#result a[href*="participant-runner"]').click()`);await waitFor(`location.pathname.endsWith('/participant-runner.html') && document.getElementById('participantLabel').textContent.includes('E2E1')`,8000);await waitFor(`typeof ResearchData!=='undefined' && Object.values(ResearchData.snapshot().sessions).length===1 && Object.values(ResearchData.snapshot().sessions)[0].environment`,8000);
+      const ok=await evaluate(`document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && Object.values(ResearchData.snapshot().sessions).length===1`);if(!ok)throw new Error('runner did not reflect valid completion, advance to BACS, or reuse session');
     });
 
-    await test('single report executes and exposes persisted TMT raw result', async () => {
-      await navigate(`${BASE}/research-report.html`, `document.readyState === 'complete' && document.getElementById('normBadge').textContent !== '载入中…'`);
-      const ok = await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && document.body.textContent.includes('reference N < 5') && document.body.textContent.includes('Trail Making')`);
-      if (!ok) throw new Error('research report guardrail or persisted TMT result missing');
+    await test('single report executes in document layout and exposes persisted TMT raw result', async()=>{
+      await navigate(`${BASE}/research-report.html`,`document.readyState === 'complete' && document.getElementById('normBadge').textContent !== '载入中…'`);
+      const ok=await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && !!document.querySelector('.report-masthead') && document.body.textContent.includes('reference N < 5') && document.body.textContent.includes('Trail Making')`);if(!ok)throw new Error('research report guardrail, v4 layout, or persisted TMT result missing');
     });
 
-    await test('comparison page executes participant selection and CSV model', async () => {
-      await navigate(`${BASE}/research-comparison.html`, `document.readyState === 'complete' && document.getElementById('count').textContent.length > 0`);
-      const ok = await evaluate(`document.body.textContent.includes('导出 CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);
-      if (!ok) throw new Error('comparison controls, participant, or small-N guardrail missing');
+    await test('comparison page executes participant selection and CSV matrix', async()=>{
+      await navigate(`${BASE}/research-comparison.html`,`document.readyState === 'complete' && document.getElementById('count').textContent.length > 0`);
+      const ok=await evaluate(`!!document.querySelector('.comparison-layout') && document.body.textContent.includes('导出 CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);if(!ok)throw new Error('comparison controls, participant, v4 matrix, or small-N guardrail missing');
     });
 
-    await test('private-material task shells fail closed without bundled assets', async () => {
-      await navigate(`${BASE}/pages/mccb-hvlt.html?p=E2E1&mode=user`, `document.readyState === 'complete' && !!document.getElementById('startBtn')`);
-      const hvltOk = await evaluate(`document.getElementById('startBtn').disabled===true && document.getElementById('materialStatus').classList.contains('bad')`);
-      if (!hvltOk) throw new Error('HVLT public shell did not fail closed without private material');
-      await navigate(`${BASE}/pages/mccb-msceit.html?p=E2E1&mode=user`, `document.readyState === 'complete' && !!document.getElementById('start')`);
-      const msceitOk = await evaluate(`document.getElementById('start').disabled===true && document.getElementById('status').classList.contains('bad')`);
-      if (!msceitOk) throw new Error('MSCEIT public shell did not fail closed without private material');
+    await test('private-material task shells fail closed without bundled assets', async()=>{
+      await navigate(`${BASE}/pages/mccb-hvlt.html?p=E2E1&mode=user`,`document.readyState === 'complete' && !!document.getElementById('startBtn')`);const hvltOk=await evaluate(`document.getElementById('startBtn').disabled===true && document.getElementById('materialStatus').classList.contains('bad')`);if(!hvltOk)throw new Error('HVLT public shell did not fail closed without private material');
+      await navigate(`${BASE}/pages/mccb-msceit.html?p=E2E1&mode=user`,`document.readyState === 'complete' && !!document.getElementById('start')`);const msceitOk=await evaluate(`document.getElementById('start').disabled===true && document.getElementById('status').classList.contains('bad')`);if(!msceitOk)throw new Error('MSCEIT public shell did not fail closed without private material');
     });
 
-    const failures = results.filter(x => !x[1]);
-    console.log(`\nBrowser E2E smoke: ${results.length - failures.length} passed / ${failures.length} failed`);
-    if (failures.length) process.exitCode = 1;
+    const failures=results.filter(x=>!x[1]);console.log(`\nBrowser E2E smoke: ${results.length-failures.length} passed / ${failures.length} failed`);if(failures.length)process.exitCode=1;
   } finally {
-    try { if (cdp) cdp.ws.close(); } catch {}
-    try { chromeProc.kill('SIGTERM'); } catch {}
-    await new Promise(resolve => server.close(resolve));
-    try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
-    if (process.exitCode && chromeErr) console.error(`\nChrome stderr tail:\n${chromeErr.slice(-4000)}`);
+    try{if(cdp)cdp.ws.close()}catch{}try{chromeProc.kill('SIGTERM')}catch{}await new Promise(resolve=>server.close(resolve));try{fs.rmSync(profile,{recursive:true,force:true})}catch{}if(process.exitCode&&chromeErr)console.error(`\nChrome stderr tail:\n${chromeErr.slice(-4000)}`);
   }
 }
-
-main().catch(err => { console.error(err.stack || err); process.exit(1); });
+main().catch(err=>{console.error(err.stack||err);process.exit(1)});
