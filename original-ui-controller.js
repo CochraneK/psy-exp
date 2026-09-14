@@ -185,12 +185,15 @@
   root.getBarData=function(){return safeDomainData().map(d=>({name:d.label,score:Math.round(d.cohortRankIndex*10)/10,done:true,referenceN:d.referenceN}))};
   root.generateCharts=function(){
     const panel=document.getElementById('chartsPanel');if(!panel||typeof root.Chart!=='function')return;
+    const radarCanvas=document.getElementById('radarChart'),barCanvas=document.getElementById('barChart');
+    const oldRadar=radarCanvas&&typeof root.Chart.getChart==='function'?root.Chart.getChart(radarCanvas):null;
+    const oldBar=barCanvas&&typeof root.Chart.getChart==='function'?root.Chart.getChart(barCanvas):null;
+    if(oldRadar)oldRadar.destroy();if(oldBar)oldBar.destroy();
     const domains=safeDomainData();if(!domains.length){panel.style.display='none';return}panel.style.display='block';
     const headings=panel.querySelectorAll('h4');if(headings[0])headings[0].textContent='研究域项目内排名（雷达图）';if(headings[1])headings[1].textContent='研究域项目内排名（柱状图）';const note=panel.querySelector('div[style*="text-align:center"]');if(note)note.textContent='仅显示 N≥5 的 QC-valid、同协议项目内研究排名指数；不是 MCCB 常模 percentile/T 分。';
     const labels=domains.map(d=>d.label),values=domains.map(d=>d.cohortRankIndex);
-    if(root.radarChartInstance)root.radarChartInstance.destroy();if(root.barChartInstance)root.barChartInstance.destroy();
-    root.radarChartInstance=new root.Chart(document.getElementById('radarChart').getContext('2d'),{type:'radar',data:{labels,datasets:[{label:'项目内研究排名指数',data:values,backgroundColor:'rgba(52, 152, 219, 0.2)',borderColor:'#3498db',borderWidth:2,pointBackgroundColor:'#3498db',pointBorderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:true,scales:{r:{beginAtZero:true,max:100,ticks:{stepSize:20,backdropColor:'transparent'}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} · N=${domains[ctx.dataIndex].referenceN}`}}}}});
-    root.barChartInstance=new root.Chart(document.getElementById('barChart').getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'项目内研究排名指数',data:values,backgroundColor:'#3498db',borderColor:'#2980b9',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:true,indexAxis:'y',scales:{x:{beginAtZero:true,max:100},y:{grid:{display:false}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} · N=${domains[ctx.dataIndex].referenceN}`}}}}});
+    root.radarChartInstance=new root.Chart(radarCanvas.getContext('2d'),{type:'radar',data:{labels,datasets:[{label:'项目内研究排名指数',data:values,backgroundColor:'rgba(52, 152, 219, 0.2)',borderColor:'#3498db',borderWidth:2,pointBackgroundColor:'#3498db',pointBorderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:true,scales:{r:{beginAtZero:true,max:100,ticks:{stepSize:20,backdropColor:'transparent'}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} · N=${domains[ctx.dataIndex].referenceN}`}}}}});
+    root.barChartInstance=new root.Chart(barCanvas.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'项目内研究排名指数',data:values,backgroundColor:'#3498db',borderColor:'#2980b9',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:true,indexAxis:'y',scales:{x:{beginAtZero:true,max:100},y:{grid:{display:false}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} · N=${domains[ctx.dataIndex].referenceN}`}}}}});
   };
 
   const oldApply=typeof root.applyParticipant==='function'?root.applyParticipant:null;
