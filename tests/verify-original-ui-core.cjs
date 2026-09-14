@@ -27,4 +27,5 @@ check('chart handoff destroys any legacy Chart.js instance',controller.includes(
 check('homepage viewport is hardened without changing its CSS',runtime.includes("viewport.setAttribute('content','width=device-width, initial-scale=1.0')"));
 check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));
 check('shared session bridge checkpoints participant history',session.includes('syncParticipantData')&&session.includes('stageBundle'));
+check('original report entry labels are restored after safety bootstrap',session.includes('restoreOriginalReportEntries')&&session.includes('📊 综合报告')&&session.includes('📈 对比分析'));
 console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);process.exit(fail===0?0:1);
