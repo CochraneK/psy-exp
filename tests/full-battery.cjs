@@ -1,11 +1,8 @@
 'use strict';
 /**
  * Portable one-command research battery contract runner.
- *
- * The previous file was a Windows/agent-browser script tightly coupled to old
- * page internals and embedded assessment stimuli. It could no longer validate
- * the hardened pages safely. Browser-specific E2E lives in browser-smoke.cjs;
- * this command aggregates portable repository contracts enforced by CI.
+ * Browser-specific E2E lives in browser-smoke.cjs; this command aggregates
+ * portable repository, data-governance and reference-backend contracts.
  */
 const {spawnSync}=require('child_process');
 const path=require('path');
@@ -14,6 +11,9 @@ const checks=[
   ['inline HTML JavaScript','tests/validate-inline-scripts.cjs'],
   ['participant/session QC','tests/verify-participant.cjs'],
   ['research data model','tests/verify-research-data.cjs'],
+  ['storage adapter/outbox','tests/verify-storage.cjs'],
+  ['consent/import governance','tests/verify-governance.cjs'],
+  ['authenticated reference backend','tests/verify-backend.cjs'],
   ['research scoring','tests/verify-scoring.cjs'],
   ['task manifest/material policy','tests/verify-manifest.cjs'],
   ['protocol freeze/version governance','tests/verify-protocol-lock.cjs'],

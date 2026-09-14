@@ -1,0 +1,17 @@
+'use strict';
+const path=require('path');
+const mem=new Map();
+global.localStorage={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k),key:i=>[...mem.keys()][i]||null,get length(){return mem.size}};
+const Storage=require(path.resolve(__dirname,'../research-storage.js'));
+let pass=0,fail=0;const check=(name,cond,detail='')=>{if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}};
+console.log('=== Backend-ready storage contract ===');
+check('architecture version explicit',Storage.STORAGE_ARCH_VERSION==='local-primary-http-replica-1.0.0');
+const memory=new Storage.MemoryPrimaryAdapter({a:'1'});check('memory primary is synchronous',memory.getItem('a')==='1'&&memory.synchronous===true);memory.setItem('b','2');memory.removeItem('a');check('memory adapter read/write/remove',memory.getItem('a')===null&&memory.getItem('b')==='2');
+check('https replica URL accepted',Storage.normalizeBaseUrl('https://example.org/api/')==='https://example.org/api');
+check('localhost http accepted',Storage.normalizeBaseUrl('http://127.0.0.1:8787')==='http://127.0.0.1:8787');
+let insecureBlocked=false;try{Storage.normalizeBaseUrl('http://example.org')}catch(e){insecureBlocked=e.message==='REPLICA_HTTPS_REQUIRED'}check('insecure remote HTTP blocked',insecureBlocked);
+const cfg=Storage.configureReplica({enabled:true,baseUrl:'http://127.0.0.1:8787',studyId:'STUDY-A',operatorId:'OP-1',siteId:'SITE-A'});check('replica config persisted without secret',cfg.replica.enabled&&cfg.replica.studyId==='STUDY-A'&&!JSON.stringify(cfg).includes('secret'));
+Storage.setSessionToken('secret-token');check('session token held in memory only',Storage.getTokenState().present===true&&Storage.getTokenState().persisted===false&&!String(localStorage.getItem(Storage.CONFIG_KEY)).includes('secret-token'));
+const bundle={format:'psy-exp-research-data-bundle',exportedAt:'2026-09-14T00:00:00Z',researchData:{updatedAt:'2026-09-14T00:00:00Z',study:{id:'STUDY-A'}},participantData:{exportDate:'2026-09-14T00:00:00Z',participantCount:1}};
+Storage.clearOutbox();const first=Storage.stageBundle(bundle,{reason:'test'}),second=Storage.stageBundle(bundle,{reason:'duplicate'});check('bundle checkpoint queued',Storage.getOutbox().length===1&&first.idempotencyKey);check('outbox deduplicates same checkpoint',Storage.getOutbox().length===1&&second.id===first.id);
+Storage.clearSessionToken();Storage.flushOutbox({fetchImpl:async()=>{throw new Error('should not fetch')}}).then(r=>{check('flush fails closed without token',r.ok===false&&r.reason==='token_missing'&&r.remaining===1);console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);process.exit(fail===0?0:1)}).catch(e=>{console.error(e);process.exit(1)});

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN" class="research-app">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据治理 · psy-exp</title>
+<link rel="stylesheet" href="mccb-common.css">
+<link rel="stylesheet" href="research-ui.css">
+</head>
+<body class="research-app">
+<main id="app" class="research-shell">
+<header class="app-header">
+  <div class="app-title"><div class="eyebrow">Research data governance</div><h1>研究数据治理</h1><p>Study / Site / consent / session lifecycle / local-primary + authenticated replica</p><div class="badges"><span class="badge research">RESEARCH PROTOTYPE</span><span class="badge info" id="modelBadge">loading…</span></div></div>
+  <nav class="header-actions"><a href="index.html">返回研究者控制台</a><button id="exportBtn" type="button">导出当前数据包</button></nav>
+</header>
+<div class="notice"><strong>架构边界：</strong>实验任务始终先写同步本地 primary；HTTP backend 是异步 replica。远端不可用不能阻塞计时任务。Bearer token 只保存在当前页面内存，不写入 localStorage。</div>
+<section class="section grid two">
+  <article class="card">
+    <h2>Study / Site 配置</h2>
+    <div class="toolbar" style="align-items:end">
+      <label class="small">Study ID<input id="studyId" maxlength="96"></label>
+      <label class="small">Study label<input id="studyLabel" maxlength="120"></label>
+      <label class="small">Site ID<input id="siteId" maxlength="96"></label>
+      <label class="small">Site label<input id="siteLabel" maxlength="120"></label>
+      <label class="small">Consent version<input id="consentVersion" maxlength="96" placeholder="留空 = 当前原型不强制"></label>
+      <button id="saveStudyBtn" class="rui-btn primary" type="button">保存研究配置</button>
+    </div>
+    <p id="studyStatus" class="small"></p>
+  </article>
+  <article class="card">
+    <h2>当前参与者 consent</h2>
+    <p id="participantLabel" class="participant">未选择参与者</p>
+    <p id="consentStatus" class="small">—</p>
+    <div class="button-row"><button id="grantConsentBtn" class="rui-btn primary" type="button">记录当前版本同意</button><button id="withdrawConsentBtn" class="rui-btn danger" type="button">记录撤回</button></div>
+    <p class="small">撤回会阻止新 session，并关闭该参与者仍处于 active 的研究 session；不会静默删除既有数据。</p>
+  </article>
+</section>
+<section class="section grid two">
+  <article class="card">
+    <h2>HTTP replica</h2>
+    <label class="small"><input id="replicaEnabled" type="checkbox"> 启用远端 replica</label>
+    <div class="toolbar" style="align-items:end;margin-top:10px">
+      <label class="small">Base URL<input id="replicaUrl" placeholder="https://research.example.org"></label>
+      <label class="small">Replica Study ID<input id="replicaStudyId" maxlength="96"></label>
+      <label class="small">Bearer token（仅内存）<input id="replicaToken" type="password" autocomplete="off"></label>
+      <label class="small"><input id="autoSync" type="checkbox"> Runner checkpoint 后自动尝试同步</label>
+    </div>
+    <div class="button-row"><button id="saveReplicaBtn" class="rui-btn" type="button">保存 replica 配置</button><button id="healthBtn" class="rui-btn" type="button">Health check</button><button id="syncBtn" class="rui-btn primary" type="button">立即同步</button></div>
+    <p id="replicaStatus" class="small"></p>
+    <p class="small">允许 HTTPS；仅 localhost/127.0.0.1 例外允许 HTTP。token 永不持久化。</p>
+  </article>
+  <article class="card">
+    <h2>Outbox / session</h2>
+    <div class="metric-grid"><div class="metric"><div class="value" id="outboxCount">0</div><div class="label">pending sync</div></div><div class="metric"><div class="value" id="sessionCount">0</div><div class="label">sessions</div></div><div class="metric"><div class="value" id="attemptCount">0</div><div class="label">attempts</div></div></div>
+    <div id="sessionList" class="participant-list" style="margin-top:12px"></div>
+  </article>
+</section>
+<section class="section grid two">
+  <article class="card">
+    <h2>受控导入 / 恢复</h2>
+    <input id="importFile" type="file" accept="application/json,.json">
+    <div id="importPreview" class="notice info" style="margin-top:12px">先选择导出的 research-data bundle；只有通过结构校验后才允许应用。</div>
+    <div class="button-row"><button id="mergeImportBtn" class="rui-btn" type="button" disabled>合并导入</button><button id="replaceImportBtn" class="rui-btn danger" type="button" disabled>完全替换本地数据</button></div>
+  </article>
+  <article class="card">
+    <h2>删除与撤回的区别</h2>
+    <p class="small"><strong>撤回：</strong>保留审计和既有数据，阻止后续 session。<br><strong>硬删除：</strong>从本地 participant + research provenance 中移除该参与者关联记录；若启用 replica，可再显式请求远端删除。</p>
+    <button id="hardDeleteBtn" class="rui-btn danger" type="button">硬删除当前参与者</button>
+    <p id="deleteStatus" class="small"></p>
+  </article>
+</section>
+<p class="small">参考后端只提供认证 API、原子 JSON 写入与备份，用于验证契约；正式研究部署仍需 TLS termination、secret manager、加密数据库、角色权限、备份/恢复演练与机构的数据保留策略。</p>
+</main>
+<script src="mccb-participant.js"></script>
+<script src="research-storage.js"></script>
+<script src="research-data.js"></script>
+<script src="research-governance.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);let pendingBundle=null;
+function escText(v){return String(v==null?'':v)}
+function currentParticipant(){return ParticipantManager.getCurrent()}
+function render(){
+  const snap=ResearchData.snapshot(),cfg=ResearchStorage.getConfig(),pid=currentParticipant(),p=pid&&snap.participants[pid];$('modelBadge').textContent=`${ResearchData.MODEL_VERSION} · ${ResearchStorage.STORAGE_ARCH_VERSION}`;
+  $('studyId').value=snap.study.id||'';$('studyLabel').value=snap.study.label||'';$('siteId').value=(p&&p.siteId)||cfg.siteId||ResearchData.DEFAULT_SITE_ID;$('siteLabel').value=snap.sites[$('siteId').value]?.label||'';$('consentVersion').value=snap.study.consentVersion||'';
+  $('participantLabel').textContent=pid?`参与者 ${pid}`:'未选择参与者';const elig=pid?ResearchData.sessionEligibility(pid):null;$('consentStatus').textContent=!pid?'请先在研究者控制台选择参与者。':`participant status: ${p&&p.status||'unknown'} · consent: ${p&&p.consent?`${p.consent.status} / ${p.consent.version||'none'}`:'none'} · session: ${elig&&elig.eligible?'eligible':`blocked (${elig&&elig.reason})`}`;
+  $('grantConsentBtn').disabled=!pid;$('withdrawConsentBtn').disabled=!pid;$('hardDeleteBtn').disabled=!pid;
+  $('replicaEnabled').checked=cfg.replica.enabled;$('replicaUrl').value=cfg.replica.baseUrl||'';$('replicaStudyId').value=cfg.replica.studyId||snap.study.id||'';$('autoSync').checked=cfg.replica.autoSync;
+  $('outboxCount').textContent=ResearchStorage.getOutbox().length;$('sessionCount').textContent=Object.keys(snap.sessions).length;$('attemptCount').textContent=snap.attempts.length;
+  const list=$('sessionList');list.textContent='';const sessions=Object.values(snap.sessions).filter(s=>!pid||s.participantId===pid).sort((a,b)=>String(b.startedAt).localeCompare(String(a.startedAt))).slice(0,8);if(!sessions.length)list.innerHTML='<div class="empty">暂无 session。</div>';else sessions.forEach(s=>{const row=document.createElement('div');row.className='participant-row';const left=document.createElement('div'),strong=document.createElement('strong'),sub=document.createElement('div'),actions=document.createElement('div');strong.textContent=s.id;sub.className='small';sub.textContent=`${s.participantId} · ${s.status} · ${s.startedAt||''}`;left.append(strong,sub);actions.className='actions';if(s.status==='active'){const close=document.createElement('button');close.textContent='关闭';close.onclick=()=>{ResearchData.closeSession(s.id,{status:'closed',reason:'researcher_manual_close'});render()};actions.append(close)}else{const reopen=document.createElement('button');reopen.textContent='新建关联 session';reopen.onclick=()=>{const next=ResearchData.reopenSession(s.id,{reason:'researcher_manual_reopen'});if(next&&next.blocked)alert(`无法开始：${next.reason}`);render()};actions.append(reopen)}row.append(left,actions);list.append(row)})
+}
+$('saveStudyBtn').onclick=()=>{try{const cfg=ResearchData.configureStudy({studyId:$('studyId').value.trim(),label:$('studyLabel').value.trim(),siteId:$('siteId').value.trim(),siteLabel:$('siteLabel').value.trim(),consentVersion:$('consentVersion').value.trim()||null});ResearchStorage.configureReplica({...ResearchStorage.getConfig().replica,operatorId:ResearchStorage.getConfig().operatorId,siteId:cfg.site.id});$('studyStatus').textContent='已保存。若设置了 consent version，未记录该版本同意的参与者将无法开始新 session。';render()}catch(e){$('studyStatus').textContent='保存失败：'+e.message}};
+$('grantConsentBtn').onclick=()=>{const pid=currentParticipant();if(!pid)return;try{ResearchData.setParticipantConsent(pid,{status:'granted',version:ResearchData.snapshot().study.consentVersion||null,operatorId:ResearchStorage.getConfig().operatorId});render()}catch(e){alert(e.message)}};
+$('withdrawConsentBtn').onclick=()=>{const pid=currentParticipant();if(!pid)return;const typed=prompt(`请输入 ${pid} 确认记录撤回：`);if(typed!==pid)return;ResearchData.setParticipantConsent(pid,{status:'withdrawn',version:ResearchData.snapshot().study.consentVersion||null,operatorId:ResearchStorage.getConfig().operatorId});render()};
+$('saveReplicaBtn').onclick=()=>{try{ResearchStorage.configureReplica({enabled:$('replicaEnabled').checked,baseUrl:$('replicaUrl').value.trim()||null,studyId:$('replicaStudyId').value.trim()||ResearchData.snapshot().study.id,autoSync:$('autoSync').checked,siteId:$('siteId').value.trim()||ResearchData.DEFAULT_SITE_ID});ResearchStorage.setSessionToken($('replicaToken').value);$('replicaStatus').textContent=`配置已保存；token ${ResearchStorage.getTokenState().present?'已加载到内存':'未提供'}。`;render()}catch(e){$('replicaStatus').textContent='配置失败：'+e.message}};
+$('healthBtn').onclick=async()=>{try{ResearchStorage.setSessionToken($('replicaToken').value);const h=await ResearchStorage.health();$('replicaStatus').textContent=`health OK · ${h.service} ${h.version}`}catch(e){$('replicaStatus').textContent='health 失败：'+e.message}};
+$('syncBtn').onclick=async()=>{try{ResearchStorage.setSessionToken($('replicaToken').value);const bundle=ResearchGovernance.exportLocalBundle(),r=await ResearchStorage.syncBundle(bundle,{reason:'governance_manual'});$('replicaStatus').textContent=r.ok?`同步完成：sent ${r.sent}`:`同步未完成：${r.reason||r.error||'unknown'} · remaining ${r.remaining??''}`;render()}catch(e){$('replicaStatus').textContent='同步失败：'+e.message;render()}};
+$('exportBtn').onclick=()=>ResearchData.downloadBundle({participantData:ParticipantManager.exportAllData()});
+$('importFile').onchange=async e=>{pendingBundle=null;$('mergeImportBtn').disabled=true;$('replaceImportBtn').disabled=true;const f=e.target.files&&e.target.files[0];if(!f)return;try{const text=await f.text(),v=ResearchGovernance.validateBundle(text);if(!v.ok){$('importPreview').textContent='校验失败：'+v.errors.join('；');return}pendingBundle=v.bundle;$('importPreview').textContent=`校验通过 · study ${v.summary.studyId} · participants ${v.summary.participants} · sessions ${v.summary.sessions} · attempts ${v.summary.attempts}${v.warnings.length?' · warnings: '+v.warnings.join('；'):''}`;$('mergeImportBtn').disabled=false;$('replaceImportBtn').disabled=false}catch(err){$('importPreview').textContent='读取失败：'+err.message}};
+$('mergeImportBtn').onclick=()=>{if(!pendingBundle)return;try{ResearchGovernance.importBundle(pendingBundle,{mode:'merge',restoreParticipants:true});$('importPreview').textContent='合并导入完成。';render()}catch(e){$('importPreview').textContent='导入失败：'+e.message}};
+$('replaceImportBtn').onclick=()=>{if(!pendingBundle)return;if(prompt('完全替换会覆盖本地研究数据。请输入 REPLACE 确认：')!=='REPLACE')return;try{ResearchGovernance.importBundle(pendingBundle,{mode:'replace',restoreParticipants:true});$('importPreview').textContent='本地数据已替换。';render()}catch(e){$('importPreview').textContent='替换失败：'+e.message}};
+$('hardDeleteBtn').onclick=async()=>{const pid=currentParticipant();if(!pid)return;if(prompt(`硬删除本地 ${pid} 的任务结果与研究 provenance。请输入参与者编号确认：`)!==pid)return;const cfg=ResearchStorage.getConfig();ParticipantManager.deleteParticipant(pid);const local=ResearchData.deleteParticipant(pid,{operatorId:cfg.operatorId,reason:'researcher_hard_delete'});let remote='未请求';if(cfg.replica.enabled&&confirm('是否同时请求远端 replica 删除该参与者？')){try{ResearchStorage.setSessionToken($('replicaToken').value);await ResearchStorage.deleteRemoteParticipant(pid);remote='远端删除成功'}catch(e){remote='远端删除失败：'+e.message}}$('deleteStatus').textContent=`本地删除：${local.deleted?'完成':'无记录'}；${remote}`;render()};
+document.addEventListener('DOMContentLoaded',()=>{const pid=currentParticipant();if(pid)ResearchData.ensureParticipant(pid,{siteId:ResearchStorage.getConfig().siteId});render()});
+</script>
+</body>
+</html>
