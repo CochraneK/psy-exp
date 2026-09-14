@@ -23,47 +23,14 @@
 
   function sessionQc(status,i,key){
     return {
-      testKey:key,
-      taskVersion:`demo-${key}-1.0.0`,
-      runtimeVersion:VERSION,
-      status,
-      startedAt:startedFor(i),
-      completedAt:nowFor(i),
-      elapsedMs:60000+i*1370,
-      clock:'synthetic-demo-clock',
-      qc:{
-        visibilityInterruptions:0,
-        timingViolation:status==='timing_violation',
-        technicalFailure:status==='technical_failure',
-        timerDriftMaxMs:status==='timing_violation'?950:18+i,
-        timerSamples:12,
-        reasons:status==='valid'?[]:[`demo_${status}`]
-      },
-      events:[]
+      testKey:key,taskVersion:`demo-${key}-1.0.0`,runtimeVersion:VERSION,status,
+      startedAt:startedFor(i),completedAt:nowFor(i),elapsedMs:60000+i*1370,clock:'synthetic-demo-clock',
+      qc:{visibilityInterruptions:0,timingViolation:status==='timing_violation',technicalFailure:status==='technical_failure',timerDriftMaxMs:status==='timing_violation'?950:18+i,timerSamples:12,reasons:status==='valid'?[]:[`demo_${status}`]},events:[]
     };
   }
 
   function enrich(id,i,key,raw,status='valid'){
-    return {
-      ...raw,
-      demoSynthetic:true,
-      _meta:{
-        schemaVersion:4,
-        taskVersion:`demo-${key}-1.0.0`,
-        runtimeVersion:VERSION,
-        administration:'synthetic_demo_only',
-        mccbEquivalent:false,
-        participantId:id,
-        recordedAt:nowFor(i),
-        provenance:{
-          source:'psy-exp-demo-seed',
-          synthetic:true,
-          demoVersion:VERSION,
-          warning:'NOT_REAL_PARTICIPANT_DATA'
-        },
-        sessionQc:sessionQc(status,i,key)
-      }
-    };
+    return {...raw,demoSynthetic:true,_meta:{schemaVersion:4,taskVersion:`demo-${key}-1.0.0`,runtimeVersion:VERSION,administration:'synthetic_demo_only',mccbEquivalent:false,participantId:id,recordedAt:nowFor(i),provenance:{source:'psy-exp-demo-seed',synthetic:true,demoVersion:VERSION,warning:'NOT_REAL_PARTICIPANT_DATA'},sessionQc:sessionQc(status,i,key)}};
   }
 
   function rawResult(key,i,{edge=false}={}){
@@ -88,38 +55,19 @@
     for(const key of TASKS)progress[key]='not_started';
     for(const key of TASKS){
       if(partial&&!PARTIAL_TASKS.has(key))continue;
-      const invalid=edge&&key==='cpt';
-      const status=invalid?'timing_violation':'valid';
-      const result=enrich(id,i,key,rawResult(key,i,{edge}),status);
-      const storageKey=RESULT_KEYS[key];
-      sessions[key]=result._meta.sessionQc;
-      attemptHistory[storageKey]=[result];
-      if(invalid){invalidResults[storageKey]=result;progress[key]='completed_invalid'}
-      else{results[storageKey]=result;progress[key]='completed'}
+      const invalid=edge&&key==='cpt',status=invalid?'timing_violation':'valid',result=enrich(id,i,key,rawResult(key,i,{edge}),status),storageKey=RESULT_KEYS[key];
+      sessions[key]=result._meta.sessionQc;attemptHistory[storageKey]=[result];
+      if(invalid){invalidResults[storageKey]=result;progress[key]='completed_invalid'}else{results[storageKey]=result;progress[key]='completed'}
     }
-    return{
-      schemaVersion:4,
-      runtimeVersion:VERSION,
-      cohortId:id,
-      createdAt:nowFor(i),
-      updatedAt:nowFor(i),
-      demoSynthetic:true,
-      demoVersion:VERSION,
-      demoProfile:partial?'partial':edge?'qc-edge':'complete',
-      warning:'SYNTHETIC DEMO DATA — NOT A REAL ASSESSMENT',
-      progress,sessions,results,invalidResults,attemptHistory
-    };
+    return{schemaVersion:4,runtimeVersion:VERSION,cohortId:id,createdAt:nowFor(i),updatedAt:nowFor(i),demoSynthetic:true,demoVersion:VERSION,demoProfile:partial?'partial':edge?'qc-edge':'complete',warning:'SYNTHETIC DEMO DATA — NOT A REAL ASSESSMENT',progress,sessions,results,invalidResults,attemptHistory};
   }
 
   function getDemoIds(){
     const pm=PM();if(!pm)return[];
-    return pm.getAllParticipants().filter(id=>{
-      if(!IDS.includes(id))return false;
-      const d=pm.getData(id);return !!(d&&d.demoSynthetic===true);
-    });
+    return pm.getAllParticipants().filter(id=>{if(!IDS.includes(id))return false;const d=pm.getData(id);return !!(d&&d.demoSynthetic===true)});
   }
 
-  function clear({restorePrevious=true}={}){
+  function clear({restorePrevious=true,preservePreviousKey=false}={}){
     const pm=PM();if(!pm)throw new Error('PARTICIPANT_MANAGER_UNAVAILABLE');
     const ids=getDemoIds();
     for(const id of ids){
@@ -127,7 +75,7 @@
       pm.deleteParticipant(id);
     }
     const store=storage(),previous=store&&store.getItem(PREVIOUS_KEY)||'';
-    if(store)store.removeItem(PREVIOUS_KEY);
+    if(store&&!preservePreviousKey)store.removeItem(PREVIOUS_KEY);
     if(restorePrevious&&previous&&pm.getAllParticipants().includes(previous))pm.setCurrent(previous);
     else if(/^DEMO-/.test(pm.getCurrent()||''))pm.logout();
     return{version:VERSION,removed:ids.length,remainingDemoIds:getDemoIds()};
@@ -135,14 +83,10 @@
 
   function seed(){
     const pm=PM();if(!pm)throw new Error('PARTICIPANT_MANAGER_UNAVAILABLE');
-    const store=storage(),current=pm.getCurrent();
-    if(store&&current&&!/^DEMO-/.test(current))store.setItem(PREVIOUS_KEY,current);
-    clear({restorePrevious:false});
-    IDS.forEach((id,i)=>{
-      pm.setCurrent(id);
-      const profile=i===6?{partial:true}:i===7?{edge:true}:{};
-      pm._saveData(id,makeParticipant(id,i,profile));
-    });
+    const store=storage(),current=pm.getCurrent(),previous=!/^DEMO-/.test(current||'')?current:(store&&store.getItem(PREVIOUS_KEY)||'');
+    clear({restorePrevious:false,preservePreviousKey:true});
+    if(store&&previous)store.setItem(PREVIOUS_KEY,previous);
+    IDS.forEach((id,i)=>{pm.setCurrent(id);const profile=i===6?{partial:true}:i===7?{edge:true}:{};pm._saveData(id,makeParticipant(id,i,profile))});
     pm.setCurrent(IDS[0]);
     if(root.ResearchData&&typeof root.ResearchData.syncParticipantData==='function'){
       try{root.ResearchData.syncParticipantData(pm.exportAllData(),{sessionId:null})}catch(e){if(root.console)console.warn('Demo ResearchData sync skipped',e&&e.message||e)}
@@ -153,15 +97,7 @@
   function summary(){
     const pm=PM();if(!pm)return{version:VERSION,count:0,ids:[]};
     const ids=getDemoIds();
-    return{
-      version:VERSION,
-      count:ids.length,
-      ids,
-      complete:ids.filter(id=>pm.getData(id)&&pm.getData(id).demoProfile==='complete').length,
-      partial:ids.filter(id=>pm.getData(id)&&pm.getData(id).demoProfile==='partial').length,
-      qcEdge:ids.filter(id=>pm.getData(id)&&pm.getData(id).demoProfile==='qc-edge').length,
-      current:pm.getCurrent()
-    };
+    return{version:VERSION,count:ids.length,ids,complete:ids.filter(id=>pm.getData(id)&&pm.getData(id).demoProfile==='complete').length,partial:ids.filter(id=>pm.getData(id)&&pm.getData(id).demoProfile==='partial').length,qcEdge:ids.filter(id=>pm.getData(id)&&pm.getData(id).demoProfile==='qc-edge').length,current:pm.getCurrent()};
   }
 
   return{VERSION,IDS:[...IDS],seed,clear,summary,getDemoIds,makeParticipant};
