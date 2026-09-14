@@ -1,11 +1,11 @@
-/* Research Data Model v1: local, versioned metadata layer for reproducible study/session provenance. */
+/* Research Data Model v1.1: versioned Study/Site/Participant/Session/Attempt provenance + consent governance. */
 (function(root,factory){
-  const api=factory();
+  const api=factory(root||globalThis);
   if(typeof module==='object'&&module.exports)module.exports=api;
   if(root)root.ResearchData=api;
-})(typeof window!=='undefined'?window:globalThis,function(){
+})(typeof window!=='undefined'?window:globalThis,function(root){
   'use strict';
-  const MODEL_VERSION='research-data-model-1.0.0';
+  const MODEL_VERSION='research-data-model-1.1.0';
   const STORAGE_KEY='psy-exp-research-data-v1';
   const DEFAULT_STUDY_ID='psy-exp-default-study';
   const DEFAULT_SITE_ID='local-browser-site';
@@ -15,65 +15,58 @@
   const now=()=>new Date().toISOString();
   const clone=v=>{try{return v==null?v:JSON.parse(JSON.stringify(v))}catch{return null}};
   const safeId=v=>String(v==null?'':v).trim().replace(/[^A-Za-z0-9._-]/g,'-').slice(0,96)||'unknown';
+  let injectedAdapter=null;
+  const rawAdapter={name:'browser-local-primary',synchronous:true,getItem(k){try{return root.localStorage&&root.localStorage.getItem(k)}catch{return null}},setItem(k,v){if(!root.localStorage)throw new Error('LOCAL_STORAGE_UNAVAILABLE');root.localStorage.setItem(k,v);return true},removeItem(k){try{root.localStorage&&root.localStorage.removeItem(k);return true}catch{return false}},info(){return{name:this.name,synchronous:true,persistent:!!root.localStorage}}};
+  function activeAdapter(){return injectedAdapter||(root.ResearchStorage&&root.ResearchStorage.primary)||rawAdapter}
+  function setStorageAdapter(adapter){if(!adapter||typeof adapter.getItem!=='function'||typeof adapter.setItem!=='function'||typeof adapter.removeItem!=='function')throw new Error('SYNC_STORAGE_ADAPTER_REQUIRED');if(adapter.synchronous===false)throw new Error('PRIMARY_STORAGE_MUST_BE_SYNCHRONOUS');injectedAdapter=adapter;return getStorageAdapterInfo()}
+  function getStorageAdapterInfo(){const a=activeAdapter();return typeof a.info==='function'?clone(a.info()):{name:a.name||'custom-primary',synchronous:true}}
   const storage={
-    get(){try{const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):null}catch{return null}},
-    set(v){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(v));return true}catch(e){console.warn('ResearchData persistence failed',e&&e.message||e);return false}},
-    clear(){try{localStorage.removeItem(STORAGE_KEY);return true}catch{return false}}
+    get(){try{const raw=activeAdapter().getItem(STORAGE_KEY);return raw?JSON.parse(raw):null}catch{return null}},
+    set(v){try{activeAdapter().setItem(STORAGE_KEY,JSON.stringify(v));return true}catch(e){console.warn('ResearchData persistence failed',e&&e.message||e);return false}},
+    clear(){try{activeAdapter().removeItem(STORAGE_KEY);return true}catch{return false}}
   };
-  function uid(prefix){
-    try{if(typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function')return `${prefix}-${crypto.randomUUID()}`;}catch{}
-    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
-  }
+  function uid(prefix){try{if(root.crypto&&typeof root.crypto.randomUUID==='function')return`${prefix}-${root.crypto.randomUUID()}`}catch{}return`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`}
   function blank(){return{schemaVersion:1,modelVersion:MODEL_VERSION,createdAt:now(),updatedAt:now(),study:{id:DEFAULT_STUDY_ID,label:'psy-exp local research study',consentVersion:null,protocolGovernance:'protocol-lock-v1'},sites:{[DEFAULT_SITE_ID]:{id:DEFAULT_SITE_ID,label:'Local browser site',createdAt:now()}},participants:{},sessions:{},attempts:[],audit:[],builds:{}}}
   function normalize(data){
-    const d=data&&typeof data==='object'?data:blank();
-    d.schemaVersion=1;d.modelVersion=MODEL_VERSION;d.createdAt=d.createdAt||now();d.updatedAt=d.updatedAt||now();
-    d.study=d.study&&typeof d.study==='object'?d.study:{id:DEFAULT_STUDY_ID,label:'psy-exp local research study',consentVersion:null,protocolGovernance:'protocol-lock-v1'};
+    const d=data&&typeof data==='object'?data:blank();d.schemaVersion=1;d.modelVersion=MODEL_VERSION;d.createdAt=d.createdAt||now();d.updatedAt=d.updatedAt||now();
+    d.study=d.study&&typeof d.study==='object'?d.study:{id:DEFAULT_STUDY_ID,label:'psy-exp local research study',consentVersion:null,protocolGovernance:'protocol-lock-v1'};if(!Object.prototype.hasOwnProperty.call(d.study,'consentVersion'))d.study.consentVersion=null;d.study.protocolGovernance='protocol-lock-v1';
     d.sites=d.sites&&typeof d.sites==='object'?d.sites:{};if(!d.sites[DEFAULT_SITE_ID])d.sites[DEFAULT_SITE_ID]={id:DEFAULT_SITE_ID,label:'Local browser site',createdAt:now()};
-    d.participants=d.participants&&typeof d.participants==='object'?d.participants:{};d.sessions=d.sessions&&typeof d.sessions==='object'?d.sessions:{};d.attempts=Array.isArray(d.attempts)?d.attempts:[];d.audit=Array.isArray(d.audit)?d.audit:[];d.builds=d.builds&&typeof d.builds==='object'?d.builds:{};return d;
+    d.participants=d.participants&&typeof d.participants==='object'?d.participants:{};for(const p of Object.values(d.participants)){if(p&&typeof p==='object'){p.status=p.status||'active';if(!Object.prototype.hasOwnProperty.call(p,'consent'))p.consent=null}}
+    d.sessions=d.sessions&&typeof d.sessions==='object'?d.sessions:{};d.attempts=Array.isArray(d.attempts)?d.attempts:[];d.audit=Array.isArray(d.audit)?d.audit:[];d.builds=d.builds&&typeof d.builds==='object'?d.builds:{};return d
   }
   function load(){return normalize(storage.get())}
   function save(data){data=normalize(data);data.updatedAt=now();if(data.audit.length>1000)data.audit.splice(0,data.audit.length-1000);if(data.attempts.length>5000)data.attempts.splice(0,data.attempts.length-5000);return storage.set(data)}
   function audit(data,type,detail){data.audit.push({id:uid('audit'),type,at:now(),detail:clone(detail)||null})}
   function configureStudy({studyId,label,consentVersion,siteId,siteLabel}={}){
-    const d=load();const sid=safeId(studyId||d.study.id||DEFAULT_STUDY_ID),site=safeId(siteId||DEFAULT_SITE_ID);
-    d.study={...d.study,id:sid,label:label||d.study.label||sid,consentVersion:consentVersion??d.study.consentVersion??null,protocolGovernance:'protocol-lock-v1'};
-    d.sites[site]={...(d.sites[site]||{}),id:site,label:siteLabel||d.sites[site]?.label||site,createdAt:d.sites[site]?.createdAt||now()};
-    audit(d,'study_configured',{studyId:sid,siteId:site,consentVersion:d.study.consentVersion});save(d);return clone({study:d.study,site:d.sites[site]});
+    const d=load(),sid=safeId(studyId||d.study.id||DEFAULT_STUDY_ID),site=safeId(siteId||DEFAULT_SITE_ID),changingStudy=sid!==d.study.id;
+    if(changingStudy&&(Object.keys(d.sessions).length||d.attempts.length))throw new Error('STUDY_ID_CHANGE_AFTER_DATA_COLLECTION_BLOCKED');
+    if(changingStudy)for(const p of Object.values(d.participants))if(p)p.studyId=sid;
+    d.study={...d.study,id:sid,label:label||d.study.label||sid,consentVersion:consentVersion!==undefined?(consentVersion||null):(d.study.consentVersion||null),protocolGovernance:'protocol-lock-v1'};
+    d.sites[site]={...(d.sites[site]||{}),id:site,label:siteLabel||d.sites[site]?.label||site,createdAt:d.sites[site]?.createdAt||now()};audit(d,'study_configured',{studyId:sid,siteId:site,consentVersion:d.study.consentVersion});save(d);return clone({study:d.study,site:d.sites[site]})
   }
   function ensureParticipant(participantId,{siteId=DEFAULT_SITE_ID}={}){
-    const id=safeId(participantId),site=safeId(siteId),d=load();
-    if(!d.participants[id]){d.participants[id]={id,studyId:d.study.id,siteId:site,createdAt:now(),updatedAt:now(),status:'active'};audit(d,'participant_created',{participantId:id,siteId:site})}
-    else d.participants[id].updatedAt=now();
-    save(d);return clone(d.participants[id]);
+    const id=safeId(participantId),site=safeId(siteId),d=load();if(!d.participants[id]){d.participants[id]={id,studyId:d.study.id,siteId:site,createdAt:now(),updatedAt:now(),status:'active',consent:null};audit(d,'participant_created',{participantId:id,siteId:site})}else d.participants[id].updatedAt=now();save(d);return clone(d.participants[id])
   }
-  function getActiveSession(participantId){const id=safeId(participantId),d=load();const xs=Object.values(d.sessions).filter(s=>s.participantId===id&&s.status==='active').sort((a,b)=>String(b.startedAt).localeCompare(String(a.startedAt)));return clone(xs[0]||null)}
-  function beginSession(participantId,{siteId=DEFAULT_SITE_ID,operatorId='local-researcher',consentVersion=null,build=null,environment=null}={}){
-    const id=safeId(participantId),site=safeId(siteId);ensureParticipant(id,{siteId:site});const existing=getActiveSession(id);if(existing)return existing;
-    const d=load(),sessionId=uid('session');d.sessions[sessionId]={id:sessionId,studyId:d.study.id,siteId:site,participantId:id,operatorId:safeId(operatorId),consentVersion:consentVersion??d.study.consentVersion??null,status:'active',startedAt:now(),completedAt:null,build:clone(build),environment:clone(environment),protocolManifest:clone(build&&build.protocolManifest)||null};
-    audit(d,'session_started',{sessionId,participantId:id,siteId:site});save(d);return clone(d.sessions[sessionId]);
+  function setParticipantConsent(participantId,{status='granted',version=null,operatorId='local-researcher',note=null}={}){
+    const id=safeId(participantId),d=load(),p=d.participants[id]||ensureParticipant(id)&&load().participants[id];if(!p)return null;if(!['granted','withdrawn','declined'].includes(status))throw new Error('CONSENT_STATUS_INVALID');const required=d.study.consentVersion||null,v=version||required||null;if(status==='granted'&&required&&v!==required)throw new Error('CONSENT_VERSION_MISMATCH');p.consent={status,version:v,recordedAt:now(),operatorId:safeId(operatorId),note:note?String(note).slice(0,500):null};p.updatedAt=now();if(status==='withdrawn'||status==='declined')p.status=status;else if(p.status!=='withdrawn')p.status='active';audit(d,'participant_consent_recorded',{participantId:id,status,version:v,operatorId:p.consent.operatorId});save(d);if(status==='withdrawn')closeActiveSessions(id,{status:'withdrawn',reason:'participant_consent_withdrawn'});return clone(load().participants[id])
+  }
+  function sessionEligibility(participantId){const id=safeId(participantId),d=load(),p=d.participants[id];if(!p)return{eligible:false,reason:'participant_missing',requiredConsentVersion:d.study.consentVersion||null};if(['withdrawn','declined'].includes(p.status))return{eligible:false,reason:`participant_${p.status}`,requiredConsentVersion:d.study.consentVersion||null};const required=d.study.consentVersion||null;if(!required)return{eligible:true,reason:'consent_not_required',requiredConsentVersion:null};if(!p.consent||p.consent.status!=='granted')return{eligible:false,reason:'consent_required',requiredConsentVersion:required};if(p.consent.version!==required)return{eligible:false,reason:'consent_version_mismatch',requiredConsentVersion:required,participantConsentVersion:p.consent.version||null};return{eligible:true,reason:'consent_current',requiredConsentVersion:required}
+  }
+  function getActiveSession(participantId){const id=safeId(participantId),d=load(),xs=Object.values(d.sessions).filter(s=>s.participantId===id&&s.status==='active').sort((a,b)=>String(b.startedAt).localeCompare(String(a.startedAt)));return clone(xs[0]||null)}
+  function beginSession(participantId,{siteId=DEFAULT_SITE_ID,operatorId='local-researcher',consentVersion=null,build=null,environment=null,forceNew=false,parentSessionId=null,reopenReason=null}={}){
+    const id=safeId(participantId),site=safeId(siteId);ensureParticipant(id,{siteId:site});const eligibility=sessionEligibility(id);if(!eligibility.eligible)return{blocked:true,participantId:id,...eligibility};const existing=!forceNew&&getActiveSession(id);if(existing)return existing;const d=load(),sessionId=uid('session'),p=d.participants[id];d.sessions[sessionId]={id:sessionId,studyId:d.study.id,siteId:site,participantId:id,operatorId:safeId(operatorId),consentVersion:consentVersion??p.consent?.version??d.study.consentVersion??null,status:'active',startedAt:now(),completedAt:null,build:clone(build),environment:clone(environment),protocolManifest:clone(build&&build.protocolManifest)||null,parentSessionId:parentSessionId||null,reopenReason:reopenReason||null};audit(d,'session_started',{sessionId,participantId:id,siteId:site,parentSessionId:parentSessionId||null});save(d);return clone(d.sessions[sessionId])
   }
   function updateSession(sessionId,patch={}){const id=String(sessionId||''),d=load(),s=d.sessions[id];if(!s)return null;for(const k of ['environment','build','protocolManifest'])if(Object.prototype.hasOwnProperty.call(patch,k))s[k]=clone(patch[k]);if(Object.prototype.hasOwnProperty.call(patch,'operatorId'))s.operatorId=safeId(patch.operatorId);audit(d,'session_updated',{sessionId:id,keys:Object.keys(patch)});save(d);return clone(s)}
-  function closeSession(sessionId,{status='completed',reason=null}={}){const id=String(sessionId||''),d=load(),s=d.sessions[id];if(!s)return null;s.status=String(status||'completed');s.completedAt=now();s.closeReason=reason||null;audit(d,'session_closed',{sessionId:id,status:s.status,reason:s.closeReason});save(d);return clone(s)}
+  function closeSession(sessionId,{status='completed',reason=null}={}){const id=String(sessionId||''),d=load(),s=d.sessions[id];if(!s)return null;if(s.status!=='active')return clone(s);s.status=String(status||'completed');s.completedAt=now();s.closeReason=reason||null;audit(d,'session_closed',{sessionId:id,status:s.status,reason:s.closeReason});save(d);return clone(s)}
+  function closeActiveSessions(participantId,{status='closed',reason=null}={}){const id=safeId(participantId),d=load();let count=0;for(const s of Object.values(d.sessions))if(s&&s.participantId===id&&s.status==='active'){s.status=status;s.completedAt=now();s.closeReason=reason||null;count++;audit(d,'session_closed',{sessionId:s.id,status,reason:s.closeReason})}if(count)save(d);return count}
+  function reopenSession(sessionId,{operatorId='local-researcher',reason='researcher_reopen',build=null,environment=null}={}){const d=load(),prior=d.sessions[String(sessionId||'')];if(!prior)throw new Error('SESSION_NOT_FOUND');if(prior.status==='active')return clone(prior);return beginSession(prior.participantId,{siteId:prior.siteId,operatorId,build:build||prior.build,environment:environment||prior.environment,forceNew:true,parentSessionId:prior.id,reopenReason:reason})}
   function sourceAttemptKey({participantId,testKey,taskVersion,protocolId,resultRecordedAt,qcStatus}){return[participantId,testKey,taskVersion||'',protocolId||'',resultRecordedAt||'',qcStatus||''].join('|')}
-  function recordAttempt({sessionId,participantId,testKey,taskVersion,protocolId,qcStatus,resultRecordedAt,source='participant-manager',sourceKey=null}={}){
-    const d=load(),sid=String(sessionId||''),pid=safeId(participantId),key=sourceKey||sourceAttemptKey({participantId:pid,testKey,taskVersion,protocolId,resultRecordedAt,qcStatus});const existing=d.attempts.find(x=>x.sourceKey===key);if(existing)return clone(existing);
-    const attempt={id:uid('attempt'),studyId:d.study.id,siteId:(d.sessions[sid]&&d.sessions[sid].siteId)||DEFAULT_SITE_ID,sessionId:sid||null,participantId:pid,testKey:safeId(testKey),taskVersion:taskVersion||null,protocolId:protocolId||null,qcStatus:qcStatus||'unverified',recordedAt:resultRecordedAt||now(),source,sourceKey:key};d.attempts.push(attempt);audit(d,'attempt_recorded',{attemptId:attempt.id,sessionId:attempt.sessionId,participantId:pid,testKey:attempt.testKey,qcStatus:attempt.qcStatus});save(d);return clone(attempt)}
-  function syncParticipantData(payload,{sessionId=null}={}){
-    const participants=payload&&payload.participants&&typeof payload.participants==='object'?payload.participants:{};let added=0,seen=0;
-    for(const [participantId,p] of Object.entries(participants)){
-      ensureParticipant(participantId);
-      const active=sessionId?null:getActiveSession(participantId),sid=sessionId||active&&active.id||null,history=p&&p.attemptHistory&&typeof p.attemptHistory==='object'?p.attemptHistory:{};
-      for(const [resultKey,items] of Object.entries(history)){
-        const testKey=RESULT_TO_TEST[resultKey]||resultKey.replace(/^mccb-|(-result)$/g,''),xs=Array.isArray(items)?items:[];
-        for(const item of xs){seen++;const meta=item&&item._meta||{},qc=meta.sessionQc||{},before=load().attempts.length;recordAttempt({sessionId:sid,participantId,testKey,taskVersion:meta.taskVersion||null,protocolId:item&&item.protocol||null,qcStatus:qc.status||'unverified',resultRecordedAt:meta.recordedAt||item&&item.date||null,source:'participant-manager-history'});if(load().attempts.length>before)added++}
-      }
-    }
-    const d=load();audit(d,'participant_history_synced',{participants:Object.keys(participants).length,seen,added});save(d);return{participants:Object.keys(participants).length,seen,added,totalAttempts:d.attempts.length}
-  }
+  function recordAttempt({sessionId,participantId,testKey,taskVersion,protocolId,qcStatus,resultRecordedAt,source='participant-manager',sourceKey=null}={}){const d=load(),sid=String(sessionId||''),pid=safeId(participantId),key=sourceKey||sourceAttemptKey({participantId:pid,testKey,taskVersion,protocolId,resultRecordedAt,qcStatus}),existing=d.attempts.find(x=>x.sourceKey===key);if(existing)return clone(existing);const attempt={id:uid('attempt'),studyId:d.study.id,siteId:(d.sessions[sid]&&d.sessions[sid].siteId)||(d.participants[pid]&&d.participants[pid].siteId)||DEFAULT_SITE_ID,sessionId:sid||null,participantId:pid,testKey:safeId(testKey),taskVersion:taskVersion||null,protocolId:protocolId||null,qcStatus:qcStatus||'unverified',recordedAt:resultRecordedAt||now(),source,sourceKey:key};d.attempts.push(attempt);audit(d,'attempt_recorded',{attemptId:attempt.id,sessionId:attempt.sessionId,participantId:pid,testKey:attempt.testKey,qcStatus:attempt.qcStatus});save(d);return clone(attempt)}
+  function syncParticipantData(payload,{sessionId=null}={}){const participants=payload&&payload.participants&&typeof payload.participants==='object'?payload.participants:{};let added=0,seen=0;for(const [participantId,p] of Object.entries(participants)){ensureParticipant(participantId);const active=sessionId?null:getActiveSession(participantId),sid=sessionId||active&&active.id||null,history=p&&p.attemptHistory&&typeof p.attemptHistory==='object'?p.attemptHistory:{};for(const [resultKey,items] of Object.entries(history)){const testKey=RESULT_TO_TEST[resultKey]||resultKey.replace(/^mccb-|(-result)$/g,''),xs=Array.isArray(items)?items:[];for(const item of xs){seen++;const meta=item&&item._meta||{},qc=meta.sessionQc||{},before=load().attempts.length;recordAttempt({sessionId:sid,participantId,testKey,taskVersion:meta.taskVersion||null,protocolId:item&&item.protocol||null,qcStatus:qc.status||'unverified',resultRecordedAt:meta.recordedAt||item&&item.date||null,source:'participant-manager-history'});if(load().attempts.length>before)added++}}}const d=load();audit(d,'participant_history_synced',{participants:Object.keys(participants).length,seen,added});save(d);return{participants:Object.keys(participants).length,seen,added,totalAttempts:d.attempts.length}}
+  function deleteParticipant(participantId,{operatorId='local-researcher',reason='researcher_delete'}={}){const id=safeId(participantId),d=load();if(!d.participants[id])return{deleted:false,participants:0,sessions:0,attempts:0};const sessionIds=new Set(Object.values(d.sessions).filter(s=>s&&s.participantId===id).map(s=>s.id));let sessions=0;for(const sid of sessionIds){delete d.sessions[sid];sessions++}const before=d.attempts.length;d.attempts=d.attempts.filter(a=>!(a&&a.participantId===id));delete d.participants[id];audit(d,'participant_hard_deleted',{participantId:id,operatorId:safeId(operatorId),reason:String(reason||'').slice(0,200),sessions,attempts:before-d.attempts.length});save(d);return{deleted:true,participants:1,sessions,attempts:before-d.attempts.length}}
   function registerBuild(build){const d=load(),id=safeId(build&&build.id||build&&build.commit||build&&build.buildId||'unknown-build');d.builds[id]={id,recordedAt:now(),...clone(build)};audit(d,'build_registered',{buildId:id});save(d);return clone(d.builds[id])}
   function snapshot(){return clone(load())}
   function exportBundle(extra={}){if(extra.participantData)syncParticipantData(extra.participantData);const d=load();return{exportedAt:now(),format:'psy-exp-research-data-bundle',modelVersion:MODEL_VERSION,researchData:d,participantData:clone(extra.participantData)||null}}
   function downloadBundle(extra={}){if(typeof document==='undefined')return false;const blob=new Blob([JSON.stringify(exportBundle(extra),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`psy-exp-research-data-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;a.click();URL.revokeObjectURL(url);return true}
-  return{MODEL_VERSION,STORAGE_KEY,DEFAULT_STUDY_ID,DEFAULT_SITE_ID,configureStudy,ensureParticipant,beginSession,getActiveSession,updateSession,closeSession,recordAttempt,syncParticipantData,registerBuild,snapshot,exportBundle,downloadBundle,_load:load,_save:save,_clear:storage.clear};
+  return{MODEL_VERSION,STORAGE_KEY,DEFAULT_STUDY_ID,DEFAULT_SITE_ID,setStorageAdapter,getStorageAdapterInfo,configureStudy,ensureParticipant,setParticipantConsent,sessionEligibility,beginSession,getActiveSession,updateSession,closeSession,closeActiveSessions,reopenSession,deleteParticipant,recordAttempt,syncParticipantData,registerBuild,snapshot,exportBundle,downloadBundle,_load:load,_save:save,_clear:storage.clear};
 });

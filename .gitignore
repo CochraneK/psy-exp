@@ -11,6 +11,9 @@ data/cpt-reports/*
 data/autotest/**/*
 !data/autotest/**/.gitkeep
 
+# ---- 参考后端本地数据：严禁提交 ----
+.psy-exp-data/
+
 # ---- 私有/授权刺激材料：严禁提交到公开仓库 ----
 private/
 private-*/
