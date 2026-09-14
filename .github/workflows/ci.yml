@@ -87,8 +87,6 @@ jobs:
           grep -q "manifestHash" participant-runner.html
           grep -q "applySessionGate" participant-runner.html
           grep -q "ResearchStorage.stageBundle" participant-runner.html
-          grep -q "sessionEligibility" index.html
-          grep -q "data-governance.html" index.html
           grep -q 'id="consentVersion"' data-governance.html
           grep -q 'id="replicaToken"' data-governance.html
           grep -q 'id="importFile"' data-governance.html
@@ -96,18 +94,21 @@ jobs:
           grep -q ".psy-exp-data/" .gitignore
           grep -q "PSY_EXP_API_TOKEN" server/research-backend.cjs
           grep -q "127.0.0.1" server/research-backend.cjs
-          grep -q "认知任务研究工作台" index.html
-          if grep -q "Researcher console" index.html; then
-            echo "UI v5 must not restore the engineering-dashboard eyebrow."
+          grep -q "MCCB 认知成套测验" index.html
+          grep -q 'class="dashboard" id="dashboard"' index.html
+          grep -q 'class="mode-toggle" id="modeToggle"' index.html
+          grep -q 'id="participantManagerOverlay"' index.html
+          grep -q 'id="wm-toggle"' index.html
+          test "$(grep -o 'class="test-card"' index.html | wc -l)" -eq 10
+          test "$(grep -o 'class="domain-section"' index.html | wc -l)" -eq 7
+          if grep -q "Researcher console\|workbench-header\|subject-bar" index.html; then
+            echo "Original homepage must not regress to the later researcher-workbench shell."
             exit 1
           fi
-          grep -q "participant-runner.html" index.html
           grep -q "认知研究任务" participant-runner.html
           grep -q "timerJitter" participant-runner.html
           grep -q "research-app" research-ui.css
           grep -q "overflow:auto" research-ui.css
-          grep -q "UI v5" research-ui.css
-          grep -q "research-ui.css?v=5.0.0" index.html
           grep -q "research-ui.css?v=5.0.0" participant-runner.html
           grep -q "MIN_REFERENCE_N=5" research-report.html
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
@@ -119,10 +120,6 @@ jobs:
           fi
           if grep -R -n --include='*.html' -E "user-scalable[[:space:]]*=[[:space:]]*no|maximum-scale[[:space:]]*=[[:space:]]*1([,.\"']|$)" pages; then
             echo "Task pages must not disable browser zoom."
-            exit 1
-          fi
-          if grep -q "MCCB 认知成套测验" index.html; then
-            echo "Researcher Console must not regress to the legacy standardized-test framing."
             exit 1
           fi
           grep -q "RESEARCH PROTOTYPE" research-report.html
