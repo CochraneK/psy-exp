@@ -5,18 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>数据治理 · psy-exp</title>
 <link rel="stylesheet" href="mccb-common.css">
-<link rel="stylesheet" href="research-ui.css">
+<link rel="stylesheet" href="research-ui.css?v=4.0.0">
 </head>
 <body class="research-app">
 <main id="app" class="research-shell">
-<header class="app-header">
-  <div class="app-title"><div class="eyebrow">Research data governance</div><h1>研究数据治理</h1><p>Study / Site / consent / session lifecycle / local-primary + authenticated replica</p><div class="badges"><span class="badge research">RESEARCH PROTOTYPE</span><span class="badge info" id="modelBadge">loading…</span></div></div>
-  <nav class="header-actions"><a href="index.html">返回研究者控制台</a><button id="exportBtn" type="button">导出当前数据包</button></nav>
+<header class="topbar">
+  <div>
+    <div class="brand-row"><div class="brand-mark">PX</div><div><div class="eyebrow">Research data governance</div><h1>研究数据治理</h1></div></div>
+    <p>Study / Site / consent / session lifecycle / local-primary + authenticated replica</p>
+    <div class="badges" style="margin-top:8px"><span class="badge research">RESEARCH PROTOTYPE</span><span class="badge info" id="modelBadge">loading…</span></div>
+  </div>
+  <nav class="header-actions"><a href="index.html">返回控制台</a><button id="exportBtn" type="button">导出当前数据包</button></nav>
 </header>
-<div class="notice"><strong>架构边界：</strong>实验任务始终先写同步本地 primary；HTTP backend 是异步 replica。远端不可用不能阻塞计时任务。Bearer token 只保存在当前页面内存，不写入 localStorage。</div>
+<div class="boundary-note"><strong>架构边界：</strong>实验任务始终先写同步本地 primary；HTTP backend 是异步 replica。远端不可用不能阻塞计时任务。Bearer token 只保存在当前页面内存，不写入 localStorage。</div>
+
 <section class="section grid two">
   <article class="card">
-    <h2>Study / Site 配置</h2>
+    <div class="section-title"><h2>Study / Site</h2><p>研究身份与 consent 版本</p></div>
     <div class="toolbar" style="align-items:end">
       <label class="small">Study ID<input id="studyId" maxlength="96"></label>
       <label class="small">Study label<input id="studyLabel" maxlength="120"></label>
@@ -28,48 +33,51 @@
     <p id="studyStatus" class="small"></p>
   </article>
   <article class="card">
-    <h2>当前参与者 consent</h2>
-    <p id="participantLabel" class="participant">未选择参与者</p>
+    <div class="section-title"><h2>当前参与者 consent</h2><p>显式授权状态</p></div>
+    <p id="participantLabel" class="runner-participant">未选择参与者</p>
     <p id="consentStatus" class="small">—</p>
     <div class="button-row"><button id="grantConsentBtn" class="rui-btn primary" type="button">记录当前版本同意</button><button id="withdrawConsentBtn" class="rui-btn danger" type="button">记录撤回</button></div>
     <p class="small">撤回会阻止新 session，并关闭该参与者仍处于 active 的研究 session；不会静默删除既有数据。</p>
   </article>
 </section>
+
 <section class="section grid two">
   <article class="card">
-    <h2>HTTP replica</h2>
+    <div class="section-title"><h2>HTTP replica</h2><p>异步 durability / collection path</p></div>
     <label class="small"><input id="replicaEnabled" type="checkbox"> 启用远端 replica</label>
     <div class="toolbar" style="align-items:end;margin-top:10px">
       <label class="small">Base URL<input id="replicaUrl" placeholder="https://research.example.org"></label>
       <label class="small">Replica Study ID<input id="replicaStudyId" maxlength="96"></label>
       <label class="small">Bearer token（仅内存）<input id="replicaToken" type="password" autocomplete="off"></label>
-      <label class="small"><input id="autoSync" type="checkbox"> Runner checkpoint 后自动尝试同步</label>
+      <label class="small"><input id="autoSync" type="checkbox"> checkpoint 后自动尝试同步</label>
     </div>
     <div class="button-row"><button id="saveReplicaBtn" class="rui-btn" type="button">保存 replica 配置</button><button id="healthBtn" class="rui-btn" type="button">Health check</button><button id="syncBtn" class="rui-btn primary" type="button">立即同步</button></div>
     <p id="replicaStatus" class="small"></p>
-    <p class="small">允许 HTTPS；仅 localhost/127.0.0.1 例外允许 HTTP。token 永不持久化。</p>
+    <p class="small">允许 HTTPS；仅 localhost / 127.0.0.1 例外允许 HTTP。token 永不持久化。</p>
   </article>
   <article class="card">
-    <h2>Outbox / session</h2>
+    <div class="section-title"><h2>Outbox / session</h2><p>本地状态</p></div>
     <div class="metric-grid"><div class="metric"><div class="value" id="outboxCount">0</div><div class="label">pending sync</div></div><div class="metric"><div class="value" id="sessionCount">0</div><div class="label">sessions</div></div><div class="metric"><div class="value" id="attemptCount">0</div><div class="label">attempts</div></div></div>
     <div id="sessionList" class="participant-list" style="margin-top:12px"></div>
   </article>
 </section>
+
 <section class="section grid two">
   <article class="card">
-    <h2>受控导入 / 恢复</h2>
+    <div class="section-title"><h2>受控导入 / 恢复</h2><p>先验证，再应用</p></div>
     <input id="importFile" type="file" accept="application/json,.json">
     <div id="importPreview" class="notice info" style="margin-top:12px">先选择导出的 research-data bundle；只有通过结构校验后才允许应用。</div>
     <div class="button-row"><button id="mergeImportBtn" class="rui-btn" type="button" disabled>合并导入</button><button id="replaceImportBtn" class="rui-btn danger" type="button" disabled>完全替换本地数据</button></div>
   </article>
   <article class="card">
-    <h2>删除与撤回的区别</h2>
+    <div class="section-title"><h2>撤回与删除</h2><p>语义不同，不自动混用</p></div>
     <p class="small"><strong>撤回：</strong>保留审计和既有数据，阻止后续 session。<br><strong>硬删除：</strong>从本地 participant + research provenance 中移除该参与者关联记录；若启用 replica，可再显式请求远端删除。</p>
     <button id="hardDeleteBtn" class="rui-btn danger" type="button">硬删除当前参与者</button>
     <p id="deleteStatus" class="small"></p>
   </article>
 </section>
-<p class="small">参考后端只提供认证 API、原子 JSON 写入与备份，用于验证契约；正式研究部署仍需 TLS termination、secret manager、加密数据库、角色权限、备份/恢复演练与机构的数据保留策略。</p>
+
+<footer class="console-footer"><p class="small" style="margin:0">参考后端用于验证认证 API、原子 JSON 写入与备份契约；不等同于生产研究数据平台。</p><p class="small" style="margin:0;text-align:right">local primary → outbox → authenticated replica</p></footer>
 </main>
 <script src="mccb-participant.js"></script>
 <script src="research-storage.js"></script>
@@ -78,7 +86,6 @@
 <script>
 'use strict';
 const $=id=>document.getElementById(id);let pendingBundle=null;
-function escText(v){return String(v==null?'':v)}
 function currentParticipant(){return ParticipantManager.getCurrent()}
 function render(){
   const snap=ResearchData.snapshot(),cfg=ResearchStorage.getConfig(),pid=currentParticipant(),p=pid&&snap.participants[pid];$('modelBadge').textContent=`${ResearchData.MODEL_VERSION} · ${ResearchStorage.STORAGE_ARCH_VERSION}`;
