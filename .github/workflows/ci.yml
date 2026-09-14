@@ -25,8 +25,10 @@ jobs:
         run: |
           node --check mccb-scoring.js
           node --check mccb-participant.js
+          node --check research-data.js
           node --check tests/verify-scoring.cjs
           node --check tests/verify-participant.cjs
+          node --check tests/verify-research-data.cjs
           node --check tests/verify-manifest.cjs
           node --check tests/verify-protocol-lock.cjs
           node --check tests/validate-drivers.cjs
@@ -48,6 +50,7 @@ jobs:
         shell: bash
         run: |
           test -f research-ui.css
+          test -f research-data.js
           test -f participant-runner.html
           test -f research-report.html
           test -f research-comparison.html
@@ -56,8 +59,15 @@ jobs:
           test -f docs/README.md
           test -f docs/HISTORY_PURGE.md
           test -f docs/UI_UX_V2.md
+          test -f docs/RESEARCH_DATA_MODEL.md
           grep -q '"protocolGovernance": "protocol-lock-v1"' task-manifest.json
+          grep -q '"dataModelVersion": "research-data-model-1.0.0"' task-manifest.json
           grep -q '"lockVersion": 1' protocol-lock.json
+          grep -q "MODEL_VERSION='research-data-model-1.0.0'" research-data.js
+          grep -q "Study → Site → Participant → Session → Attempt" docs/RESEARCH_DATA_MODEL.md
+          grep -q "research-data.js" participant-runner.html
+          grep -q "protocolLockHash" participant-runner.html
+          grep -q "manifestHash" participant-runner.html
           grep -q "认知任务研究工作台" index.html
           grep -q "Researcher console" index.html
           grep -q "participant-runner.html" index.html

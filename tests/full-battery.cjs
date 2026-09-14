@@ -13,6 +13,7 @@ const ROOT=path.resolve(__dirname,'..');
 const checks=[
   ['inline HTML JavaScript','tests/validate-inline-scripts.cjs'],
   ['participant/session QC','tests/verify-participant.cjs'],
+  ['research data model','tests/verify-research-data.cjs'],
   ['research scoring','tests/verify-scoring.cjs'],
   ['task manifest/material policy','tests/verify-manifest.cjs'],
   ['protocol freeze/version governance','tests/verify-protocol-lock.cjs'],
