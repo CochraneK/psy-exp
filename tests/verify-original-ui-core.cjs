@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('fs');const path=require('path');const crypto=require('crypto');const ROOT=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(ROOT,f),'utf8');
-const index=read('index.html'),runtime=read('mccb-participant.js'),controller=read('original-ui-controller.js'),session=read('research-session.js');
+const index=read('index.html'),runtime=read('mccb-participant.js'),controller=read('original-ui-controller.js'),session=read('research-session.js'),polish=read('original-ui-polish.css');
 const gitBlobSha=text=>crypto.createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex');
 let pass=0,fail=0;function check(name,cond,detail=''){if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}}
 console.log('=== Original UI / modern core contract ===');
@@ -28,4 +28,9 @@ check('homepage viewport is hardened without changing its CSS',runtime.includes(
 check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));
 check('shared session bridge checkpoints participant history',session.includes('syncParticipantData')&&session.includes('stageBundle'));
 check('original report entry labels are restored after safety bootstrap',session.includes('restoreOriginalReportEntries')&&session.includes('📊 综合报告')&&session.includes('📈 对比分析'));
+check('polish is mounted without editing original homepage',session.includes('installOriginalUiPolish')&&session.includes("original-ui-polish.css?v=1.0.0")&&session.includes("body.classList.add('psy-polish')"));
+check('classic query can disable polish instantly',session.includes("params.get('ui')==='classic'")&&session.includes("body.classList.remove('psy-polish')"));
+check('polish stays scoped to opt-in body class',/\.psy-polish\s/.test(polish)&&!/^body\s*\{/m.test(polish));
+check('polish keeps cards and dashboard subtle',polish.includes('.psy-polish .test-card')&&polish.includes('.psy-polish .dashboard')&&polish.includes('translateY(-1px)'));
+check('polish improves focus and reduced-motion behavior',polish.includes(':focus-visible')&&polish.includes('prefers-reduced-motion'));
 console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);process.exit(fail===0?0:1);

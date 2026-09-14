@@ -7,6 +7,25 @@
   'use strict';
   let manifestPromise=null;
 
+  function isOriginalHomepage(){
+    if(!root.document)return false;
+    return root.document.title==='MCCB 认知成套测验'&&!!root.document.getElementById('dashboard')&&root.document.querySelectorAll('.test-card').length===10;
+  }
+  function installOriginalUiPolish(){
+    if(!isOriginalHomepage())return false;
+    const params=new URLSearchParams(root.location&&root.location.search||'');
+    if(params.get('ui')==='classic'){
+      root.document.body.classList.remove('psy-polish');
+      const prior=root.document.getElementById('original-ui-polish');if(prior)prior.remove();
+      return false;
+    }
+    if(!root.document.getElementById('original-ui-polish')){
+      const link=root.document.createElement('link');link.id='original-ui-polish';link.rel='stylesheet';link.href='original-ui-polish.css?v=1.0.0';root.document.head.appendChild(link);
+    }
+    root.document.body.classList.add('psy-polish');
+    return true;
+  }
+
   function restoreOriginalReportEntries(){
     if(!root.document)return;
     const single=root.document.querySelector('button[onclick*="research-report.html"],button[onclick*="comprehensive-report.html"]');
@@ -15,6 +34,7 @@
     if(comparison){comparison.setAttribute('onclick',"window.location.href='comparison-report.html'");comparison.textContent='📈 对比分析';comparison.title='多被试认知域对比'}
   }
   restoreOriginalReportEntries();
+  installOriginalUiPolish();
 
   async function sha256Json(value){
     try{
@@ -89,5 +109,5 @@
     }
     return{queued:!!queued,sessionId:sid};
   }
-  return{provenance,ensureSession,checkpoint,restoreOriginalReportEntries};
+  return{provenance,ensureSession,checkpoint,restoreOriginalReportEntries,installOriginalUiPolish};
 });
