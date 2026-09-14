@@ -30,6 +30,7 @@ jobs:
           node --check research-governance.js
           node --check research-session.js
           node --check original-ui-controller.js
+          node --check demo-data.js
           node --check server/research-backend.cjs
           node --check tests/verify-scoring.cjs
           node --check tests/verify-participant.cjs
@@ -40,6 +41,7 @@ jobs:
           node --check tests/verify-manifest.cjs
           node --check tests/verify-protocol-lock.cjs
           node --check tests/verify-original-ui-core.cjs
+          node --check tests/verify-demo-data.cjs
           node --check tests/validate-drivers.cjs
           node --check tests/validate-inline-scripts.cjs
           node --check tests/verify-ui.cjs
@@ -64,6 +66,7 @@ jobs:
           test -f research-governance.js
           test -f research-session.js
           test -f original-ui-controller.js
+          test -f demo-data.js
           test -f participant-runner.html
           test -f data-governance.html
           test -f research-report.html
@@ -96,6 +99,11 @@ jobs:
           grep -q "ResearchSession.ensureSession" original-ui-controller.js
           grep -q "ResearchGovernance.validateBundle" original-ui-controller.js
           grep -q "MCCBScoring.getDomainSummary" original-ui-controller.js
+          grep -q "installDemoDataMode" research-session.js
+          grep -q "demo-data.js?v=1.0.0" research-session.js
+          grep -q "SYNTHETIC DEMO DATA" demo-data.js
+          grep -q "synthetic_demo_only" demo-data.js
+          grep -q "demoSynthetic" demo-data.js
           grep -q 'id="consentVersion"' data-governance.html
           grep -q 'id="replicaToken"' data-governance.html
           grep -q 'id="importFile"' data-governance.html
