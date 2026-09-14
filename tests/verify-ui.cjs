@@ -11,13 +11,8 @@ let passed = 0;
 let failed = 0;
 
 function check(ok, message) {
-  if (ok) {
-    passed++;
-    console.log(`PASS ${message}`);
-  } else {
-    failed++;
-    console.error(`FAIL ${message}`);
-  }
+  if (ok) { passed++; console.log(`PASS ${message}`); }
+  else { failed++; console.error(`FAIL ${message}`); }
 }
 
 for (const name of taskFiles) {
@@ -30,24 +25,36 @@ for (const name of taskFiles) {
 
 for (const name of appFiles) {
   const html = fs.readFileSync(path.join(ROOT, name), 'utf8');
-  check(/research-ui\.css/.test(html), `${name}: unified research UI stylesheet loaded`);
+  check(/research-ui\.css\?v=4\.0\.0/.test(html), `${name}: v4 stylesheet URL is cache-busted`);
   check(/research-app/.test(html), `${name}: long-form research shell enabled`);
 }
 
 const css = fs.readFileSync(path.join(ROOT, 'research-ui.css'), 'utf8');
+check(/UI v4/.test(css), 'shared stylesheet identifies UI v4');
 check(/overflow:auto/.test(css), 'research app restores long-page scrolling');
 check(/prefers-reduced-motion/.test(css), 'research UI honors reduced-motion preference');
 check(/focus-visible/.test(css), 'research UI exposes keyboard focus styling');
+check(/\.task-grid/.test(css) && /\.runner-focus/.test(css) && /\.comparison-layout/.test(css), 'v4 task-first layout primitives exist');
+
+const consoleHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+check(/console-identity/.test(consoleHtml), 'console has compact active-participant strip');
+check(/task-grid/.test(consoleHtml) && /participant-panel/.test(consoleHtml), 'console uses task-first workspace plus participant sidebar');
+check(!/id=["']cohortMetrics["']/.test(consoleHtml), 'console no longer carries the old cohort dashboard strip');
+check(!/① 施测|② QC|③ 分析/.test(consoleHtml), 'console removes explanatory process-card clutter');
 
 const runner = fs.readFileSync(path.join(ROOT, 'participant-runner.html'), 'utf8');
 check(/getTestUrl\(key,'user'\)/.test(runner), 'participant runner forces USER mode');
 check(/timerJitter/.test(runner), 'participant runner includes timer-jitter preflight');
 check(!/modeSelect/.test(runner), 'participant runner exposes no DEV-mode selector');
+check(/runner-focus/.test(runner) && /runner-roadmap/.test(runner), 'participant runner centers one next action plus compact roadmap');
+check(/<details>[\s\S]*设备预检与技术状态/.test(runner), 'participant technical preflight is secondary/collapsible');
 
 const report = fs.readFileSync(path.join(ROOT, 'research-report.html'), 'utf8');
 const comparison = fs.readFileSync(path.join(ROOT, 'research-comparison.html'), 'utf8');
 check(/MIN_REFERENCE_N=5/.test(report), 'single report preserves small-N display guardrail');
+check(/report-masthead/.test(report) && /domain-grid/.test(report), 'single report uses document-style hierarchy');
 check(/MIN_REFERENCE_N=5/.test(comparison), 'comparison report preserves small-N display guardrail');
+check(/comparison-layout/.test(comparison) && /selector-panel/.test(comparison), 'comparison uses participant selector plus evidence matrix');
 
 console.log(`\nUI contracts: ${passed} passed / ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);
