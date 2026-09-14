@@ -28,6 +28,8 @@ jobs:
           node --check research-storage.js
           node --check research-data.js
           node --check research-governance.js
+          node --check research-session.js
+          node --check original-ui-controller.js
           node --check server/research-backend.cjs
           node --check tests/verify-scoring.cjs
           node --check tests/verify-participant.cjs
@@ -37,6 +39,7 @@ jobs:
           node --check tests/verify-backend.cjs
           node --check tests/verify-manifest.cjs
           node --check tests/verify-protocol-lock.cjs
+          node --check tests/verify-original-ui-core.cjs
           node --check tests/validate-drivers.cjs
           node --check tests/validate-inline-scripts.cjs
           node --check tests/verify-ui.cjs
@@ -59,6 +62,8 @@ jobs:
           test -f research-storage.js
           test -f research-data.js
           test -f research-governance.js
+          test -f research-session.js
+          test -f original-ui-controller.js
           test -f participant-runner.html
           test -f data-governance.html
           test -f research-report.html
@@ -87,6 +92,10 @@ jobs:
           grep -q "manifestHash" participant-runner.html
           grep -q "applySessionGate" participant-runner.html
           grep -q "ResearchStorage.stageBundle" participant-runner.html
+          grep -q "bootstrapOriginalHomepageModernCore" mccb-participant.js
+          grep -q "ResearchSession.ensureSession" original-ui-controller.js
+          grep -q "ResearchGovernance.validateBundle" original-ui-controller.js
+          grep -q "MCCBScoring.getDomainSummary" original-ui-controller.js
           grep -q 'id="consentVersion"' data-governance.html
           grep -q 'id="replicaToken"' data-governance.html
           grep -q 'id="importFile"' data-governance.html
@@ -154,6 +163,10 @@ jobs:
           fi
           if grep -nE '/(110|50|24|36)([^0-9]|$)' mccb-scoring.js; then
             echo "Research domain scoring must not reintroduce arbitrary fixed-denominator scaling."
+            exit 1
+          fi
+          if grep -nE '/(110|40|24|36|26)([^0-9]|$)' original-ui-controller.js; then
+            echo "Original UI controller must not use arbitrary fixed-denominator scoring."
             exit 1
           fi
           grep -q "research-cohort-rank-index" mccb-scoring.js
