@@ -7,6 +7,15 @@
   'use strict';
   let manifestPromise=null;
 
+  function restoreOriginalReportEntries(){
+    if(!root.document)return;
+    const single=root.document.querySelector('button[onclick*="research-report.html"],button[onclick*="comprehensive-report.html"]');
+    if(single){single.setAttribute('onclick',"window.location.href='comprehensive-report.html'");single.textContent='📊 综合报告';single.title='查看综合认知报告'}
+    const comparison=root.document.querySelector('button[onclick*="research-comparison.html"],button[onclick*="comparison-report.html"]');
+    if(comparison){comparison.setAttribute('onclick',"window.location.href='comparison-report.html'");comparison.textContent='📈 对比分析';comparison.title='多被试认知域对比'}
+  }
+  restoreOriginalReportEntries();
+
   async function sha256Json(value){
     try{
       if(!(root.crypto&&root.crypto.subtle))return null;
@@ -80,5 +89,5 @@
     }
     return{queued:!!queued,sessionId:sid};
   }
-  return{provenance,ensureSession,checkpoint};
+  return{provenance,ensureSession,checkpoint,restoreOriginalReportEntries};
 });
