@@ -1,0 +1,22 @@
+'use strict';
+const path=require('path');
+const fs=require('fs');
+const os=require('os');
+const {spawn}=require('child_process');
+const mem=new Map();global.localStorage={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k),key:i=>[...mem.keys()][i]||null,get length(){return mem.size}};
+const Storage=require(path.resolve(__dirname,'../research-storage.js'));
+const PORT=18800+(process.pid%700),BASE=`http://127.0.0.1:${PORT}`,TOKEN='ci-test-token-'+process.pid,DIR=fs.mkdtempSync(path.join(os.tmpdir(),'psy-exp-backend-'));
+let pass=0,fail=0;const check=(name,cond,detail='')=>{if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}};const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function waitHealth(){for(let i=0;i<60;i++){try{const r=await fetch(BASE+'/v1/health');if(r.ok)return r.json()}catch{}await sleep(100)}throw new Error('backend health timeout')}
+(async()=>{console.log('=== Reference backend contract ===');const child=spawn(process.execPath,[path.resolve(__dirname,'../server/research-backend.cjs')],{env:{...process.env,PSY_EXP_PORT:String(PORT),PSY_EXP_DATA_DIR:DIR,PSY_EXP_API_TOKEN:TOKEN,PSY_EXP_ALLOWED_ORIGINS:'https://allowed.example'},stdio:['ignore','pipe','pipe']});let stderr='';child.stderr.on('data',d=>stderr+=d);try{
+  const health=await waitHealth();check('health endpoint available without auth',health.ok===true&&health.version==='1.0.0');
+  const unauthorized=await fetch(BASE+'/v1/studies/STUDY-B/bundle');check('study bundle requires bearer auth',unauthorized.status===401);
+  const badOrigin=await fetch(BASE+'/v1/studies/STUDY-B/bundle',{headers:{authorization:`Bearer ${TOKEN}`,origin:'https://evil.example'}});check('unexpected browser origin rejected',badOrigin.status===403);
+  Storage.configureReplica({enabled:true,baseUrl:BASE,studyId:'STUDY-B'});Storage.setSessionToken(TOKEN);Storage.clearOutbox();
+  const bundle={format:'psy-exp-research-data-bundle',modelVersion:'research-data-model-1.1.0',exportedAt:new Date().toISOString(),researchData:{schemaVersion:1,modelVersion:'research-data-model-1.1.0',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),study:{id:'STUDY-B',consentVersion:null},sites:{SITE:{id:'SITE'}},participants:{P001:{id:'P001',studyId:'STUDY-B',siteId:'SITE',status:'active'}},sessions:{S1:{id:'S1',participantId:'P001',studyId:'STUDY-B',siteId:'SITE',status:'completed'}},attempts:[{id:'A1',participantId:'P001',sessionId:'S1'}],audit:[],builds:{}},participantData:{schemaVersion:4,runtimeVersion:'research-runtime-0.4.0',exportDate:new Date().toISOString(),participantCount:1,participants:{P001:{cohortId:'P001',progress:{},sessions:{},results:{},invalidResults:{},attemptHistory:{}}}}};
+  const sync=await Storage.syncBundle(bundle,{reason:'ci'});check('client pushes queued bundle with auth',sync.ok===true&&sync.sent===1&&Storage.getOutbox().length===0);
+  const pulled=await Storage.pullBundle();check('client pulls same study bundle',pulled.researchData.study.id==='STUDY-B'&&pulled.participantData.participants.P001);
+  const deletion=await Storage.deleteRemoteParticipant('P001');check('remote participant deletion is explicit and scoped',deletion.ok===true&&deletion.removed.participant===true&&deletion.removed.sessions===1&&deletion.removed.attempts===1);
+  const after=await Storage.pullBundle();check('remote deletion removes participant-linked payloads',!after.researchData.participants.P001&&!after.participantData.participants.P001&&Object.keys(after.researchData.sessions).length===0&&after.researchData.attempts.length===0);
+  const studyFile=path.join(DIR,'studies','STUDY-B.json'),backupDir=path.join(DIR,'backups','STUDY-B');check('server uses restrictive JSON file storage with backups',fs.existsSync(studyFile)&&fs.statSync(studyFile).mode%512===384&&fs.existsSync(backupDir)&&fs.readdirSync(backupDir).length>=1);
+ }finally{child.kill('SIGTERM');await sleep(100);try{fs.rmSync(DIR,{recursive:true,force:true})}catch{}if(stderr)console.error(stderr)}console.log(`\n=== Result: ${pass} passed / ${fail} failed ===`);process.exit(fail===0?0:1)})().catch(e=>{console.error(e.stack||e);process.exit(1)});
