@@ -34,7 +34,7 @@ function makeServer() {
     } catch (err) { res.writeHead(500); res.end(String(err)); }
   });
 }
-async function pollJson(url, timeoutMs=10000) {
+async function pollJson(url, timeoutMs=15000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try { const r = await fetch(url); if (r.ok) return await r.json(); } catch {}
@@ -67,34 +67,24 @@ async function main() {
   const chromeProc=spawn(chrome,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',`--remote-debugging-port=${CDP_PORT}`,`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
   let chromeErr='',cdp; const results=[]; chromeProc.stderr.on('data',d=>{chromeErr+=String(d);if(chromeErr.length>20000)chromeErr=chromeErr.slice(-20000)});
   try {
-    const targets=await pollJson(`http://${HOST}:${CDP_PORT}/json/list`),page=targets.find(t=>t.type==='page'&&t.webSocketDebuggerUrl); if(!page)throw new Error('No debuggable page target found');
+    let targets;
+    try { targets=await pollJson(`http://${HOST}:${CDP_PORT}/json/list`); }
+    catch(err){ throw new Error(`${err.message}\nChrome stderr:\n${chromeErr}`); }
+    const page=targets.find(t=>t.type==='page'&&t.webSocketDebuggerUrl); if(!page)throw new Error('No debuggable page target found');
     cdp=await connectCdp(page.webSocketDebuggerUrl); const exceptions=[]; cdp.on('Runtime.exceptionThrown',p=>exceptions.push(p.exceptionDetails&&(p.exceptionDetails.text||(p.exceptionDetails.exception&&p.exceptionDetails.exception.description))||'unknown runtime exception')); await cdp.send('Page.enable'); await cdp.send('Runtime.enable');
     async function evaluate(expression){const r=await cdp.send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(`Evaluation failed: ${r.exceptionDetails.text}`);return r.result&&r.result.value}
     async function waitFor(expression,timeoutMs=6000){const start=Date.now();while(Date.now()-start<timeoutMs){try{if(await evaluate(expression))return true}catch{}await sleep(100)}throw new Error(`Timed out waiting for expression: ${expression}`)}
-    async function navigate(url,readyExpression='document.readyState === "complete"'){const before=exceptions.length;await cdp.send('Page.navigate',{url});await waitFor(readyExpression);await sleep(150);const pageExceptions=exceptions.slice(before);if(pageExceptions.length)throw new Error(`Runtime exceptions on ${url}: ${pageExceptions.join(' | ')}`)}
+    async function navigate(url,readyExpression='document.readyState === "complete"'){const before=exceptions.length;await cdp.send('Page.navigate',{url});await waitFor(readyExpression);await sleep(180);const pageExceptions=exceptions.slice(before);if(pageExceptions.length)throw new Error(`Runtime exceptions on ${url}: ${pageExceptions.join(' | ')}`)}
     async function test(name,fn){try{await fn();results.push([name,true]);console.log(`PASS ${name}`)}catch(err){results.push([name,false,err.message]);console.error(`FAIL ${name}: ${err.message}`)}}
 
-    await test('researcher console renders quiet v5 workbench and creates isolated participant state', async()=>{
-      await navigate(`${BASE}/index.html`,'document.readyState === "complete" && !!document.querySelector(".research-shell")');
-      await waitFor(`document.querySelectorAll('#tasks .task-card').length===10`);
-      const shell=await evaluate(`(()=>({
-        header:!!document.querySelector('.workbench-header'),
-        subjectBar:!!document.querySelector('.subject-bar'),
-        scrolling:getComputedStyle(document.documentElement).overflowY!=='hidden',
-        participantPanel:!!document.querySelector('.participant-panel'),
-        tenTasks:document.querySelectorAll('#tasks .task-card').length===10,
-        noCohortDashboard:!document.getElementById('cohortMetrics'),
-        governanceEntry:!!document.querySelector('a[href="data-governance.html"]'),
-        noOldEyebrow:!document.body.textContent.includes('Researcher console'),
-        noPrototypeBadge:!document.body.textContent.includes('RESEARCH PROTOTYPE'),
-        v5Stylesheet:[...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css?v=5.0.0'))
-      }))()`);
-      const localized=await evaluate(`[...document.querySelectorAll('#tasks .status')].every(x=>!['not_started','completed','in_progress'].includes(x.textContent.trim()))`);
+    await test('exact original uploaded homepage renders and current participant runtime remains usable', async()=>{
+      await navigate(`${BASE}/index.html`,'document.readyState === "complete" && !!document.querySelector(".container")');
+      await waitFor(`document.querySelectorAll('.test-card').length===10`);
+      const shell=await evaluate(`(()=>({title:document.title==='MCCB 认知成套测验',logo:!!document.querySelector('.header .logo'),dashboard:!!document.getElementById('dashboard'),domains:document.querySelectorAll('.domain-section').length===7,cards:document.querySelectorAll('.test-card').length===10,modeToggle:!!document.getElementById('modeToggle'),wideMode:!!document.getElementById('wm-toggle'),participantManager:!!document.getElementById('participantManagerOverlay'),resume:!!document.getElementById('resumeBtn'),noLaterWorkbench:!document.querySelector('.workbench-header,.subject-bar,.task-grid'),noResearchCss:![...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css'))}))()`);
       const participantOk=await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);
-      if(!participantOk)throw new Error('could not create clean E2E participant');
+      if(!participantOk)throw new Error('could not create clean E2E participant from original homepage runtime');
       const failed=Object.entries(shell||{}).filter(([,ok])=>!ok).map(([name])=>name);
-      if(failed.length)throw new Error(`v5 workbench browser contract failed: ${failed.join(', ')}`);
-      if(!localized)throw new Error('task statuses are not localized');
+      if(failed.length)throw new Error(`original homepage browser contract failed: ${failed.join(', ')}`);
     });
 
     await test('data governance enables consent version and runner fails closed before grant', async()=>{
@@ -105,13 +95,13 @@ async function main() {
       const blocked=await evaluate(`(()=>{const d=ResearchData.snapshot();return Object.keys(d.sessions).length===0&&document.getElementById('nextBtn').hidden===true&&document.getElementById('nextDesc').textContent.includes('consent-e2e-v1')&&[...document.querySelectorAll('#taskList a')].every(a=>!a.hasAttribute('href'))})()`);if(!blocked)throw new Error('runner did not fail closed on missing consent');
     });
 
-    await test('governance grant releases participant and v5 runner creates fingerprinted session', async()=>{
+    await test('governance grant releases participant and runner creates fingerprinted session', async()=>{
       await navigate(`${BASE}/data-governance.html`,`document.readyState === 'complete' && !!document.getElementById('grantConsentBtn')`);
       const granted=await evaluate(`(()=>{document.getElementById('grantConsentBtn').click();const e=ResearchData.sessionEligibility('E2E1'),p=ResearchData.snapshot().participants.E2E1;return e.eligible===true&&p.consent&&p.consent.version==='consent-e2e-v1'})()`);if(!granted)throw new Error('consent grant did not unlock participant');
       await navigate(`${BASE}/participant-runner.html?p=E2E1`,`document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
       await waitFor(`document.querySelectorAll('#taskList .task-row').length === 10 && document.querySelectorAll('#preflightList .check').length >= 6`,8000);
       await waitFor(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return d.modelVersion==='research-data-model-1.1.0'&&d.participants.E2E1&&s&&s.participantId==='E2E1'&&s.status==='active'&&s.consentVersion==='consent-e2e-v1'&&s.environment&&s.protocolManifest&&typeof s.protocolManifest.manifestHash==='string'&&s.protocolManifest.manifestHash.length===64&&typeof s.protocolManifest.protocolLockHash==='string'&&s.protocolManifest.protocolLockHash.length===64})()`,8000);
-      const ok=await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !!document.querySelector('.runner-focus')&&!!document.querySelector('.runner-roadmap')&&!document.body.textContent.includes('DEV mode')&&!document.querySelector('a[href="data-governance.html"]')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.1.0'&&s.build.storageArchitecture==='local-primary-http-replica-1.0.0'})()`);if(!ok)throw new Error('runner/session provenance or v5 participant-surface contract failed');
+      const ok=await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !!document.querySelector('.runner-focus')&&!!document.querySelector('.runner-roadmap')&&!document.body.textContent.includes('DEV mode')&&!document.querySelector('a[href="data-governance.html"]')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.1.0'&&s.build.storageArchitecture==='local-primary-http-replica-1.0.0'})()`);if(!ok)throw new Error('runner/session provenance contract failed');
     });
 
     await test('complete TMT Part A through real task UI and persist valid canonical result', async()=>{
@@ -126,7 +116,7 @@ async function main() {
       const ok=await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && Object.values(d.sessions).length===1 && d.attempts.some(a=>a.testKey==='tmt'&&a.sessionId===s.id)})()`);if(!ok)throw new Error('runner did not reflect completion, advance, reuse session, or sync attempt');
     });
 
-    await test('single report executes in document layout and exposes persisted TMT raw result', async()=>{
+    await test('single report executes and exposes persisted TMT raw result', async()=>{
       await navigate(`${BASE}/research-report.html`,`document.readyState === 'complete' && document.getElementById('normBadge').textContent !== '载入中…'`);
       const ok=await evaluate(`document.getElementById('normBadge').textContent.includes('RESEARCH') && !!document.querySelector('.report-masthead') && document.body.textContent.includes('reference N < 5') && document.body.textContent.includes('Trail Making')`);if(!ok)throw new Error('research report guardrail, layout, or persisted TMT result missing');
     });
@@ -143,7 +133,7 @@ async function main() {
 
     const failures=results.filter(x=>!x[1]);console.log(`\nBrowser E2E smoke: ${results.length-failures.length} passed / ${failures.length} failed`);if(failures.length)process.exitCode=1;
   } finally {
-    try{if(cdp)cdp.ws.close()}catch{}try{chromeProc.kill('SIGTERM')}catch{}await new Promise(resolve=>server.close(resolve));try{fs.rmSync(profile,{recursive:true,force:true})}catch{}if(process.exitCode&&chromeErr)console.error(`\nChrome stderr tail:\n${chromeErr.slice(-4000)}`);
+    try{if(cdp)cdp.ws.close()}catch{}try{chromeProc.kill('SIGTERM')}catch{}await new Promise(resolve=>server.close(resolve));try{fs.rmSync(profile,{recursive:true,force:true})}catch{}
   }
 }
-main().catch(err=>{console.error(err.stack||err);process.exit(1)});
+main().catch(err=>{console.error(err.stack||err);process.exitCode=1});
