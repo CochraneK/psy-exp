@@ -4,9 +4,8 @@
  *
  * The previous file was a Windows/agent-browser script tightly coupled to old
  * page internals and embedded assessment stimuli. It could no longer validate
- * the hardened pages safely. Browser-specific E2E should live in a dedicated
- * dependency-managed harness; this command aggregates the portable repository
- * contracts that CI also enforces.
+ * the hardened pages safely. Browser-specific E2E lives in browser-smoke.cjs;
+ * this command aggregates portable repository contracts enforced by CI.
  */
 const {spawnSync}=require('child_process');
 const path=require('path');
@@ -16,6 +15,7 @@ const checks=[
   ['participant/session QC','tests/verify-participant.cjs'],
   ['research scoring','tests/verify-scoring.cjs'],
   ['task manifest/material policy','tests/verify-manifest.cjs'],
+  ['protocol freeze/version governance','tests/verify-protocol-lock.cjs'],
   ['driver/static task contract','tests/validate-drivers.cjs']
 ];
 let failures=0;

@@ -1,0 +1,16 @@
+{
+  "lockVersion": 1,
+  "policy": "Any protocol-relevant change requires an intentional protocolId and/or taskVersion bump plus a lock update in the same reviewed change.",
+  "tasks": {
+    "tmt": {"taskVersion":"tmt-web-0.4.0","protocolId":"trail-making-browser-synthetic-v2","page":"pages/mccb-tmt.html"},
+    "bacs": {"taskVersion":"bacs-web-0.4.0","protocolId":"symbol-coding-synthetic-v1","page":"pages/mccb-bacs.html"},
+    "fluency": {"taskVersion":"fluency-web-0.4.0","protocolId":"typed-animal-fluency-v1","page":"pages/mccb-fluency.html"},
+    "cpt": {"taskVersion":"cpt-web-0.4.0","protocolId":"identical-pairs-4digit-research-v2","page":"pages/mccb-cpt.html"},
+    "spatial-span": {"taskVersion":"spatial-span-web-0.4.0","protocolId":"synthetic-spatial-sequence-v1","page":"pages/mccb-spatial-span.html"},
+    "lns": {"taskVersion":"lns-web-0.4.0","protocolId":"synthetic-letter-number-ordering-v1","page":"pages/mccb-lns.html"},
+    "hvlt": {"taskVersion":"hvlt-web-0.4.0","protocolId":"hvlt-related-private-stimulus-shell","page":"pages/mccb-hvlt.html"},
+    "bvmt": {"taskVersion":"bvmt-web-0.4.0","protocolId":"synthetic-visual-pattern-v1","page":"pages/mccb-bvmt.html"},
+    "mazes": {"taskVersion":"mazes-web-0.4.0","protocolId":"generated-perfect-mazes-v1","page":"pages/mccb-mazes.html"},
+    "msceit": {"taskVersion":"msceit-web-0.4.0","protocolId":"private-social-cognition-shell-v1","page":"pages/mccb-msceit.html"}
+  }
+}
