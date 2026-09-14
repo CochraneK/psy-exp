@@ -1,9 +1,11 @@
 'use strict';
-const fs=require('fs');const path=require('path');const ROOT=path.resolve(__dirname,'..');
+const fs=require('fs');const path=require('path');const crypto=require('crypto');const ROOT=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(ROOT,f),'utf8');
 const index=read('index.html'),runtime=read('mccb-participant.js'),controller=read('original-ui-controller.js'),session=read('research-session.js');
+const gitBlobSha=text=>crypto.createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex');
 let pass=0,fail=0;function check(name,cond,detail=''){if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}}
 console.log('=== Original UI / modern core contract ===');
+check('exact original index.html blob is frozen',gitBlobSha(index)==='979f0be61c3a916bc7085bd74f1293190ad64a2f',gitBlobSha(index));
 check('original title preserved',index.includes('<title>MCCB 认知成套测验</title>'));
 check('original visual shell preserved',index.includes('class="header"')&&index.includes('class="dashboard" id="dashboard"')&&index.includes('id="modeToggle"')&&index.includes('id="wm-toggle"'));
 check('seven original domain sections preserved',(index.match(/class="domain-section"/g)||[]).length===7);
