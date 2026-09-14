@@ -20,7 +20,7 @@
       return false;
     }
     if(!root.document.getElementById('original-ui-polish')){
-      const link=root.document.createElement('link');link.id='original-ui-polish';link.rel='stylesheet';link.href='original-ui-polish.css?v=1.0.0';root.document.head.appendChild(link);
+      const link=root.document.createElement('link');link.id='original-ui-polish';link.rel='stylesheet';link.href='original-ui-polish.css?v=2.0.0';root.document.head.appendChild(link);
     }
     root.document.body.classList.add('psy-polish');
     return true;
