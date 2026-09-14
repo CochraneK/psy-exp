@@ -134,18 +134,30 @@ async function main() {
 
     await test('researcher console creates isolated participant state', async () => {
       await navigate(`${BASE}/index.html`, 'document.readyState === "complete" && !!document.querySelector(".research-shell")');
-      const shellOk = await evaluate(`document.querySelector('.eyebrow').textContent.includes('Researcher console') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && document.querySelectorAll('#cohortMetrics .metric').length === 4`);
-      if (!shellOk) throw new Error('researcher console shell/metrics contract failed');
+      const shellOk = await evaluate(`document.querySelector('.eyebrow').textContent.includes('Researcher console') && getComputedStyle(document.documentElement).overflowY !== 'hidden' && document.querySelectorAll('#cohortMetrics .metric').length === 4 && !!document.querySelector('a[href="data-governance.html"]')`);
+      if (!shellOk) throw new Error('researcher console shell/metrics/governance link contract failed');
       const participantOk = await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);
       if (!participantOk) throw new Error('could not create clean E2E participant');
     });
 
-    await test('participant runner creates a fingerprinted research session', async () => {
+    await test('data governance enables consent version and runner fails closed before grant', async () => {
+      await navigate(`${BASE}/data-governance.html`, `document.readyState === 'complete' && typeof ResearchGovernance!=='undefined' && !!document.getElementById('saveStudyBtn')`);
+      const configured = await evaluate(`(()=>{document.getElementById('consentVersion').value='consent-e2e-v1';document.getElementById('saveStudyBtn').click();const e=ResearchData.sessionEligibility('E2E1');return ResearchData.MODEL_VERSION==='research-data-model-1.1.0'&&ResearchStorage.STORAGE_ARCH_VERSION==='local-primary-http-replica-1.0.0'&&e.eligible===false&&e.reason==='consent_required'})()`);
+      if (!configured) throw new Error('governance page did not persist consent version gate');
+      await navigate(`${BASE}/participant-runner.html?p=E2E1`, `document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
+      await waitFor(`document.querySelectorAll('#preflightList .check').length >= 6 && document.getElementById('nextTitle').textContent.includes('未获准')`,8000);
+      const blocked=await evaluate(`(()=>{const d=ResearchData.snapshot();return Object.keys(d.sessions).length===0&&document.getElementById('nextBtn').hidden===true&&document.getElementById('nextDesc').textContent.includes('consent-e2e-v1')&&[...document.querySelectorAll('#taskList a')].every(a=>!a.hasAttribute('href'))})()`);
+      if(!blocked)throw new Error('runner did not fail closed on missing consent');
+    });
+
+    await test('governance grant releases participant and runner creates fingerprinted session', async () => {
+      await navigate(`${BASE}/data-governance.html`, `document.readyState === 'complete' && !!document.getElementById('grantConsentBtn')`);
+      const granted=await evaluate(`(()=>{document.getElementById('grantConsentBtn').click();const e=ResearchData.sessionEligibility('E2E1'),p=ResearchData.snapshot().participants.E2E1;return e.eligible===true&&p.consent&&p.consent.version==='consent-e2e-v1'})()`);if(!granted)throw new Error('consent grant did not unlock participant');
       await navigate(`${BASE}/participant-runner.html?p=E2E1`, `document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
       await waitFor(`document.querySelectorAll('#taskList .task-row').length === 10 && document.querySelectorAll('#preflightList .check').length >= 6`, 8000);
-      await waitFor(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return d.modelVersion==='research-data-model-1.0.0'&&d.participants.E2E1&&s&&s.participantId==='E2E1'&&s.status==='active'&&s.environment&&s.protocolManifest&&typeof s.protocolManifest.manifestHash==='string'&&s.protocolManifest.manifestHash.length===64&&typeof s.protocolManifest.protocolLockHash==='string'&&s.protocolManifest.protocolLockHash.length===64})()`,8000);
-      const ok = await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !document.body.textContent.includes('DEV mode')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.0.0'})()`);
-      if (!ok) throw new Error('runner/session provenance contract failed');
+      await waitFor(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return d.modelVersion==='research-data-model-1.1.0'&&d.participants.E2E1&&s&&s.participantId==='E2E1'&&s.status==='active'&&s.consentVersion==='consent-e2e-v1'&&s.environment&&s.protocolManifest&&typeof s.protocolManifest.manifestHash==='string'&&s.protocolManifest.manifestHash.length===64&&typeof s.protocolManifest.protocolLockHash==='string'&&s.protocolManifest.protocolLockHash.length===64})()`,8000);
+      const ok = await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !document.body.textContent.includes('DEV mode')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.1.0'&&s.build.storageArchitecture==='local-primary-http-replica-1.0.0'})()`);
+      if (!ok) throw new Error('runner/session provenance contract failed after consent');
     });
 
     await test('complete TMT Part A through real task UI and persist valid canonical result', async () => {
@@ -163,8 +175,8 @@ async function main() {
       await evaluate(`document.querySelector('#result a[href*="participant-runner"]').click()`);
       await waitFor(`location.pathname.endsWith('/participant-runner.html') && document.getElementById('participantLabel').textContent.includes('E2E1')`, 8000);
       await waitFor(`typeof ResearchData!=='undefined' && Object.values(ResearchData.snapshot().sessions).length===1 && Object.values(ResearchData.snapshot().sessions)[0].environment`,8000);
-      const ok = await evaluate(`document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && Object.values(ResearchData.snapshot().sessions).length===1`);
-      if (!ok) throw new Error('runner did not reflect valid completion, advance to BACS, or reuse session');
+      const ok = await evaluate(`document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && Object.values(ResearchData.snapshot().sessions).length===1 && ResearchData.snapshot().attempts.some(a=>a.testKey==='tmt'&&a.sessionId===Object.values(ResearchData.snapshot().sessions)[0].id)`);
+      if (!ok) throw new Error('runner did not reflect completion, advance, reuse session, or sync attempt');
     });
 
     await test('single report executes and exposes persisted TMT raw result', async () => {
