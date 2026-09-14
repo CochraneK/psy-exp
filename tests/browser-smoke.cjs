@@ -140,11 +140,12 @@ async function main() {
       if (!participantOk) throw new Error('could not create clean E2E participant');
     });
 
-    await test('participant runner resolves deep link and renders ten tasks', async () => {
+    await test('participant runner creates a fingerprinted research session', async () => {
       await navigate(`${BASE}/participant-runner.html?p=E2E1`, `document.readyState === 'complete' && document.getElementById('participantLabel').textContent.includes('E2E1')`);
       await waitFor(`document.querySelectorAll('#taskList .task-row').length === 10 && document.querySelectorAll('#preflightList .check').length >= 6`, 8000);
-      const ok = await evaluate(`!document.body.textContent.includes('DEV mode') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && document.getElementById('progressText').textContent.startsWith('0 / 10')`);
-      if (!ok) throw new Error('runner leaked DEV controls, wrong mode, or wrong initial progress');
+      await waitFor(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return d.modelVersion==='research-data-model-1.0.0'&&d.participants.E2E1&&s&&s.participantId==='E2E1'&&s.status==='active'&&s.environment&&s.protocolManifest&&typeof s.protocolManifest.manifestHash==='string'&&s.protocolManifest.manifestHash.length===64&&typeof s.protocolManifest.protocolLockHash==='string'&&s.protocolManifest.protocolLockHash.length===64})()`,8000);
+      const ok = await evaluate(`(()=>{const d=ResearchData.snapshot(),s=Object.values(d.sessions)[0];return !document.body.textContent.includes('DEV mode')&&document.getElementById('nextBtn').getAttribute('href').includes('mode=user')&&document.getElementById('progressText').textContent.startsWith('0 / 10')&&d.study.id==='psy-exp-default-study'&&s.build&&s.build.dataModelVersion==='research-data-model-1.0.0'})()`);
+      if (!ok) throw new Error('runner/session provenance contract failed');
     });
 
     await test('complete TMT Part A through real task UI and persist valid canonical result', async () => {
@@ -158,11 +159,12 @@ async function main() {
       if (!ok) throw new Error('TMT canonical result/QC/protocol persistence failed');
     });
 
-    await test('task return restores runner progress and advances to BACS', async () => {
+    await test('task return restores runner progress and reuses research session', async () => {
       await evaluate(`document.querySelector('#result a[href*="participant-runner"]').click()`);
       await waitFor(`location.pathname.endsWith('/participant-runner.html') && document.getElementById('participantLabel').textContent.includes('E2E1')`, 8000);
-      const ok = await evaluate(`document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user')`);
-      if (!ok) throw new Error('runner did not reflect valid completion or advance to BACS');
+      await waitFor(`typeof ResearchData!=='undefined' && Object.values(ResearchData.snapshot().sessions).length===1 && Object.values(ResearchData.snapshot().sessions)[0].environment`,8000);
+      const ok = await evaluate(`document.getElementById('progressText').textContent.startsWith('1 / 10') && document.getElementById('nextBtn').getAttribute('href').includes('mccb-bacs.html') && document.getElementById('nextBtn').getAttribute('href').includes('mode=user') && Object.values(ResearchData.snapshot().sessions).length===1`);
+      if (!ok) throw new Error('runner did not reflect valid completion, advance to BACS, or reuse session');
     });
 
     await test('single report executes and exposes persisted TMT raw result', async () => {
