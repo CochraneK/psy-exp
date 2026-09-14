@@ -5,43 +5,42 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>参与者施测 · psy-exp</title>
 <link rel="stylesheet" href="mccb-common.css">
-<link rel="stylesheet" href="research-ui.css?v=4.0.0">
+<link rel="stylesheet" href="research-ui.css?v=5.0.0">
 </head>
 <body class="research-app">
 <main id="app" class="runner-shell">
   <header class="runner-top">
-    <div><div class="runner-brand">psy-exp · Participant session</div><div class="runner-participant" id="participantLabel">未选择参与者</div></div>
-    <a class="rui-btn ghost no-print" href="index.html">返回研究者</a>
+    <div><div class="runner-brand">认知研究任务</div><div class="runner-participant" id="participantLabel">未选择参与者</div></div>
+    <a class="rui-btn ghost no-print" href="index.html">返回</a>
   </header>
 
   <section aria-label="施测进度">
-    <div class="runner-progress-meta"><span>本次施测</span><strong id="progressText">0 / 10</strong></div>
+    <div class="runner-progress-meta"><span>完成进度</span><strong id="progressText">0 / 10</strong></div>
     <div class="runner-progressbar"><span id="progressBar" style="width:0%"></span></div>
   </section>
 
   <section class="runner-focus" id="nextPanel">
-    <div class="kicker">Next task</div>
+    <div class="kicker">下一项</div>
     <h1 id="nextTitle">正在检查…</h1>
-    <p id="nextDesc">载入参与者状态、研究 session 与设备预检。</p>
+    <p id="nextDesc">正在载入施测信息和设备状态。</p>
     <a id="nextBtn" class="rui-btn primary" href="#" hidden>开始下一项</a>
   </section>
 
   <section class="section">
-    <div class="section-title"><h2>任务路线</h2><p>完成后自动推进到下一项</p></div>
+    <div class="section-title"><h2>任务顺序</h2><p>完成后自动推进</p></div>
     <div id="taskList" class="runner-roadmap"></div>
   </section>
 
   <section class="runner-details no-print">
     <details>
-      <summary>设备预检与技术状态</summary>
-      <p class="small">这些检查只用于发现明显的软件/设备风险，不代表心理测量等效性验证。摘要仍会写入参与者记录和当前研究 session。</p>
+      <summary>设备检查</summary>
+      <p class="small">仅用于发现明显的软件或设备风险；通过检查不代表心理测量等效性验证。</p>
       <div id="preflightList" class="preflight"></div>
       <button id="rerunBtn" class="rui-btn" type="button">重新检测</button>
     </details>
     <details>
-      <summary>施测提示与数据边界</summary>
-      <p class="small">尽量使用同一设备与浏览器完成整个 session。计时任务进行时不要切换标签页、锁屏或让设备休眠。若任务明确要求物理键盘，请不要用手机软键盘替代。</p>
-      <div class="notice info" style="margin-bottom:0"><strong>数据边界：</strong>任务结果始终先写同步 local primary；若研究者启用了 HTTP replica，Runner 只在任务之外把 bundle checkpoint 放入 outbox，远端网络不会进入计时任务关键路径。</div>
+      <summary>施测说明</summary>
+      <p class="small">尽量使用同一设备与浏览器完成整个流程。计时任务进行时不要切换标签页、锁屏或让设备休眠；需要键盘时请使用物理键盘。</p>
     </details>
   </section>
 </main>
@@ -52,26 +51,26 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const META={
- tmt:{desc:'按顺序完成浏览器连线；Part B 仅为可选补充。'},
- bacs:{desc:'符号编码计时任务，建议桌面设备与物理键盘。'},
- fluency:{desc:'限时输入动物名称，建议桌面设备与物理键盘。'},
- cpt:{desc:'持续注意计时任务，建议稳定桌面环境。'},
+ tmt:{desc:'按顺序完成浏览器连线。'},
+ bacs:{desc:'符号编码计时任务。'},
+ fluency:{desc:'限时输入动物名称。'},
+ cpt:{desc:'持续注意计时任务。'},
  'spatial-span':{desc:'观察并复现空间序列。'},
  lns:{desc:'观察并按规则重排字母数字序列。'},
- hvlt:{desc:'私有词语学习协议；需要本地授权材料。'},
- bvmt:{desc:'视觉图形学习研究任务。'},
+ hvlt:{desc:'词语学习任务；需要授权材料。'},
+ bvmt:{desc:'视觉图形学习任务。'},
  mazes:{desc:'迷宫规划任务。'},
- msceit:{desc:'私有情绪管理协议；需要本地授权材料。'}
+ msceit:{desc:'情绪管理任务；需要授权材料。'}
 };
 let activeParticipant='',activeResearchSession=null;
 function statusClass(s){return ['completed','completed_invalid','in_progress','aborted','interrupted','timing_violation','technical_failure'].includes(s)?s:'not_started'}
-function statusText(s){return({not_started:'未开始',in_progress:'进行中',completed:'已完成',completed_invalid:'无效完成',aborted:'已中止',interrupted:'被中断',timing_violation:'计时异常',technical_failure:'技术失败'}[s]||s)}
+function statusText(s){return({not_started:'未开始',in_progress:'进行中',completed:'已完成',completed_invalid:'结果无效',aborted:'已中止',interrupted:'被中断',timing_violation:'计时异常',technical_failure:'技术失败'}[s]||s)}
 function storageCheck(){try{const k='psy-exp-preflight-probe';localStorage.setItem(k,'1');localStorage.removeItem(k);return true}catch{return false}}
 function timerJitter(samples=12,intervalMs=40){return new Promise(resolve=>{if(!(window.performance&&typeof performance.now==='function')){resolve({samples:0,maxDriftMs:null,p95DriftMs:null});return}const drifts=[],start=performance.now();let i=1;function step(){const planned=start+i*intervalMs,now=performance.now();drifts.push(Math.abs(now-planned));if(i>=samples){const sorted=[...drifts].sort((a,b)=>a-b),p95=sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*.95)-1)];resolve({samples:drifts.length,maxDriftMs:Math.round(Math.max(...drifts)*10)/10,p95DriftMs:Math.round(p95*10)/10});return}i++;setTimeout(step,Math.max(0,start+i*intervalMs-performance.now()))}setTimeout(step,intervalMs)})}
 function addCheck(c){const row=document.createElement('div');row.className='check '+c.level;const left=document.createElement('span');left.textContent=c.label;const right=document.createElement('strong');right.textContent=(c.level==='ok'?'通过':c.level==='warn'?'注意':'失败')+' · '+c.detail;row.append(left,right);$('preflightList').append(row)}
 async function sha256Json(value){try{if(!(crypto&&crypto.subtle))return null;const bytes=new TextEncoder().encode(JSON.stringify(value)),hash=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch{return null}}
 async function loadJson(path){const r=await fetch(path,{cache:'no-store'});if(!r.ok)throw new Error(`${path} ${r.status}`);return r.json()}
-function applySessionGate(){if(!(activeResearchSession&&activeResearchSession.blocked))return false;$('nextBtn').hidden=true;$('nextTitle').textContent='研究 session 未获准开始';const required=activeResearchSession.requiredConsentVersion?`（需要 consent ${activeResearchSession.requiredConsentVersion}）`:'';$('nextDesc').textContent=`${activeResearchSession.reason}${required}。请联系研究者处理数据治理后重新进入。`;document.querySelectorAll('#taskList a').forEach(a=>{a.removeAttribute('href');a.setAttribute('aria-disabled','true');a.onclick=e=>e.preventDefault()});return true}
+function applySessionGate(){if(!(activeResearchSession&&activeResearchSession.blocked))return false;$('nextBtn').hidden=true;$('nextTitle').textContent='暂不能开始施测';const required=activeResearchSession.requiredConsentVersion?`需要研究同意版本 ${activeResearchSession.requiredConsentVersion}`:'研究同意状态未满足';$('nextDesc').textContent=`${required}。请联系研究者处理后重新进入。`;document.querySelectorAll('#taskList a').forEach(a=>{a.removeAttribute('href');a.setAttribute('aria-disabled','true');a.onclick=e=>e.preventDefault()});return true}
 async function initResearchSession(){
   if(!activeParticipant||typeof ResearchData==='undefined')return null;
   let manifest=null,lock=null,manifestHash=null,protocolLockHash=null;
@@ -91,20 +90,20 @@ async function checkpointResearchData(reason){
   if(cfg.replica.autoSync&&ResearchStorage.getTokenState().present)try{await ResearchStorage.flushOutbox()}catch(e){console.warn('Replica sync deferred',e&&e.message||e)}
 }
 async function preflight(){
-  $('preflightList').textContent='';addCheck({label:'预检状态',level:'warn',detail:'正在测量 timer jitter…'});const jitter=await timerJitter();
+  $('preflightList').textContent='';addCheck({label:'检查状态',level:'warn',detail:'正在测量计时稳定性…'});const jitter=await timerJitter();
   const storageOk=storageCheck(),clockOk=!!(window.performance&&typeof performance.now==='function'),visible=document.visibilityState==='visible',viewportOk=innerWidth>=900,secure=window.isSecureContext;
   const jitterLevel=jitter.maxDriftMs==null?'bad':jitter.maxDriftMs<=100?'ok':jitter.maxDriftMs<=250?'warn':'bad';
-  const checks=[{key:'storage',label:'本地 primary 可写',ok:storageOk,level:storageOk?'ok':'bad',detail:storageOk?'可即时保存本次结果':'浏览器阻止 localStorage，不能可靠保存结果'},{key:'clock',label:'高精度单调时钟',ok:clockOk,level:clockOk?'ok':'bad',detail:clockOk?'performance.now() 可用':'缺少 performance.now()'},{key:'timerJitter',label:'Timer jitter 快测',ok:jitterLevel!=='bad',level:jitterLevel,detail:jitter.maxDriftMs==null?'无法测量':`p95 ${jitter.p95DriftMs} ms · max ${jitter.maxDriftMs} ms（仅软件预检）`},{key:'visible',label:'页面当前可见',ok:visible,level:visible?'ok':'bad',detail:`visibilityState = ${document.visibilityState}`},{key:'viewport',label:'桌面尺寸建议',ok:viewportOk,level:viewportOk?'ok':'warn',detail:`viewport ${innerWidth} × ${innerHeight}px${viewportOk?'':'；部分计时/键盘任务建议更宽屏幕'}`},{key:'secure',label:'安全上下文',ok:secure,level:secure?'ok':'warn',detail:secure?'HTTPS/localhost secure context':'当前不是 secure context'},{key:'motion',label:'动态效果偏好',ok:true,level:'ok',detail:matchMedia('(prefers-reduced-motion: reduce)').matches?'已启用 reduced motion':'未要求 reduced motion'}];
+  const checks=[{key:'storage',label:'结果保存',ok:storageOk,level:storageOk?'ok':'bad',detail:storageOk?'可正常保存':'浏览器阻止本地存储'},{key:'clock',label:'计时时钟',ok:clockOk,level:clockOk?'ok':'bad',detail:clockOk?'可用':'不可用'},{key:'timerJitter',label:'计时稳定性',ok:jitterLevel!=='bad',level:jitterLevel,detail:jitter.maxDriftMs==null?'无法测量':`p95 ${jitter.p95DriftMs} ms · max ${jitter.maxDriftMs} ms`},{key:'visible',label:'页面可见',ok:visible,level:visible?'ok':'bad',detail:visible?'正常':'当前页面不可见'},{key:'viewport',label:'屏幕尺寸',ok:viewportOk,level:viewportOk?'ok':'warn',detail:`${innerWidth} × ${innerHeight}px${viewportOk?'':'；建议使用更宽屏幕'}`},{key:'secure',label:'安全上下文',ok:secure,level:secure?'ok':'warn',detail:secure?'正常':'当前连接不是安全上下文'},{key:'motion',label:'动画偏好',ok:true,level:'ok',detail:matchMedia('(prefers-reduced-motion: reduce)').matches?'已减少动画':'默认'}];
   $('preflightList').textContent='';checks.forEach(addCheck);
   const summary={checkedAt:new Date().toISOString(),participantId:activeParticipant||null,userAgent:navigator.userAgent,language:navigator.language||null,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio||1},screen:{width:screen.width,height:screen.height},hardwareConcurrency:navigator.hardwareConcurrency||null,maxTouchPoints:navigator.maxTouchPoints||0,secureContext:secure,timerJitter:jitter,checks:Object.fromEntries(checks.map(c=>[c.key,{ok:c.ok,level:c.level,detail:c.detail}]))};
   if(activeParticipant){const d=ParticipantManager.getData(activeParticipant);if(d){d.preflight=summary;ParticipantManager._saveData(d.cohortId,d)}}
   if(activeResearchSession&&!activeResearchSession.blocked&&typeof ResearchData!=='undefined')activeResearchSession=ResearchData.updateSession(activeResearchSession.id,{environment:summary})||activeResearchSession;
   await checkpointResearchData('runner_preflight');
-  const hardBlocked=!storageOk||!clockOk||!visible||!!(activeResearchSession&&activeResearchSession.blocked);if(hardBlocked){$('nextBtn').hidden=true;if(!(activeResearchSession&&activeResearchSession.blocked)){$('nextTitle').textContent='预检未通过';$('nextDesc').textContent='存在会影响结果保存或计时的基础问题。请研究者处理后重新检测。'}}
+  const hardBlocked=!storageOk||!clockOk||!visible||!!(activeResearchSession&&activeResearchSession.blocked);if(hardBlocked){$('nextBtn').hidden=true;if(!(activeResearchSession&&activeResearchSession.blocked)){$('nextTitle').textContent='设备检查未通过';$('nextDesc').textContent='存在会影响结果保存或计时的问题，请联系研究者处理后重新检测。'}}
   return summary;
 }
 function taskUrl(key){return ParticipantManager.getTestUrl(key,'user')}
-function render(){activeParticipant=ParticipantManager.initFromUrl();$('participantLabel').textContent=activeParticipant?`参与者 ${activeParticipant}`:'未选择参与者';const data=activeParticipant?ParticipantManager.getData(activeParticipant):null;if(!data){$('nextTitle').textContent='需要参与者编号';$('nextDesc').textContent='请由研究者从控制台选择参与者后进入此页面。';$('nextBtn').hidden=true;$('taskList').innerHTML='<div class="card empty">没有可显示的施测记录。</div>';return}const summary=ParticipantManager.getProgressSummary(),pct=Math.round(summary.done/summary.total*100);$('progressText').textContent=`${summary.done} / ${summary.total} valid completed`;$('progressBar').style.width=pct+'%';const next=ParticipantManager.getFirstIncomplete();if(next){$('nextTitle').textContent=next.name;$('nextDesc').textContent=META[next.key].desc;$('nextBtn').href=taskUrl(next.key);$('nextBtn').textContent=summary.done?'继续下一项':'开始第一项';$('nextBtn').hidden=false}else{$('nextTitle').textContent='本轮任务已完成';$('nextDesc').textContent='所有任务都有 valid canonical result。请联系研究者进行 QC、审核与数据导出。';$('nextBtn').hidden=true;if(activeResearchSession&&!activeResearchSession.blocked&&typeof ResearchData!=='undefined')activeResearchSession=ResearchData.closeSession(activeResearchSession.id,{status:'completed',reason:'all_tasks_valid'})||activeResearchSession}const list=$('taskList');list.textContent='';TEST_ORDER.forEach((t,i)=>{const s=data.progress&&data.progress[t.key]||'not_started',row=document.createElement('div');row.className='task-row';const idx=document.createElement('div');idx.className='task-index';idx.textContent=String(i+1);const body=document.createElement('div');const h=document.createElement('h3');h.textContent=t.name;const p=document.createElement('p');p.textContent=META[t.key].desc;body.append(h,p);const tail=document.createElement('div');const st=document.createElement('span');st.className='status '+statusClass(s);st.textContent=statusText(s);tail.append(st);if(s!=='completed'){const a=document.createElement('a');a.className='rui-btn';a.href=taskUrl(t.key);a.textContent=s==='not_started'?'开始':'重试';tail.append(a)}row.append(idx,body,tail);list.append(row)})}
+function render(){activeParticipant=ParticipantManager.initFromUrl();$('participantLabel').textContent=activeParticipant?`参与者 ${activeParticipant}`:'未选择参与者';const data=activeParticipant?ParticipantManager.getData(activeParticipant):null;if(!data){$('nextTitle').textContent='需要参与者编号';$('nextDesc').textContent='请由研究者从工作台选择参与者后进入。';$('nextBtn').hidden=true;$('taskList').innerHTML='<div class="card empty">暂无施测记录。</div>';return}const summary=ParticipantManager.getProgressSummary(),pct=Math.round(summary.done/summary.total*100);$('progressText').textContent=`${summary.done} / ${summary.total}`;$('progressBar').style.width=pct+'%';const next=ParticipantManager.getFirstIncomplete();if(next){$('nextTitle').textContent=next.name;$('nextDesc').textContent=META[next.key].desc;$('nextBtn').href=taskUrl(next.key);$('nextBtn').textContent=summary.done?'继续下一项':'开始第一项';$('nextBtn').hidden=false}else{$('nextTitle').textContent='本轮任务已完成';$('nextDesc').textContent='全部任务已获得可用结果，请联系研究者完成审核与导出。';$('nextBtn').hidden=true;if(activeResearchSession&&!activeResearchSession.blocked&&typeof ResearchData!=='undefined')activeResearchSession=ResearchData.closeSession(activeResearchSession.id,{status:'completed',reason:'all_tasks_valid'})||activeResearchSession}const list=$('taskList');list.textContent='';TEST_ORDER.forEach((t,i)=>{const s=data.progress&&data.progress[t.key]||'not_started',row=document.createElement('div');row.className='task-row';const idx=document.createElement('div');idx.className='task-index';idx.textContent=String(i+1);const body=document.createElement('div');const h=document.createElement('h3');h.textContent=t.name;const p=document.createElement('p');p.textContent=META[t.key].desc;body.append(h,p);const tail=document.createElement('div');const st=document.createElement('span');st.className='status '+statusClass(s);st.textContent=statusText(s);tail.append(st);if(s!=='completed'){const a=document.createElement('a');a.className='rui-btn';a.href=taskUrl(t.key);a.textContent=s==='not_started'?'开始':'重试';tail.append(a)}row.append(idx,body,tail);list.append(row)})}
 $('rerunBtn').onclick=async()=>{render();if(!activeResearchSession||activeResearchSession.blocked)await initResearchSession();await preflight();applySessionGate()};
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&activeParticipant)preflight()});
 document.addEventListener('DOMContentLoaded',async()=>{render();await initResearchSession();await preflight();applySessionGate()});
