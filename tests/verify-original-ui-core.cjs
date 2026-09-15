@@ -28,10 +28,10 @@ check('homepage viewport is hardened without changing its CSS',runtime.includes(
 check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));
 check('shared session bridge checkpoints participant history',session.includes('syncParticipantData')&&session.includes('stageBundle'));
 check('original report entry labels are restored after safety bootstrap',session.includes('restoreOriginalReportEntries')&&session.includes('📊 综合报告')&&session.includes('📈 对比分析'));
-check('polish v2 is mounted without editing original homepage',session.includes('installOriginalUiPolish')&&session.includes("original-ui-polish.css?v=2.0.0")&&session.includes("body.classList.add('psy-polish')"));
+check('polish v3 is mounted without editing original homepage',session.includes('installOriginalUiPolish')&&session.includes("original-ui-polish.css?v=3.0.0")&&session.includes("body.classList.add('psy-polish')"));
 check('classic query can disable polish instantly',session.includes("params.get('ui')==='classic'")&&session.includes("body.classList.remove('psy-polish')"));
 check('polish stays scoped to opt-in body class',/\.psy-polish\s/.test(polish)&&!/^body\s*\{/m.test(polish));
-check('visible polish differentiates cards and dashboard',polish.includes('.psy-polish .test-card::before')&&polish.includes('translateY(-4px)')&&polish.includes('linear-gradient(180deg,#f7fbfe'));
+check('visible polish differentiates cards and dashboard',polish.includes('.psy-polish .test-card::before')&&polish.includes('translateY(-2px)')&&polish.includes('--lab-accent:#5b5bd6')&&polish.includes('--lab-success:#168a63'));
 check('polish visibly differentiates report actions',polish.includes('[onclick*="comprehensive-report"]')&&polish.includes('[onclick*="comparison-report"]'));
 check('polish improves focus and reduced-motion behavior',polish.includes(':focus-visible')&&polish.includes('prefers-reduced-motion'));
 check('demo generator is not bundled into original index',!index.includes('demo-data.js'));
