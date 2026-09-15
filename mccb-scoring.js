@@ -9,13 +9,13 @@
 const MCCBScoring = (() => {
   const SCORING_VERSION = 'research-scoring-0.4.0';
   const DOMAINS = {
-    speed_processing:{label:'处理速度',labelEn:'Speed of Processing',tests:['bacs','fluency','tmt'],color:'#3498db'},
-    attention:{label:'注意/警觉',labelEn:'Attention / Vigilance',tests:['cpt'],color:'#2ecc71'},
-    working_memory:{label:'工作记忆',labelEn:'Working Memory',tests:['lns','spatial-span'],color:'#e67e22'},
-    verbal_learning:{label:'言语学习',labelEn:'Verbal Learning',tests:['hvlt'],color:'#9b59b6'},
-    visual_learning:{label:'视觉学习',labelEn:'Visual Learning',tests:['bvmt'],color:'#1abc9c'},
-    reasoning:{label:'推理与问题解决',labelEn:'Reasoning & Problem Solving',tests:['mazes'],color:'#e74c3c'},
-    social_cognition:{label:'社会认知',labelEn:'Social Cognition',tests:['msceit'],color:'#f39c12'}
+    speed_processing:{label:'处理速度',labelEn:'Speed of Processing',tests:['bacs','fluency','tmt'],color:'#5b5bd6'},
+    attention:{label:'注意/警觉',labelEn:'Attention / Vigilance',tests:['cpt'],color:'#3976b8'},
+    working_memory:{label:'工作记忆',labelEn:'Working Memory',tests:['lns','spatial-span'],color:'#7a5ac8'},
+    verbal_learning:{label:'言语学习',labelEn:'Verbal Learning',tests:['hvlt'],color:'#168a73'},
+    visual_learning:{label:'视觉学习',labelEn:'Visual Learning',tests:['bvmt'],color:'#2b8c9b'},
+    reasoning:{label:'推理与问题解决',labelEn:'Reasoning & Problem Solving',tests:['mazes'],color:'#b16b2c'},
+    social_cognition:{label:'社会认知',labelEn:'Social Cognition',tests:['msceit'],color:'#b84f6f'}
   };
   const KEY_TO_RESULT={tmt:'mccb-tmt-result',bacs:'mccb-bacs-result',fluency:'mccb-fluency-result',cpt:'mccb-cpt-result','spatial-span':'mccb-spatial-span-result',lns:'mccb-lns-result',hvlt:'mccb-hvlt-result',bvmt:'mccb-bvmt-result',mazes:'mccb-mazes-result',msceit:'mccb-msceit-result'};
   const TASK_VALIDATION={
