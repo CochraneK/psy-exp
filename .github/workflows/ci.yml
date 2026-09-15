@@ -115,7 +115,7 @@ jobs:
           grep -q "timerJitter" participant-runner.html
           grep -q "research-app" research-ui.css
           grep -q "overflow:auto" research-ui.css
-          grep -q "research-ui.css?v=5.0.0" participant-runner.html
+          grep -q "research-ui.css?v=6.0.0" participant-runner.html
           grep -q "MCCB 综合认知报告" research-report.html
           grep -q "MCCB 多被试对比报告" research-comparison.html
           grep -q "MIN_REFERENCE_N=5" research-report.html
