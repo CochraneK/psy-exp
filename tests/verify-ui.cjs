@@ -29,7 +29,7 @@ for (const name of researchAppFiles) {
   check(/research-app/.test(html), `${name}: long-form research shell enabled`);
 }
 const runnerHtml = fs.readFileSync(path.join(ROOT, 'participant-runner.html'), 'utf8');
-check(/research-ui\.css\?v=5\.0\.0/.test(runnerHtml), 'participant-runner.html: shared stylesheet URL is cache-busted');
+check(/research-ui\.css\?v=6\.0\.0/.test(runnerHtml), 'participant-runner.html: shared stylesheet URL is cache-busted');
 
 const css = fs.readFileSync(path.join(ROOT, 'research-ui.css'), 'utf8');
 check(/overflow:auto/.test(css), 'research app restores long-page scrolling');
