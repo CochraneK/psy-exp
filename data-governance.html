@@ -65,7 +65,7 @@
 <section class="section grid two">
   <article class="card">
     <div class="section-title"><h2>受控导入 / 恢复</h2><p>先验证，再应用</p></div>
-    <input id="importFile" type="file" accept="application/json,.json">
+    <label class="small" for="importFile">选择 research-data bundle</label><input id="importFile" type="file" accept="application/json,.json" aria-describedby="importPreview">
     <div id="importPreview" class="notice info" style="margin-top:12px">先选择导出的 research-data bundle；只有通过结构校验后才允许应用。</div>
     <div class="button-row"><button id="mergeImportBtn" class="rui-btn" type="button" disabled>合并导入</button><button id="replaceImportBtn" class="rui-btn danger" type="button" disabled>完全替换本地数据</button></div>
   </article>
