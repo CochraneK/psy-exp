@@ -475,11 +475,11 @@
   </div>
 
   <!-- ========= 被试管理模态框 ========= -->
-  <div id="participantManagerOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);overflow-y:auto;padding:24px;" onclick="if(event.target===this)closeParticipantManager()">
+  <div id="participantManagerOverlay" role="dialog" aria-modal="true" aria-labelledby="participantManagerTitle" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);overflow-y:auto;padding:24px;" onclick="if(event.target===this)closeParticipantManager()">
     <div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:700px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.25);position:relative;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <h3 style="font-size:18px;font-weight:700;color:#1e293b;">👥 被试管理</h3>
-        <button type="button" aria-label="关闭被试管理" onclick="closeParticipantManager()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a3b8;padding:4px;line-height:1;">&times;</button>
+        <h3 id="participantManagerTitle" style="font-size:18px;font-weight:700;color:#1e293b;">👥 被试管理</h3>
+        <button id="participantManagerClose" type="button" aria-label="关闭被试管理" onclick="closeParticipantManager()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a3b8;padding:4px;line-height:1;">&times;</button>
       </div>
       <div id="pmContent" style="min-height:120px;">
         <div style="text-align:center;color:#94a3b8;padding:40px 0;">加载中...</div>
@@ -1235,15 +1235,27 @@ function exportPDF() {
 }
 
 // === 被试管理 ===
+let participantManagerReturnFocus = null;
 function openParticipantManager() {
   const overlay = document.getElementById('participantManagerOverlay');
+  participantManagerReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   overlay.style.display = 'flex';
   renderParticipantList();
+  requestAnimationFrame(() => document.getElementById('participantManagerClose')?.focus());
 }
 
 function closeParticipantManager() {
-  document.getElementById('participantManagerOverlay').style.display = 'none';
+  const overlay = document.getElementById('participantManagerOverlay');
+  overlay.style.display = 'none';
+  if (participantManagerReturnFocus && document.contains(participantManagerReturnFocus)) participantManagerReturnFocus.focus();
+  participantManagerReturnFocus = null;
 }
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('participantManagerOverlay')?.style.display === 'flex') {
+    event.preventDefault();
+    closeParticipantManager();
+  }
+});
 
 function renderParticipantList() {
   const content = document.getElementById('pmContent');

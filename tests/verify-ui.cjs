@@ -56,6 +56,8 @@ check(/id="participantInput"[^>]*aria-label="被试队列编号"/.test(consoleHt
 check(/id="modeToggle"[^>]*role="switch"[^>]*aria-checked="false"/.test(consoleHtml) && /setAttribute\('aria-checked'/.test(consoleHtml), 'console mode toggle exposes switch state');
 check(/id='wm-toggle'/.test(consoleHtml) && /aria-pressed/.test(consoleHtml), 'wide-mode control exposes pressed state');
 check(/document\.createElement\('button'\)/.test(consoleHtml) && /option\.addEventListener\('click'/.test(consoleHtml), 'participant suggestions use keyboard-focusable buttons');
+check(/id="participantManagerOverlay"[^>]*role="dialog"[^>]*aria-modal="true"[^>]*aria-labelledby="participantManagerTitle"/.test(consoleHtml), 'participant manager exposes modal dialog semantics');
+check(/participantManagerReturnFocus/.test(consoleHtml) && /event\.key === 'Escape'/.test(consoleHtml), 'participant manager restores focus and supports Escape close');
 
 const runner = runnerHtml;
 check(/getTestUrl\(key,'user'\)/.test(runner), 'participant runner forces USER mode');
@@ -77,6 +79,7 @@ check(/id="replicaToken"[^>]*type="password"/.test(governance), 'replica token i
 check(/setSessionToken/.test(governance) && !/localStorage\.setItem\([^)]*token/i.test(governance), 'replica token is not persisted by the governance page');
 check(/id="importFile"/.test(governance) && /validateBundle/.test(governance), 'data governance validates imports before application');
 check(/for="importFile"/.test(governance) && /id="importFile"[^>]*aria-describedby="importPreview"/.test(governance), 'data governance import control has an accessible label and description');
+check((governance.match(/role="status" aria-live="polite"/g)||[]).length>=5, 'data governance async status regions announce updates');
 check(/id="hardDeleteBtn"/.test(governance), 'data governance exposes explicit hard-delete workflow');
 
 const report = fs.readFileSync(path.join(ROOT, 'research-report.html'), 'utf8');

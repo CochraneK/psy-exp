@@ -30,12 +30,12 @@
       <label class="small">Consent version<input id="consentVersion" maxlength="96" placeholder="留空 = 当前原型不强制"></label>
       <button id="saveStudyBtn" class="rui-btn primary" type="button">保存研究配置</button>
     </div>
-    <p id="studyStatus" class="small"></p>
+    <p id="studyStatus" class="small" role="status" aria-live="polite"></p>
   </article>
   <article class="card">
     <div class="section-title"><h2>当前参与者 consent</h2><p>显式授权状态</p></div>
     <p id="participantLabel" class="runner-participant">未选择参与者</p>
-    <p id="consentStatus" class="small">—</p>
+    <p id="consentStatus" class="small" role="status" aria-live="polite">—</p>
     <div class="button-row"><button id="grantConsentBtn" class="rui-btn primary" type="button">记录当前版本同意</button><button id="withdrawConsentBtn" class="rui-btn danger" type="button">记录撤回</button></div>
     <p class="small">撤回会阻止新 session，并关闭该参与者仍处于 active 的研究 session；不会静默删除既有数据。</p>
   </article>
@@ -52,7 +52,7 @@
       <label class="small"><input id="autoSync" type="checkbox"> checkpoint 后自动尝试同步</label>
     </div>
     <div class="button-row"><button id="saveReplicaBtn" class="rui-btn" type="button">保存 replica 配置</button><button id="healthBtn" class="rui-btn" type="button">Health check</button><button id="syncBtn" class="rui-btn primary" type="button">立即同步</button></div>
-    <p id="replicaStatus" class="small"></p>
+    <p id="replicaStatus" class="small" role="status" aria-live="polite"></p>
     <p class="small">允许 HTTPS；仅 localhost / 127.0.0.1 例外允许 HTTP。token 永不持久化。</p>
   </article>
   <article class="card">
@@ -66,14 +66,14 @@
   <article class="card">
     <div class="section-title"><h2>受控导入 / 恢复</h2><p>先验证，再应用</p></div>
     <label class="small" for="importFile">选择 research-data bundle</label><input id="importFile" type="file" accept="application/json,.json" aria-describedby="importPreview">
-    <div id="importPreview" class="notice info" style="margin-top:12px">先选择导出的 research-data bundle；只有通过结构校验后才允许应用。</div>
+    <div id="importPreview" class="notice info" role="status" aria-live="polite" style="margin-top:12px">先选择导出的 research-data bundle；只有通过结构校验后才允许应用。</div>
     <div class="button-row"><button id="mergeImportBtn" class="rui-btn" type="button" disabled>合并导入</button><button id="replaceImportBtn" class="rui-btn danger" type="button" disabled>完全替换本地数据</button></div>
   </article>
   <article class="card">
     <div class="section-title"><h2>撤回与删除</h2><p>语义不同，不自动混用</p></div>
     <p class="small"><strong>撤回：</strong>保留审计和既有数据，阻止后续 session。<br><strong>硬删除：</strong>从本地 participant + research provenance 中移除该参与者关联记录；若启用 replica，可再显式请求远端删除。</p>
     <button id="hardDeleteBtn" class="rui-btn danger" type="button">硬删除当前参与者</button>
-    <p id="deleteStatus" class="small"></p>
+    <p id="deleteStatus" class="small" role="status" aria-live="polite"></p>
   </article>
 </section>
 
