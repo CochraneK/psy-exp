@@ -24,6 +24,10 @@ check('local delete clears participant and research layers',controller.includes(
 check('research-safe charts use scoring adapter',controller.includes('MCCBScoring.getAllProfiles')&&controller.includes('MCCBScoring.getDomainSummary'));
 check('small-N chart guard is retained',controller.includes('Number(d.referenceN)>=5'));
 check('legacy arbitrary denominators are absent from controller',!/(\/110|\/40|\/24|\/36|\/26|\/4\))/.test(controller));
+check('legacy pseudo-standardization formula is absent from homepage fallback',!(/\/\s*(?:300|110|40|24|36|26|4)\s*\)?\s*\*\s*100/.test(index)));
+check('homepage runtime installs fail-closed modern-core gate',runtime.includes('installOriginalHomepageCoreGate')&&runtime.includes('PSY_EXP_ORIGINAL_UI_CORE_READY')&&runtime.includes("data-psy-core"));
+check('modern core failure keeps homepage blocked and visible',runtime.includes('originalHomepageCoreGate.failed')&&runtime.includes('psy-core-failure')&&runtime.includes("n.setAttribute('role','alert')"));
+check('legacy chart/report fallback is inert until governed controller loads',index.includes('Research-safe chart/report placeholders')&&index.includes("if(panel)panel.style.display='none'"));
 check('chart handoff destroys any legacy Chart.js instance',controller.includes('Chart.getChart')&&controller.includes('oldRadar.destroy()')&&controller.includes('oldBar.destroy()'));
 check('homepage viewport is hardened without changing its CSS',runtime.includes("viewport.setAttribute('content','width=device-width, initial-scale=1.0')"));
 check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));

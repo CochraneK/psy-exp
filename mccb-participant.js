@@ -98,7 +98,51 @@ function installResearchSafetyUI(){
 
 function isOriginalHomepage(){if(typeof window==='undefined'||typeof document==='undefined')return false;const path=window.location&&window.location.pathname||'';return(path.endsWith('/')||path.endsWith('/index.html'))&&!!document.getElementById('dashboard')&&document.querySelectorAll('.test-card').length===10}
 function loadScriptOnce(src,globalName){return new Promise((resolve,reject)=>{if(globalName&&window[globalName]){resolve(window[globalName]);return}const prior=[...document.scripts].find(s=>{try{return new URL(s.src,location.href).pathname.endsWith('/'+src)}catch{return false}});if(prior){if(!globalName||window[globalName])resolve(window[globalName]);else{prior.addEventListener('load',()=>resolve(window[globalName]),{once:true});prior.addEventListener('error',reject,{once:true})}return}const s=document.createElement('script');s.src=src;s.async=false;s.onload=()=>resolve(globalName?window[globalName]:true);s.onerror=()=>reject(new Error(`failed to load ${src}`));document.head.appendChild(s)})}
-async function bootstrapOriginalHomepageModernCore(){if(!isOriginalHomepage())return false;const viewport=document.querySelector('meta[name="viewport"]');if(viewport)viewport.setAttribute('content','width=device-width, initial-scale=1.0');await loadScriptOnce('research-storage.js','ResearchStorage');await loadScriptOnce('research-data.js','ResearchData');await loadScriptOnce('research-governance.js','ResearchGovernance');await loadScriptOnce('mccb-scoring.js','MCCBScoring');await loadScriptOnce('research-session.js','ResearchSession');await loadScriptOnce('original-ui-controller.js','PSY_EXP_ORIGINAL_UI_MODERN_CORE');return true}
+function isOriginalHomepagePath(){if(typeof window==='undefined')return false;const path=window.location&&window.location.pathname||'';return path.endsWith('/')||path.endsWith('/index.html')}
+function installOriginalHomepageCoreGate(){
+  if(typeof window==='undefined'||typeof document==='undefined'||!isOriginalHomepagePath())return null;
+  window.PSY_EXP_ORIGINAL_UI_CORE_READY=false;
+  document.documentElement.setAttribute('data-psy-core','loading');
+  document.documentElement.setAttribute('aria-busy','true');
+  const blockedClick=e=>{
+    if(window.PSY_EXP_ORIGINAL_UI_CORE_READY)return;
+    const target=e.target&&e.target.closest?e.target.closest('button,.test-card,#participantDropdown .pd-item'):null;
+    if(!target)return;
+    e.preventDefault();e.stopImmediatePropagation();
+  };
+  const blockedKey=e=>{
+    if(window.PSY_EXP_ORIGINAL_UI_CORE_READY)return;
+    if(e.key==='Enter'&&e.target&&e.target.id==='participantInput'){e.preventDefault();e.stopImmediatePropagation()}
+  };
+  document.addEventListener('click',blockedClick,true);
+  document.addEventListener('keydown',blockedKey,true);
+  return {
+    ready(){
+      window.PSY_EXP_ORIGINAL_UI_CORE_READY=true;
+      document.documentElement.setAttribute('data-psy-core','ready');
+      document.documentElement.removeAttribute('aria-busy');
+      document.removeEventListener('click',blockedClick,true);
+      document.removeEventListener('keydown',blockedKey,true);
+      const notice=document.getElementById('psy-core-failure');if(notice)notice.remove();
+    },
+    failed(error){
+      window.PSY_EXP_ORIGINAL_UI_CORE_READY=false;
+      document.documentElement.setAttribute('data-psy-core','failed');
+      document.documentElement.setAttribute('aria-busy','true');
+      const show=()=>{
+        if(document.getElementById('psy-core-failure'))return;
+        const n=document.createElement('div');n.id='psy-core-failure';n.setAttribute('role','alert');
+        n.textContent='研究核心模块加载失败。为保护数据与协议一致性，任务启动、导入导出和报告操作已暂停；请刷新页面后重试。';
+        n.style.cssText='position:sticky;top:0;z-index:100000;padding:10px 16px;background:#fff1f3;color:#9f283b;border:1px solid #f5bcc5;font-size:13px;line-height:1.5;text-align:center';
+        (document.body||document.documentElement).prepend(n);
+      };
+      if(document.body)show();else document.addEventListener('DOMContentLoaded',show,{once:true});
+      if(window.console)console.error('Original UI modern-core bootstrap failed',error&&error.message||error);
+    }
+  };
+}
+const originalHomepageCoreGate=installOriginalHomepageCoreGate();
+async function bootstrapOriginalHomepageModernCore(){if(!isOriginalHomepage())return false;const viewport=document.querySelector('meta[name="viewport"]');if(viewport)viewport.setAttribute('content','width=device-width, initial-scale=1.0');await loadScriptOnce('research-storage.js','ResearchStorage');await loadScriptOnce('research-data.js','ResearchData');await loadScriptOnce('research-governance.js','ResearchGovernance');await loadScriptOnce('mccb-scoring.js','MCCBScoring');await loadScriptOnce('research-session.js','ResearchSession');await loadScriptOnce('original-ui-controller.js','PSY_EXP_ORIGINAL_UI_MODERN_CORE');if(!window.PSY_EXP_ORIGINAL_UI_MODERN_CORE)throw new Error('ORIGINAL_UI_MODERN_CORE_NOT_READY');return true}
 
 function installRuntimeGuards(){
   if(typeof document!=='undefined'){
@@ -112,7 +156,7 @@ function installRuntimeGuards(){
     if(/\/pages\/mccb-[^/]+\.html$/.test(path)){const params=new URLSearchParams(window.location.search);if(!params.has('mode')){params.set('mode','user');window.location.replace(path+'?'+params.toString()+(window.location.hash||''));return}}
     if(/\/comprehensive-report\.html$/.test(path)){window.location.replace('research-report.html'+(window.location.search||'')+(window.location.hash||''));return}
     if(/\/comparison-report\.html$/.test(path)){window.location.replace('research-comparison.html'+(window.location.search||'')+(window.location.hash||''));return}
-    window.addEventListener('load',()=>{bootstrapOriginalHomepageModernCore().catch(e=>console.warn('Original UI modern-core bootstrap failed',e&&e.message||e))},{once:true});
+    const startOriginalCore=()=>{bootstrapOriginalHomepageModernCore().then(ok=>{if(ok&&originalHomepageCoreGate)originalHomepageCoreGate.ready()}).catch(e=>{if(originalHomepageCoreGate)originalHomepageCoreGate.failed(e);else if(console)console.error('Original UI modern-core bootstrap failed',e&&e.message||e)})};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startOriginalCore,{once:true});else startOriginalCore();
   }
 }
 installRuntimeGuards();
