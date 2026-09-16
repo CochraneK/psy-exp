@@ -1398,3 +1398,99 @@ function initParticipantUI() {
 
 function applyParticipant(cohortId) {
   document.getElementById('participantInput').value = cohortId;
+  document.getElementById('loginBtn').textContent = '已登录';
+  document.getElementById('loginBtn').disabled = true;
+  document.getElementById('logoutBtn').style.display = '';
+  document.getElementById('greetingArea').style.display = '';
+  document.getElementById('greetingArea').textContent = '👋 ' + cohortId;
+  document.getElementById('participantDropdown').style.display = 'none';
+
+  const summary = ParticipantManager.getProgressSummary();
+  document.getElementById('progressArea').style.display = '';
+  document.getElementById('progressFill').style.width = (summary.done / summary.total * 100) + '%';
+  document.getElementById('progressText').textContent = summary.done + ' / ' + summary.total + ' 完成';
+
+  const resumeBtn = document.getElementById('resumeBtn');
+  if (summary.done < summary.total) {
+    resumeBtn.style.display = '';
+    resumeBtn.disabled = false;
+    resumeBtn.textContent = '▶ 继续测验 (' + (summary.total - summary.done) + ' 项未完成)';
+  } else {
+    resumeBtn.style.display = '';
+    resumeBtn.disabled = true;
+    resumeBtn.textContent = '✅ 全部完成';
+  }
+
+  updateCardStatuses();
+  loadDashboard();
+}
+
+function onParticipantInput() {
+  const input = document.getElementById('participantInput');
+  const val = input.value.trim();
+  const dd = document.getElementById('participantDropdown');
+
+  if (!val) { dd.style.display = 'none'; return; }
+
+  const all = ParticipantManager.getAllParticipants();
+  const matches = all.filter(p => p.toLowerCase().includes(val.toLowerCase()));
+  if (matches.length > 0) {
+    dd.innerHTML = matches.map(p => {
+      const data = ParticipantManager.getData(p);
+      const done = data ? Object.values(data.progress).filter(s => s === 'completed').length : 0;
+      return '<div class="pd-item" onclick="selectParticipant(\'' + p + '\')">' +
+        '<span>' + p + '</span>' +
+        '<span class="pd-status">' + done + '/10 完成</span></div>';
+    }).join('');
+    dd.style.display = 'block';
+  } else {
+    dd.innerHTML = '<div class="pd-item" style="color:#94a3b8;cursor:default;">输入编号后点击「登录」创建新被试</div>';
+    dd.style.display = 'block';
+  }
+}
+
+function selectParticipant(cohortId) {
+  document.getElementById('participantInput').value = cohortId;
+  document.getElementById('participantDropdown').style.display = 'none';
+  ParticipantManager.setCurrent(cohortId);
+  applyParticipant(cohortId);
+}
+
+function loginParticipant() {
+  const val = document.getElementById('participantInput').value.trim();
+  if (!val) { alert('请输入被试队列编号'); return; }
+  ParticipantManager.setCurrent(val);
+  applyParticipant(val);
+}
+
+function logoutParticipant() {
+  ParticipantManager.logout();
+  document.getElementById('participantInput').value = '';
+  document.getElementById('loginBtn').textContent = '登录';
+  document.getElementById('loginBtn').disabled = false;
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('greetingArea').style.display = 'none';
+  document.getElementById('progressArea').style.display = 'none';
+  document.getElementById('resumeBtn').style.display = 'none';
+  updateCardStatuses();
+}
+
+function resumeTesting() {
+  const first = ParticipantManager.getFirstIncomplete();
+  if (!first) { alert('所有测验已完成！'); return; }
+  const mode = getMode();
+  const url = ParticipantManager.getTestUrl(first.key, mode);
+  location.href = url;
+}
+
+// === Wide Mode Toggle ===
+(function(){var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
+b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
+if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
+b.onclick=function(){document.body.classList.toggle('wide-mode');
+b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
+document.body.classList.contains('wide-mode')?'1':'0');};
+document.body.appendChild(b);})();
+</script>
+</body>
+</html>
