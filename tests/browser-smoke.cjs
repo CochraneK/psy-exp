@@ -77,14 +77,14 @@ async function main() {
     async function navigate(url,readyExpression='document.readyState === "complete"'){const before=exceptions.length;await cdp.send('Page.navigate',{url});await waitFor(readyExpression);await sleep(180);const pageExceptions=exceptions.slice(before);if(pageExceptions.length)throw new Error(`Runtime exceptions on ${url}: ${pageExceptions.join(' | ')}`)}
     async function test(name,fn){try{await fn();results.push([name,true]);console.log(`PASS ${name}`)}catch(err){results.push([name,false,err.message]);console.error(`FAIL ${name}: ${err.message}`)}}
 
-    await test('exact original uploaded homepage renders and current participant runtime remains usable', async()=>{
+    await test('research-boundary homepage renders and current participant runtime remains usable', async()=>{
       await navigate(`${BASE}/index.html`,'document.readyState === "complete" && !!document.querySelector(".container")');
       await waitFor(`document.querySelectorAll('.test-card').length===10`);
-      const shell=await evaluate(`(()=>({title:document.title==='MCCB 认知成套测验',logo:!!document.querySelector('.header .logo'),dashboard:!!document.getElementById('dashboard'),domains:document.querySelectorAll('.domain-section').length===7,cards:document.querySelectorAll('.test-card').length===10,modeToggle:!!document.getElementById('modeToggle'),wideMode:!!document.getElementById('wm-toggle'),participantManager:!!document.getElementById('participantManagerOverlay'),resume:!!document.getElementById('resumeBtn'),noLaterWorkbench:!document.querySelector('.workbench-header,.subject-bar,.task-grid'),noResearchCss:![...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css'))}))()`);
+      const shell=await evaluate(`(()=>({title:document.title==='psy-exp · 认知研究任务套件',boundary:document.querySelector('.research-boundary')?.textContent.includes('不生成官方 MCCB T 分或临床 percentile')===true,noPseudoStandardization:!document.body.textContent.includes('标准化认知功能评估工具')&&!document.body.textContent.includes('分数已标准化为百分比'),logo:!!document.querySelector('.header .logo'),dashboard:!!document.getElementById('dashboard'),domains:document.querySelectorAll('.domain-section').length===7,cards:document.querySelectorAll('.test-card').length===10,modeToggle:!!document.getElementById('modeToggle'),wideMode:!!document.getElementById('wm-toggle'),participantManager:!!document.getElementById('participantManagerOverlay'),resume:!!document.getElementById('resumeBtn'),noLaterWorkbench:!document.querySelector('.workbench-header,.subject-bar,.task-grid'),noResearchCss:![...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css'))}))()`);
       const participantOk=await evaluate(`localStorage.clear(); ParticipantManager.setCurrent('E2E1') && ParticipantManager.getCurrent()==='E2E1' && ParticipantManager.getProgressSummary().done===0`);
-      if(!participantOk)throw new Error('could not create clean E2E participant from original homepage runtime');
+      if(!participantOk)throw new Error('could not create clean E2E participant from homepage runtime');
       const failed=Object.entries(shell||{}).filter(([,ok])=>!ok).map(([name])=>name);
-      if(failed.length)throw new Error(`original homepage browser contract failed: ${failed.join(', ')}`);
+      if(failed.length)throw new Error(`homepage browser contract failed: ${failed.join(', ')}`);
     });
 
     await test('data governance enables consent version and runner fails closed before grant', async()=>{

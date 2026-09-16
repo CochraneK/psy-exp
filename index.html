@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MCCB 认知成套测验</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>psy-exp · 认知研究任务套件</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -401,9 +401,17 @@
 <div class="container">
   <div class="header">
     <div class="logo">🧠</div>
-    <h1>MCCB 认知成套测验</h1>
-    <p class="subtitle">MATRICS Consensus Cognitive Battery — 覆盖 7 个认知域、10 项测验的标准化认知功能评估工具</p>
-    <span class="badge-total">共 10 项测验 · 7 个认知域</span>
+    <h1>psy-exp 认知研究任务套件</h1>
+    <p class="subtitle">MCCB-related cognitive research prototype · 7 个认知域、10 项研究任务。当前数字流程不等同于官方 MCCB，也不继承其临床常模。</p>
+    <span class="badge-total">研究原型 · 10 项任务 · 7 个认知域</span>
+  </div>
+
+  <div class="research-boundary" role="note" aria-label="研究边界">
+    <div>
+      <strong>研究边界</strong>
+      <span>公开任务包含研究适配、合成刺激与私有授权材料协议壳；不用于临床诊断，不生成官方 MCCB T 分或临床 percentile。</span>
+    </div>
+    <a href="https://github.com/CochraneK/psy-exp/blob/main/RESEARCH_VALIDATION.md" target="_blank" rel="noreferrer">查看验证状态 ↗</a>
   </div>
 
   <!-- ========= 被试管理面板 ========= -->
@@ -457,7 +465,7 @@
       <div><h4 style="margin-bottom:10px;color:#1e293b;font-size:15px;">认知域概况（雷达图）</h4><canvas id="radarChart" height="250"></canvas></div>
       <div><h4 style="margin-bottom:10px;color:#1e293b;font-size:15px;">各测验成绩（柱状图）</h4><canvas id="barChart" height="250"></canvas></div>
     </div>
-    <div style="text-align:center; margin-top:8px; font-size:12px; color:#94a3b8;">分数已标准化为百分比，仅供参考。具体原始数据见下方详情。</div>
+    <div style="text-align:center; margin-top:8px; font-size:12px; color:#94a3b8;">图表仅用于项目内研究可视化，不是 MCCB T 分、临床 percentile 或标准化常模结果。具体原始数据与 QC 请查看研究报告。</div>
   </div>
 
   <!-- ========= 被试管理模态框 ========= -->
@@ -480,7 +488,7 @@
   <!-- ========= 打印用报告区域（仅打印时显示） ========= -->
   <div id="printReport" style="display:none;">
     <div style="padding:40px;font-family:'PingFang SC','Microsoft YaHei',sans-serif;">
-      <h1 style="text-align:center;font-size:24px;color:#1e293b;margin-bottom:8px;">MCCB 认知成套测验报告</h1>
+      <h1 style="text-align:center;font-size:24px;color:#1e293b;margin-bottom:8px;">psy-exp 认知研究任务报告</h1>
       <p style="text-align:center;color:#64748b;font-size:14px;margin-bottom:32px;" id="printDate"></p>
       <div id="printContent"></div>
     </div>

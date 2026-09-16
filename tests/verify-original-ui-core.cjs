@@ -1,12 +1,13 @@
 'use strict';
-const fs=require('fs');const path=require('path');const crypto=require('crypto');const ROOT=path.resolve(__dirname,'..');
+const fs=require('fs');const path=require('path');const ROOT=path.resolve(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(ROOT,f),'utf8');
 const index=read('index.html'),runtime=read('mccb-participant.js'),controller=read('original-ui-controller.js'),session=read('research-session.js'),polish=read('original-ui-polish.css'),demo=read('demo-data.js');
-const gitBlobSha=text=>crypto.createHash('sha1').update(`blob ${Buffer.byteLength(text)}\0`).update(text).digest('hex');
 let pass=0,fail=0;function check(name,cond,detail=''){if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}}
 console.log('=== Original UI / modern core contract ===');
-check('exact original index.html blob is frozen',gitBlobSha(index)==='979f0be61c3a916bc7085bd74f1293190ad64a2f',gitBlobSha(index));
-check('original title preserved',index.includes('<title>MCCB 认知成套测验</title>'));
+check('public homepage is explicitly a research prototype',index.includes('<title>psy-exp · 认知研究任务套件</title>')&&index.includes('MCCB-related cognitive research prototype'));
+check('public homepage exposes research boundary',index.includes('aria-label="研究边界"')&&index.includes('不生成官方 MCCB T 分或临床 percentile'));
+check('public homepage avoids standardization overclaim',!index.includes('标准化认知功能评估工具')&&!index.includes('分数已标准化为百分比'));
+check('root viewport allows browser zoom',!index.includes('user-scalable=no')&&!index.includes('maximum-scale=1'));
 check('original visual shell preserved',index.includes('class="header"')&&index.includes('class="dashboard" id="dashboard"')&&index.includes('id="modeToggle"')&&index.includes('#wm-toggle'));
 check('seven original domain sections preserved',(index.match(/class="domain-section"/g)||[]).length===7);
 check('ten original task cards preserved',(index.match(/class="test-card"/g)||[]).length===10);

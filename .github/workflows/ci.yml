@@ -78,6 +78,8 @@ jobs:
           test -f docs/HISTORY_PURGE.md
           test -f docs/UI_UX_V2.md
           test -f docs/UI_V4_REFACTOR.md
+          test -f docs/EVIDENCE_REGISTER.md
+          test -f docs/DESIGN_TOKENS.md
           test -f docs/RESEARCH_DATA_MODEL.md
           test -f docs/BACKEND_V1.md
           grep -q '"protocolGovernance": "protocol-lock-v1"' task-manifest.json
