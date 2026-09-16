@@ -229,6 +229,19 @@ MATRICS technical assistance / copyright background：<https://www.matricsinc.or
 
 在这些条件满足之前，应坚持使用 **research prototype / research adaptation / raw score / cohort rank index** 等表述，而不是 “MCCB score”“clinical percentile”“normal/impaired”。
 
+## External evidence anchors
+
+Research-governance decisions are now linked to a lightweight evidence register: [`docs/EVIDENCE_REGISTER.md`](docs/EVIDENCE_REGISTER.md).
+
+The current evidence supports the need to evaluate, separately:
+- test-retest reliability;
+- practice/familiarization effects;
+- metric-level validity (for example accuracy vs RT vs derived scores);
+- remote/unsupervised administration;
+- target-population and device/browser context.
+
+It does **not** validate this repository or establish MCCB equivalence.
+
 ## Automated tests are not psychometric validation
 
 CI 能证明的是工程约束没有被明显破坏，例如：语法、数据持久化、session QC、材料策略、protocol grouping、TMT Part-B isolation、无伪 T-score、无 arbitrary denominator scaling 等。

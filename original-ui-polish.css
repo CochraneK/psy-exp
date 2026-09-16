@@ -243,3 +243,33 @@
     scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important
   }
 }
+
+/* Public research-boundary notice */
+.psy-polish .research-boundary{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin:-16px 0 24px;
+  padding:14px 16px;
+  border:1px solid #f0ddb8;
+  border-radius:12px;
+  background:var(--lab-warning-soft);
+  color:#7e571f;
+  box-shadow:none;
+}
+.psy-polish .research-boundary>div{display:grid;gap:3px}
+.psy-polish .research-boundary strong{color:#6e4a1c;font-size:13px}
+.psy-polish .research-boundary span{font-size:12px;line-height:1.6}
+.psy-polish .research-boundary a{
+  flex:0 0 auto;
+  color:#4c4cbd;
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+  white-space:nowrap;
+}
+.psy-polish .research-boundary a:hover{text-decoration:underline}
+@media(max-width:640px){
+  .psy-polish .research-boundary{flex-direction:column;gap:8px;margin-top:-10px}
+}
