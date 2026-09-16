@@ -38,7 +38,8 @@ check(/focus-visible/.test(css), 'research UI exposes keyboard focus styling');
 check(/\.runner-focus/.test(css), 'research-only runner layout primitives remain available');
 
 const consoleHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-check(/<title>MCCB 认知成套测验<\/title>/.test(consoleHtml), 'console restores the original uploaded title');
+check(/<title>psy-exp · 认知研究任务套件<\/title>/.test(consoleHtml)&&consoleHtml.includes('MCCB-related cognitive research prototype'), 'console exposes research-prototype title and boundary');
+check(!consoleHtml.includes('标准化认知功能评估工具')&&!consoleHtml.includes('分数已标准化为百分比'), 'console avoids pseudo-standardization wording');
 check(/\.container\s*\{\s*max-width:\s*1100px/.test(consoleHtml), 'console restores original 1100px centered shell');
 check(/linear-gradient\(135deg,\s*#3498db,\s*#2ecc71\)/.test(consoleHtml), 'console restores original blue-green logo tile');
 check(/class=["']header["']/.test(consoleHtml) && /class=["']logo["']/.test(consoleHtml), 'console restores original centered header and logo');
