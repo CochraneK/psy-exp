@@ -1,12 +1,24 @@
-# psy-exp — MCCB-related cognitive research prototype
+<div align="center">
 
-`psy-exp` 是一个用于**浏览器认知任务研究、实验流程自动化、session QC、原始数据导出与研究管线验证**的纯前端研究原型。
+# psy-exp
+
+**Browser-native cognitive research prototype**
+
+<p>
+  <img alt="Research prototype" src="https://img.shields.io/badge/type-cognitive%20research%20prototype-6C63FF">
+  <img alt="Frontend" src="https://img.shields.io/badge/runtime-browser%20only-2F80ED">
+  <img alt="QC" src="https://img.shields.io/badge/pipeline-session%20QC%20%2B%20raw%20export-27AE60">
+  <img alt="MCCB boundary" src="https://img.shields.io/badge/MCCB-not%20an%20official%20implementation-F2994A">
+</p>
+
+[**在线演示**](https://cochranek.github.io/psy-exp/) · [**UI / UX 说明**](docs/UI_UX_V2.md)
+
+</div>
+
+`psy-exp` 用于**浏览器认知任务研究、实验流程自动化、session QC、原始数据导出与研究管线验证**，并把研究者控制台与参与者施测界面明确分离。
 
 > [!WARNING]
-> **这不是经验证的 MCCB 临床等效实现，也不是官方 MCCB scoring software。**
-> 当前公开任务是合成刺激研究任务、私有授权材料协议壳或与 MCCB 构念相关的数字适配。默认结果不能继承 MCCB 官方常模，不生成 MCCB T 分、临床 percentile 或 MCCB overall composite。
-
-在线演示：<https://cochranek.github.io/psy-exp/>
+> **这不是经验证的 MCCB 临床等效实现，也不是官方 MCCB scoring software。** 当前公开任务是合成刺激研究任务、私有授权材料协议壳或与 MCCB 构念相关的数字适配。默认结果不能继承 MCCB 官方常模，不生成 MCCB T 分、临床 percentile 或 MCCB overall composite。
 
 ## 当前产品结构
 
