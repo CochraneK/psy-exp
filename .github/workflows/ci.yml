@@ -181,6 +181,10 @@ jobs:
             echo "Original UI controller must not use arbitrary fixed-denominator scoring."
             exit 1
           fi
+          if grep -nE '/[[:space:]]*(300|110|40|24|36|26|4)[[:space:]]*\\)?[[:space:]]*\\*[[:space:]]*100' index.html; then
+            echo "Homepage fallback must not contain legacy fixed-denominator pseudo-standardization."
+            exit 1
+          fi
           if grep -nE 'd\.tScore|d\.percentile|近似 T 分转换' research-report.html research-comparison.html; then
             echo "Restored report UIs must use research-safe indices rather than pseudo-standardization."
             exit 1
