@@ -30,3 +30,70 @@ label.small{display:grid;gap:4px}.card input,.card select,.card textarea{max-wid
 @media(max-width:560px){.research-shell,.report-shell,.comparison-shell{width:min(100% - 22px,1120px);padding-top:18px}.runner-shell{width:min(100% - 20px,720px);padding-top:18px}.workbench-header h1{font-size:23px}.subject-actions{align-items:flex-end}.subject-progress strong{font-size:24px}.subject-controls select,.subject-controls input{width:100%;min-width:0}.task-grid{grid-template-columns:1fr}.task-card{min-height:66px}.task-row{grid-template-columns:24px minmax(0,1fr)}.task-row>div:last-child{grid-column:2;display:flex;justify-content:flex-start;gap:5px}.metric-grid{grid-template-columns:1fr 1fr}.report-tools{width:100%}.report-tools select{flex:1;min-width:140px}}
 @media print{body.research-app{background:#fff}.no-print,.workbench-nav,.subject-controls,.participant-panel,.runner-details,.report-tools{display:none!important}.research-shell,.report-shell,.comparison-shell{width:100%;padding:0}.card,.task-card,.domain-card,.metric,.table-wrap{box-shadow:none}.report-policy{border:1px solid #ccc;background:#fff;color:#333}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* UI v6 color system — shared research palette */
+:root{
+  --ui-bg:#f6f7fb;
+  --ui-surface:#ffffff;
+  --ui-surface-2:#f9fafc;
+  --ui-text:#182230;
+  --ui-muted:#667085;
+  --ui-line:#e4e7ec;
+  --ui-accent:#5b5bd6;
+  --ui-accent-hover:#4949c4;
+  --ui-accent-soft:#f0f0ff;
+  --ui-green:#168a63;
+  --ui-green-soft:#ecf8f3;
+  --ui-amber:#ad6c1d;
+  --ui-amber-soft:#fff7e8;
+  --ui-red:#c44558;
+  --ui-red-soft:#fff1f3;
+  --ui-blue:#3976b8;
+  --ui-blue-soft:#eff6ff;
+  --ui-shadow:0 1px 2px rgba(16,24,40,.03),0 10px 28px rgba(16,24,40,.045);
+}
+.research-app .rui-btn.soft{border-color:#ddddff}
+.research-app .rui-btn.danger{border-color:#f1cbd2}
+.research-app .rui-btn:hover,
+.research-app .header-actions a:hover,
+.research-app .header-actions button:hover,
+.research-app .toolbar button:hover{border-color:#d0d5dd}
+.research-app .header-actions :focus-visible,
+.research-app .rui-btn:focus-visible,
+.research-app .toolbar :focus-visible,
+.research-app .task-card:focus-visible,
+.research-app .participant-row button:focus-visible,
+.research-app .chip:focus-visible,
+.research-app .workbench-nav :focus-visible{outline-color:rgba(91,91,214,.22)}
+.research-app .badge.research{border-color:#f0ddb8;color:#92601e}
+.research-app .badge.info{border-color:#d9e8f6}
+.research-app .badge.success{border-color:#d0eadf}
+.research-app .badge.danger{border-color:#f1cbd2}
+.research-app .status{background:#f2f4f7;color:#667085}
+.research-app .notice,
+.research-app .boundary-note{border-color:#f0ddb8;color:#7e571f}
+.research-app .notice.info{border-color:#d9e8f6;color:#355f86}
+.research-app .workbench-nav>a,
+.research-app .workbench-nav>button,
+.research-app .nav-more>summary{color:#667085}
+.research-app .workbench-nav>a:hover,
+.research-app .workbench-nav>button:hover,
+.research-app .nav-more>summary:hover,
+.research-app .nav-more[open]>summary{background:#f0f1f5;color:var(--ui-text)}
+.research-app .nav-menu a,
+.research-app .nav-menu button{color:#5f6978}
+.research-app .prototype-note{color:#8c95a3}
+.research-app .task-card:hover{border-color:#c9c9ef;background:#fefeff}
+.research-app .task-no,
+.research-app .task-index{background:#f0f0ff;color:#5656b9}
+.research-app .participant-row{border-bottom-color:#eef0f3}
+.research-app .runner-progressbar{background:#e8eaf0}
+.research-app .report-policy{color:#7e571f;border-left-color:#c89143}
+.research-app .rank-dot{box-shadow:0 0 0 3px rgba(91,91,214,.12)}
+.research-app .rank-suppressed{color:#845a20}
+.research-app .rank-dotline{background:#eceef2}
+.research-app .rank-dotline:before{background:#cdd1d9}
+.research-app th{color:#667085;background:#f9fafc}
+.research-app th,
+.research-app td{border-bottom-color:#eef0f3}
+.research-app .chip.active{border-color:#ddddff}

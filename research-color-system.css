@@ -1,0 +1,43 @@
+/* psy-exp report color system v1 */
+:root{
+  --lab-bg:#f6f7fb;--lab-surface:#fff;--lab-text:#182230;--lab-muted:#667085;--lab-faint:#98a2b3;
+  --lab-line:#e4e7ec;--lab-line-strong:#d0d5dd;--lab-accent:#5b5bd6;--lab-accent-hover:#4949c4;
+  --lab-accent-soft:#f0f0ff;--lab-success:#168a63;--lab-success-soft:#ecf8f3;
+  --lab-warning:#ad6c1d;--lab-warning-soft:#fff7e8;--lab-danger:#c44558;--lab-info:#3976b8;
+}
+body{background:var(--lab-bg)!important;color:var(--lab-text)}
+#app{color:var(--lab-text)}
+.header,.subject-card,.chart-section,.scores-section,.details-section,.selection-section,.table-section{
+  background:var(--lab-surface)!important;box-shadow:0 1px 2px rgba(16,24,40,.03),0 10px 28px rgba(16,24,40,.045)!important;
+  border:1px solid var(--lab-line);border-radius:14px!important
+}
+.header h1,.selection-section h2,.chart-section h2,.table-section h2,.scores-section h2,.details-section h2,
+.info-item .value,.stat-value,.domain-card .d-name,.detail-table .test-name,.comp-table td:first-child,.comp-table th{
+  color:var(--lab-text)!important
+}
+.header h1 small,.empty-state,.info-item .label,.domain-card .d-en,.domain-card .d-note,.detail-table th,
+.detail-table td,.chip-count,.guard-note,.legend-item,.muted,.stat-label,.stat-detail{color:var(--lab-muted)!important}
+.header select{
+  border:1px solid var(--lab-line-strong)!important;background:#fff!important;color:var(--lab-text)!important;border-radius:9px!important
+}
+.header button,.btn{border-radius:9px!important}
+.btn-primary{background:var(--lab-accent)!important;color:#fff!important}
+.btn-primary:hover{background:var(--lab-accent-hover)!important}
+.btn-success{background:var(--lab-success)!important;color:#fff!important}
+.btn-outline{background:#fff!important;color:#475467!important;border:1px solid var(--lab-line-strong)!important}
+.btn-outline:hover{background:#f9fafc!important}
+.norm-badge{background:var(--lab-warning-soft)!important;border:1px solid #f0ddb8!important;color:#8a5b20!important}
+.domain-card,.stat-card,.participant-chip{border-color:var(--lab-line)!important;background:#fff!important}
+.domain-card{border-radius:11px!important}
+.domain-card .d-bar{background:#edf0f4!important}
+.domain-tag{background:#eef0f5!important;color:#566174!important}
+.detail-table th,.comp-table th{border-bottom-color:var(--lab-line)!important}
+.detail-table td,.comp-table td{border-bottom-color:#eef0f3!important;color:#475467!important}
+.participant-chip.selected{border-color:var(--lab-accent)!important;background:var(--lab-accent)!important;color:#fff!important}
+.rank-cell{background:var(--lab-accent-soft)!important;color:#4b4bb7!important}
+.empty-state .icon{filter:saturate(.75)}
+button:focus-visible,select:focus-visible,.participant-chip:focus-visible{outline:3px solid rgba(91,91,214,.22);outline-offset:2px}
+@media print{
+  body{background:#fff!important}
+  .header,.subject-card,.chart-section,.scores-section,.details-section,.selection-section,.table-section{box-shadow:none!important}
+}
