@@ -384,9 +384,15 @@
     display: none;
   }
   #participantDropdown .pd-item {
+    width: 100%;
     padding: 10px 14px;
     cursor: pointer;
+    font: inherit;
     font-size: 13px;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    text-align: left;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -418,7 +424,7 @@
   <div class="participant-bar" id="participantBar">
     <span class="pb-label">🧑 被试</span>
     <div style="position:relative;flex:0 0 200px;">
-      <input type="text" id="participantInput" placeholder="输入队列编号 (如 ABC-001)" style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="onParticipantInput()" onkeydown="if(event.key==='Enter') loginParticipant()">
+      <input type="text" id="participantInput" aria-label="被试队列编号" autocomplete="off" placeholder="输入队列编号 (如 ABC-001)" style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="onParticipantInput()" onkeydown="if(event.key==='Enter') loginParticipant()">
       <div id="participantDropdown"></div>
     </div>
     <button class="btn-sm btn-resume" id="loginBtn" onclick="loginParticipant()">登录</button>
@@ -438,7 +444,7 @@
       <div class="dashboard-actions">
         <div class="mode-toggle-wrap">
           <span class="mode-label dev">DEV</span>
-          <button class="mode-toggle" id="modeToggle" onclick="toggleMode()" title="切换测验模式"></button>
+          <button class="mode-toggle" id="modeToggle" type="button" role="switch" aria-checked="false" aria-label="施测模式：DEV" onclick="toggleMode()" title="施测模式：DEV；点击切换到 USER"></button>
           <span class="mode-label user">USER</span>
         </div>
         <button class="dash-clear-btn" onclick="openParticipantManager()" title="管理所有被试">👥 被试管理</button>
@@ -469,11 +475,11 @@
   </div>
 
   <!-- ========= 被试管理模态框 ========= -->
-  <div id="participantManagerOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);overflow-y:auto;padding:24px;" onclick="if(event.target===this)closeParticipantManager()">
+  <div id="participantManagerOverlay" role="dialog" aria-modal="true" aria-labelledby="participantManagerTitle" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);overflow-y:auto;padding:24px;" onclick="if(event.target===this)closeParticipantManager()">
     <div style="background:#fff;border-radius:16px;padding:28px 32px;max-width:700px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.25);position:relative;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <h3 style="font-size:18px;font-weight:700;color:#1e293b;">👥 被试管理</h3>
-        <button onclick="closeParticipantManager()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a3b8;padding:4px;line-height:1;">&times;</button>
+        <h3 id="participantManagerTitle" style="font-size:18px;font-weight:700;color:#1e293b;">👥 被试管理</h3>
+        <button id="participantManagerClose" type="button" aria-label="关闭被试管理" onclick="closeParticipantManager()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#94a3b8;padding:4px;line-height:1;">&times;</button>
       </div>
       <div id="pmContent" style="min-height:120px;">
         <div style="text-align:center;color:#94a3b8;padding:40px 0;">加载中...</div>
@@ -821,11 +827,11 @@ function saveMode(mode) {
 function updateToggleUI(mode) {
   const btn = document.getElementById('modeToggle');
   if (!btn) return;
-  if (mode === 'user') {
-    btn.classList.add('active');
-  } else {
-    btn.classList.remove('active');
-  }
+  const isUser = mode === 'user';
+  btn.classList.toggle('active', isUser);
+  btn.setAttribute('aria-checked', isUser ? 'true' : 'false');
+  btn.setAttribute('aria-label', '施测模式：' + (isUser ? 'USER' : 'DEV'));
+  btn.title = isUser ? '施测模式：USER；点击切换到 DEV' : '施测模式：DEV；点击切换到 USER';
   currentMode = mode;
 }
 
@@ -1229,15 +1235,27 @@ function exportPDF() {
 }
 
 // === 被试管理 ===
+let participantManagerReturnFocus = null;
 function openParticipantManager() {
   const overlay = document.getElementById('participantManagerOverlay');
+  participantManagerReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   overlay.style.display = 'flex';
   renderParticipantList();
+  document.getElementById('participantManagerClose')?.focus();
 }
 
 function closeParticipantManager() {
-  document.getElementById('participantManagerOverlay').style.display = 'none';
+  const overlay = document.getElementById('participantManagerOverlay');
+  overlay.style.display = 'none';
+  if (participantManagerReturnFocus && document.contains(participantManagerReturnFocus)) participantManagerReturnFocus.focus();
+  participantManagerReturnFocus = null;
 }
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('participantManagerOverlay')?.style.display === 'flex') {
+    event.preventDefault();
+    closeParticipantManager();
+  }
+});
 
 function renderParticipantList() {
   const content = document.getElementById('pmContent');
@@ -1434,17 +1452,32 @@ function onParticipantInput() {
 
   const all = ParticipantManager.getAllParticipants();
   const matches = all.filter(p => p.toLowerCase().includes(val.toLowerCase()));
+  dd.textContent = '';
   if (matches.length > 0) {
-    dd.innerHTML = matches.map(p => {
+    matches.forEach(p => {
       const data = ParticipantManager.getData(p);
       const done = data ? Object.values(data.progress).filter(s => s === 'completed').length : 0;
-      return '<div class="pd-item" onclick="selectParticipant(\'' + p + '\')">' +
-        '<span>' + p + '</span>' +
-        '<span class="pd-status">' + done + '/10 完成</span></div>';
-    }).join('');
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'pd-item';
+      option.setAttribute('aria-label', '选择被试 ' + p + '，已完成 ' + done + ' / 10');
+      const name = document.createElement('span');
+      name.textContent = p;
+      const status = document.createElement('span');
+      status.className = 'pd-status';
+      status.textContent = done + '/10 完成';
+      option.append(name, status);
+      option.addEventListener('click', () => selectParticipant(p));
+      dd.appendChild(option);
+    });
     dd.style.display = 'block';
   } else {
-    dd.innerHTML = '<div class="pd-item" style="color:#94a3b8;cursor:default;">输入编号后点击「登录」创建新被试</div>';
+    const hint = document.createElement('div');
+    hint.className = 'pd-item';
+    hint.style.color = '#94a3b8';
+    hint.style.cursor = 'default';
+    hint.textContent = '输入编号后点击「登录」创建新被试';
+    dd.appendChild(hint);
     dd.style.display = 'block';
   }
 }
@@ -1484,12 +1517,14 @@ function resumeTesting() {
 }
 
 // === Wide Mode Toggle ===
-(function(){var b=document.createElement('button');b.id='wm-toggle';b.textContent='⛶';
-b.title='切换宽屏模式';var w=localStorage.getItem('mccb-wide')==='1';
+(function(){var b=document.createElement('button');b.id='wm-toggle';b.type='button';b.textContent='⛶';
+b.setAttribute('aria-label','宽屏模式');var w=localStorage.getItem('mccb-wide')==='1';
+b.setAttribute('aria-pressed',w?'true':'false');b.title=w?'宽屏模式已开启':'宽屏模式已关闭';
 if(w){document.body.classList.add('wide-mode');b.classList.add('wm-on');}
 b.onclick=function(){document.body.classList.toggle('wide-mode');
-b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
-document.body.classList.contains('wide-mode')?'1':'0');};
+b.classList.toggle('wm-on');var on=document.body.classList.contains('wide-mode');
+b.setAttribute('aria-pressed',on?'true':'false');b.title=on?'宽屏模式已开启':'宽屏模式已关闭';
+localStorage.setItem('mccb-wide',on?'1':'0');};
 document.body.appendChild(b);})();
 </script>
 </body>
