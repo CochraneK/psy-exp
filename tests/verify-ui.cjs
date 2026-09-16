@@ -76,12 +76,13 @@ check(/id="hardDeleteBtn"/.test(governance), 'data governance exposes explicit h
 
 const report = fs.readFileSync(path.join(ROOT, 'research-report.html'), 'utf8');
 const comparison = fs.readFileSync(path.join(ROOT, 'research-comparison.html'), 'utf8');
-check(/MCCB 综合认知报告/.test(report) && /class="header"/.test(report) && /subject-card/.test(report), 'single report uses original visual language');
+check(/psy-exp 综合认知研究报告/.test(report) && /class="header"/.test(report) && /subject-card/.test(report), 'single report uses research-safe title and original visual language');
 check(!/report-masthead|research-app|Research report/.test(report), 'single report removes later research-report UI shell');
 check(/MIN_REFERENCE_N=5/.test(report) && /非 MCCB T 分/.test(report), 'single report preserves small-N and non-clinical guardrails');
-check(/MCCB 多被试对比报告/.test(comparison) && /class="header"/.test(comparison) && /participant-chip/.test(comparison), 'comparison uses original visual language');
+check(/psy-exp 多被试研究对比/.test(comparison) && /class="header"/.test(comparison) && /participant-chip/.test(comparison), 'comparison uses research-safe title and original visual language');
 check(!/selector-panel|research-app|Cohort comparison/.test(comparison), 'comparison removes later research-comparison UI shell');
 check(/MIN_REFERENCE_N=5/.test(comparison) && /reference group/.test(comparison), 'comparison preserves protocol/reference-group guardrails');
+check(!/MCCB 综合认知报告/.test(report) && !/MCCB 多被试对比/.test(comparison), 'report surfaces do not imply official MCCB reporting');
 
 console.log(`\nUI contracts: ${passed} passed / ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);

@@ -118,12 +118,16 @@ jobs:
           grep -q "research-app" research-ui.css
           grep -q "overflow:auto" research-ui.css
           grep -q "research-ui.css?v=6.0.0" participant-runner.html
-          grep -q "MCCB 综合认知报告" research-report.html
-          grep -q "MCCB 多被试对比报告" research-comparison.html
+          grep -q "psy-exp 综合认知研究报告" research-report.html
+          grep -q "psy-exp 多被试研究对比" research-comparison.html
           grep -q "MIN_REFERENCE_N=5" research-report.html
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
           grep -q "非 MCCB T 分" research-report.html
           grep -q "reference group" research-comparison.html
+          if grep -q "MCCB 综合认知报告\|MCCB 多被试对比" research-report.html research-comparison.html; then
+            echo "Research report surfaces must not imply official MCCB reporting."
+            exit 1
+          fi
           if grep -q "report-masthead\|selector-panel\|Cohort comparison\|Research report" research-report.html research-comparison.html; then
             echo "Later research-report/research-comparison UI shell must not reappear."
             exit 1
