@@ -156,7 +156,7 @@ jobs:
         run: |
           grep -q "vendor/chart.umd.min.js" index.html
           grep -q "Chart.js v4.4.1" vendor/chart.umd.min.js
-          if grep -R -n --include='*.html' -E 'src=["'\''']https?://' .; then
+          if grep -R -n --include='*.html' -E 'src="https?://' . || grep -R -n --include='*.html' -E "src='https?://" .; then
             echo "Public runtime HTML must not depend on external executable scripts."
             exit 1
           fi
