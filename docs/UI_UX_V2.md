@@ -1,12 +1,14 @@
-# UI / UX v2 research workflow
+# UI / UX architecture — current
 
-This document describes the browser workflow introduced after the research-safety hardening. It is a product/interface contract, not a psychometric validation claim.
+> Canonical UI architecture document. The filename `UI_UX_V2.md` is retained for stable links; the content tracks the current implementation rather than a frozen v2 snapshot.
+
+This document describes the browser workflow after the research-safety hardening and subsequent UI restoration/polish passes. It is a product/interface contract, not a psychometric validation claim.
 
 ## Surface separation
 
 ### Researcher Console (`index.html`)
 
-The console is for researchers/operators. It exposes participant creation/selection, cohort-level QC counts, pending Fluency semantic review, task-level inspection/retest entry points, report links, export, and an advanced DEV-mode control.
+The console is for researchers/operators. It exposes participant creation/selection, QC state, pending Fluency semantic review, task-level inspection/retest entry points, report links, export, and an explicit DEV/USER operator toggle.
 
 DEV mode is intentionally kept out of the participant-facing workflow.
 
@@ -16,13 +18,20 @@ The runner is for task administration. It always launches tasks in USER mode and
 
 When a USER-mode task uses its legacy “return to center” link, `index.html` detects the same-origin task referrer and returns the participant to the runner instead of leaving them in the researcher console. DEV-mode task returns stay in the console.
 
-## Long-page layout contract
+## Surface / stylesheet contract
 
-`mccb-common.css` is still the experiment/full-screen stylesheet. It intentionally uses viewport-sized pages and restricted overflow for task administration.
+The current UI deliberately uses several presentation layers rather than one global stylesheet:
 
-Long-form application pages use `research-ui.css` and the `research-app` class. The research shell explicitly restores document scrolling and text selection so the console and reports are not clipped by the experiment shell.
+| Surface | Primary presentation layer | Constraint |
+|---|---|---|
+| Researcher Console (`index.html`) | original inline shell + opt-in `original-ui-polish.css` injected by `research-session.js` | preserve the compact original DOM and researcher workflow |
+| Participant Runner / Data Governance | `research-ui.css` + `research-app` | long-page application scrolling, focus, responsive layout |
+| Research reports | `mccb-common.css` + `research-color-system.css` + page-level report layout | research-document presentation without changing scoring logic |
+| Task pages (`pages/`) | `mccb-common.css` task shell | stable stimulus geometry and timing-oriented interaction |
 
-Do not merge the two shells back into one global layout without browser testing both long reports and full-screen tasks.
+`original-ui-polish.css` can be disabled with `?ui=classic`; it is a visual layer, not a protocol dependency.
+
+Do not merge these layers into one global shell merely for visual consistency. Any change that reaches `pages/` must be reviewed as a possible protocol/stimulus change and browser-tested separately from researcher/report surfaces.
 
 ## Rank-display guardrail
 
@@ -63,7 +72,7 @@ The preflight snapshot is stored in the participant record and therefore travels
 
 ## Remaining UI work before a formal study
 
-The current v2 is a research prototype. A formal frozen protocol should additionally define and test:
+The current implementation is a research prototype. A formal frozen protocol should additionally define and test:
 
 - supported browser/OS/device matrix,
 - minimum viewport/physical-keyboard requirements per task,

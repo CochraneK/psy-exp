@@ -1,5 +1,7 @@
 # UI v4 — full researcher/participant surface refactor
 
+> **Historical refactor note.** The references below describe the v4 pass at the time it was made; they are not current asset-version instructions. Current architecture is documented in [`UI_UX_V2.md`](UI_UX_V2.md), and the active shared research stylesheet is cache-busted independently of this historical `v4.0.0` note.
+
 UI v4 restructures the research-facing DOM instead of only retheming it.
 
 ## Goals
