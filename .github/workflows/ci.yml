@@ -23,6 +23,7 @@ jobs:
 
       - name: JavaScript syntax checks
         run: |
+          node --check vendor/chart.umd.min.js
           node --check mccb-scoring.js
           node --check mccb-participant.js
           node --check research-storage.js
@@ -60,6 +61,8 @@ jobs:
       - name: Research workspace/report/runtime contract
         shell: bash
         run: |
+          test -f vendor/chart.umd.min.js
+          test -f vendor/README.md
           test -f research-ui.css
           test -f research-storage.js
           test -f research-data.js
@@ -147,6 +150,16 @@ jobs:
           grep -q "supportsTask" mccb-scoring.js
           grep -q "private-licensed-assets-required" task-manifest.json
           grep -q "mccb_mode.*user" mccb-participant.js
+
+      - name: External runtime dependency guard
+        shell: bash
+        run: |
+          grep -q "vendor/chart.umd.min.js" index.html
+          grep -q "Chart.js v4.4.1" vendor/chart.umd.min.js
+          if grep -R -n --include='*.html' -E 'src="https?://' . || grep -R -n --include='*.html' -E "src='https?://" .; then
+            echo "Public runtime HTML must not depend on external executable scripts."
+            exit 1
+          fi
 
       - name: Protected material and obsolete-harness guard
         shell: bash
