@@ -1241,7 +1241,7 @@ function openParticipantManager() {
   participantManagerReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   overlay.style.display = 'flex';
   renderParticipantList();
-  requestAnimationFrame(() => document.getElementById('participantManagerClose')?.focus());
+  document.getElementById('participantManagerClose')?.focus();
 }
 
 function closeParticipantManager() {
