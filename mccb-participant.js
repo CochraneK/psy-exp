@@ -93,7 +93,19 @@ function installResearchSafetyUI(){
   document.querySelectorAll('button[onclick*="comprehensive-report.html"]').forEach(btn=>{btn.setAttribute('onclick',"window.location.href='research-report.html'");btn.textContent='📊 研究版报告';btn.title='查看 raw data、session QC 与研究指标'});
   document.querySelectorAll('button[onclick*="comparison-report.html"]').forEach(btn=>{btn.setAttribute('onclick',"window.location.href='research-comparison.html'");btn.textContent='📈 研究版对比';btn.title='仅比较 QC-valid research indices'});
   const path=typeof location!=='undefined'?location.pathname:'';
-  if(/\/pages\/mccb-[^/]+\.html$/.test(path)&&!document.getElementById('research-prototype-banner')){const b=document.createElement('div');b.id='research-prototype-banner';b.setAttribute('role','note');b.textContent='RESEARCH PROTOTYPE · 当前网页任务未经 MCCB 数字等效性验证；结果仅供研究/开发。';b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;max-width:min(560px,calc(100vw - 24px));padding:8px 12px;border:1px solid rgba(245,158,11,.45);border-radius:10px;background:rgba(255,251,235,.96);color:#92400e;font-size:12px;line-height:1.5;box-shadow:0 4px 18px rgba(0,0,0,.08)';document.body.appendChild(b)}
+  const isTask=/\/pages\/mccb-[^/]+\.html$/.test(path);
+  if(isTask){
+    const params=new URLSearchParams(typeof location!=='undefined'?location.search:'');
+    const isUser=params.get('mode')!=='dev';
+    if(isUser){
+      const id=ParticipantManager.getCurrent();
+      const runner='../participant-runner.html'+(isValidCohortId(id)?'?p='+encodeURIComponent(id):'');
+      document.querySelectorAll('a[href="../index.html"]').forEach(a=>{
+        if((a.textContent||'').includes('返回测验中心')){a.href=runner;a.textContent='返回施测流程'}
+      });
+    }
+    if(!document.getElementById('research-prototype-banner')){const b=document.createElement('div');b.id='research-prototype-banner';b.setAttribute('role','note');b.textContent='RESEARCH PROTOTYPE · 当前网页任务未经 MCCB 数字等效性验证；结果仅供研究/开发。';b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;max-width:min(560px,calc(100vw - 24px));padding:8px 12px;border:1px solid rgba(245,158,11,.45);border-radius:10px;background:rgba(255,251,235,.96);color:#92400e;font-size:12px;line-height:1.5;box-shadow:0 4px 18px rgba(0,0,0,.08)';document.body.appendChild(b)}
+  }
 }
 
 function isOriginalHomepage(){if(typeof window==='undefined'||typeof document==='undefined')return false;const path=window.location&&window.location.pathname||'';return(path.endsWith('/')||path.endsWith('/index.html'))&&!!document.getElementById('dashboard')&&document.querySelectorAll('.test-card').length===10}

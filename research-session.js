@@ -9,7 +9,8 @@
 
   function isOriginalHomepage(){
     if(!root.document)return false;
-    return root.document.title==='MCCB 认知成套测验'&&!!root.document.getElementById('dashboard')&&root.document.querySelectorAll('.test-card').length===10;
+    const path=root.location&&root.location.pathname||'';
+    return(path.endsWith('/')||path.endsWith('/index.html'))&&!!root.document.getElementById('dashboard')&&root.document.querySelectorAll('.test-card').length===10;
   }
   function installOriginalUiPolish(){
     if(!isOriginalHomepage())return false;
