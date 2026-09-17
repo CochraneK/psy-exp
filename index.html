@@ -418,7 +418,7 @@
   <div class="participant-bar" id="participantBar">
     <span class="pb-label">🧑 被试</span>
     <div style="position:relative;flex:0 0 200px;">
-      <input type="text" id="participantInput" placeholder="输入队列编号 (如 ABC-001)" style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="onParticipantInput()" onkeydown="if(event.key==='Enter') loginParticipant()">
+      <input type="text" id="participantInput" placeholder="输入队列编号 (如 ABC-001)" maxlength="64" pattern="[A-Za-z0-9._-]+" title="1–64 位字母、数字、点、下划线或连字符" style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="onParticipantInput()" onkeydown="if(event.key==='Enter') loginParticipant()">
       <div id="participantDropdown"></div>
     </div>
     <button class="btn-sm btn-resume" id="loginBtn" onclick="loginParticipant()">登录</button>
@@ -1427,6 +1427,7 @@ function applyParticipant(cohortId) {
 
 function onParticipantInput() {
   const input = document.getElementById('participantInput');
+  input.setCustomValidity('');
   const val = input.value.trim();
   const dd = document.getElementById('participantDropdown');
 
@@ -1457,15 +1458,24 @@ function selectParticipant(cohortId) {
 }
 
 function loginParticipant() {
-  const val = document.getElementById('participantInput').value.trim();
-  if (!val) { alert('请输入被试队列编号'); return; }
-  ParticipantManager.setCurrent(val);
+  const input = document.getElementById('participantInput');
+  const val = input.value.trim();
+  input.setCustomValidity('');
+  if (!val) { input.setCustomValidity('请输入被试队列编号'); input.reportValidity(); return; }
+  if (!ParticipantManager.setCurrent(val)) {
+    input.setCustomValidity('被试编号仅允许 1–64 位字母、数字、点、下划线和连字符');
+    input.reportValidity();
+    input.focus();
+    return;
+  }
   applyParticipant(val);
 }
 
 function logoutParticipant() {
   ParticipantManager.logout();
-  document.getElementById('participantInput').value = '';
+  const input = document.getElementById('participantInput');
+  input.value = '';
+  input.setCustomValidity('');
   document.getElementById('loginBtn').textContent = '登录';
   document.getElementById('loginBtn').disabled = false;
   document.getElementById('logoutBtn').style.display = 'none';
@@ -1473,6 +1483,7 @@ function logoutParticipant() {
   document.getElementById('progressArea').style.display = 'none';
   document.getElementById('resumeBtn').style.display = 'none';
   updateCardStatuses();
+  loadDashboard();
 }
 
 function resumeTesting() {
