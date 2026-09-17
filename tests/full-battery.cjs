@@ -19,7 +19,8 @@ const checks=[
   ['task manifest/material policy','tests/verify-manifest.cjs'],
   ['protocol freeze/version governance','tests/verify-protocol-lock.cjs'],
   ['driver/static task contract','tests/validate-drivers.cjs'],
-  ['original UI modern core','tests/verify-original-ui-core.cjs']
+  ['original UI modern core','tests/verify-original-ui-core.cjs'],
+  ['participant task return flow','tests/verify-task-return.cjs']
 ];
 let failures=0;
 console.log('=== psy-exp portable full battery ===');
