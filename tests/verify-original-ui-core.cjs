@@ -28,6 +28,7 @@ check('chart handoff destroys any legacy Chart.js instance',controller.includes(
 check('homepage viewport is hardened without changing its CSS',runtime.includes("viewport.setAttribute('content','width=device-width, initial-scale=1.0')"));
 check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));
 check('shared session bridge checkpoints participant history',session.includes('syncParticipantData')&&session.includes('stageBundle'));
+check('homepage detection is title-independent',session.includes("getElementById('dashboard')")&&session.includes("getElementById('participantBar')")&&!session.includes("document.title==='MCCB 认知成套测验'"));
 check('original report entry labels are restored after safety bootstrap',session.includes('restoreOriginalReportEntries')&&session.includes('📊 综合报告')&&session.includes('📈 对比分析'));
 check('polish v3 is mounted without editing original homepage',session.includes('installOriginalUiPolish')&&session.includes("original-ui-polish.css?v=3.0.0")&&session.includes("body.classList.add('psy-polish')"));
 check('classic query can disable polish instantly',session.includes("params.get('ui')==='classic'")&&session.includes("body.classList.remove('psy-polish')"));
