@@ -196,6 +196,16 @@
     root.barChartInstance=new root.Chart(barCanvas.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'项目内研究排名指数',data:values,backgroundColor:'#3498db',borderColor:'#2980b9',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:true,indexAxis:'y',scales:{x:{beginAtZero:true,max:100},y:{grid:{display:false}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} · N=${domains[ctx.dataIndex].referenceN}`}}}}});
   };
 
+  const oldLogin=typeof root.loginParticipant==='function'?root.loginParticipant:null;
+  if(oldLogin)root.loginParticipant=function(){
+    const input=document.getElementById('participantInput'),id=String(input&&input.value||'').trim();
+    if(!id){alert('请输入被试队列编号');return}
+    if(!root.ParticipantManager||!root.ParticipantManager.setCurrent(id)){
+      alert('被试编号无效：仅允许 1–64 位字母、数字、点、下划线和连字符。');
+      return;
+    }
+    if(typeof root.applyParticipant==='function')root.applyParticipant(id);else oldLogin();
+  };
   const oldApply=typeof root.applyParticipant==='function'?root.applyParticipant:null;
   if(oldApply)root.applyParticipant=function(id){oldApply(id);void ensureResearchParticipant(id).then(()=>syncHome('original_homepage_participant_selected')).catch(console.warn)};
   const oldSelect=typeof root.selectParticipant==='function'?root.selectParticipant:null;
