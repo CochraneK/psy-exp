@@ -85,6 +85,23 @@ const ParticipantManager={
   getBuildInfo(){return{runtimeVersion:RUNTIME_VERSION,resultSchemaVersion:RESULT_SCHEMA_VERSION,participantSchemaVersion:PARTICIPANT_SCHEMA_VERSION,taskVersions:clone(TASK_VERSIONS),timingPolicy:clone(TASK_TIMING_POLICY)}}
 };
 
+function installTaskReturnNavigation(){
+  if(typeof document==='undefined'||typeof location==='undefined')return false;
+  const path=location.pathname||'';
+  if(!/\/pages\/mccb-[^/]+\.html$/.test(path))return false;
+  const participantId=ParticipantManager.getParticipantFromUrl();
+  if(!participantId)return false;
+  const runner='../participant-runner.html?p='+encodeURIComponent(participantId);
+  let changed=0;
+  document.querySelectorAll('a[href="../index.html"]').forEach(link=>{
+    link.setAttribute('href',runner);
+    const text=(link.textContent||'').trim();
+    if(text==='返回测验中心'||text==='返回首页')link.textContent='返回施测流程';
+    changed++;
+  });
+  return changed>0;
+}
+
 function installResearchSafetyUI(){
   if(typeof document==='undefined')return;
   const SAFE='仅显示原始分与研究指标；未应用经验证的 MCCB 常模，不用于“正常/异常”判断或临床诊断解释。';
@@ -93,6 +110,7 @@ function installResearchSafetyUI(){
   document.querySelectorAll('button[onclick*="comprehensive-report.html"]').forEach(btn=>{btn.setAttribute('onclick',"window.location.href='research-report.html'");btn.textContent='📊 研究版报告';btn.title='查看 raw data、session QC 与研究指标'});
   document.querySelectorAll('button[onclick*="comparison-report.html"]').forEach(btn=>{btn.setAttribute('onclick',"window.location.href='research-comparison.html'");btn.textContent='📈 研究版对比';btn.title='仅比较 QC-valid research indices'});
   const path=typeof location!=='undefined'?location.pathname:'';
+  installTaskReturnNavigation();
   if(/\/pages\/mccb-[^/]+\.html$/.test(path)&&!document.getElementById('research-prototype-banner')){const b=document.createElement('div');b.id='research-prototype-banner';b.setAttribute('role','note');b.textContent='RESEARCH PROTOTYPE · 当前网页任务未经 MCCB 数字等效性验证；结果仅供研究/开发。';b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;max-width:min(560px,calc(100vw - 24px));padding:8px 12px;border:1px solid rgba(245,158,11,.45);border-radius:10px;background:rgba(255,251,235,.96);color:#92400e;font-size:12px;line-height:1.5;box-shadow:0 4px 18px rgba(0,0,0,.08)';document.body.appendChild(b)}
 }
 
