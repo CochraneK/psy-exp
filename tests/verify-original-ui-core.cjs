@@ -16,6 +16,7 @@ check('runtime bootstraps modern core only on original homepage',runtime.include
 for(const file of ['research-storage.js','research-data.js','research-governance.js','mccb-scoring.js','research-session.js','original-ui-controller.js'])check(`runtime loads ${file}`,runtime.includes(`'${file}'`));
 check('controller gates direct task navigation through research session',controller.includes('ResearchSession.ensureSession')&&controller.includes('ResearchSession.checkpoint'));
 check('controller blocks task start on governance failure',controller.includes('session&&session.blocked')&&controller.includes("location.href='data-governance.html'"));
+check('controller rejects invalid participant ids before applying visible identity',controller.includes('ParticipantManager.setCurrent(id)')&&controller.includes('被试编号无效')&&controller.indexOf('ParticipantManager.setCurrent(id)')<controller.indexOf('applyParticipant(id)'));
 check('controller reads canonical participant-scoped results only',controller.includes('d&&d.results&&d.results[resultKey]')&&!controller.includes("localStorage.getItem(key)"));
 check('modern export uses governed bundle',controller.includes('ResearchGovernance.exportLocalBundle'));
 check('modern import validates governed bundle',controller.includes('ResearchGovernance.validateBundle')&&controller.includes('ResearchGovernance.importBundle'));
