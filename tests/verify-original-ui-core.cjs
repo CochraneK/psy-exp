@@ -16,6 +16,7 @@ check('runtime bootstraps modern core only on original homepage',runtime.include
 for(const file of ['research-storage.js','research-data.js','research-governance.js','mccb-scoring.js','research-session.js','original-ui-controller.js'])check(`runtime loads ${file}`,runtime.includes(`'${file}'`));
 check('controller gates direct task navigation through research session',controller.includes('ResearchSession.ensureSession')&&controller.includes('ResearchSession.checkpoint'));
 check('controller blocks task start on governance failure',controller.includes('session&&session.blocked')&&controller.includes("location.href='data-governance.html'"));
+check('controller rejects invalid participant ids before applying visible identity',controller.includes('ParticipantManager.setCurrent(id)')&&controller.includes('被试编号无效')&&controller.indexOf('ParticipantManager.setCurrent(id)')<controller.indexOf('applyParticipant(id)'));
 check('controller reads canonical participant-scoped results only',controller.includes('d&&d.results&&d.results[resultKey]')&&!controller.includes("localStorage.getItem(key)"));
 check('modern export uses governed bundle',controller.includes('ResearchGovernance.exportLocalBundle'));
 check('modern import validates governed bundle',controller.includes('ResearchGovernance.validateBundle')&&controller.includes('ResearchGovernance.importBundle'));
@@ -28,6 +29,7 @@ check('chart handoff destroys any legacy Chart.js instance',controller.includes(
 check('homepage viewport is hardened without changing its CSS',runtime.includes("viewport.setAttribute('content','width=device-width, initial-scale=1.0')"));
 check('shared session bridge records protocol fingerprints',session.includes('manifestHash')&&session.includes('protocolLockHash')&&session.includes('RD.beginSession'));
 check('shared session bridge checkpoints participant history',session.includes('syncParticipantData')&&session.includes('stageBundle'));
+check('homepage detection is title-independent',session.includes("getElementById('dashboard')")&&session.includes("getElementById('participantBar')")&&!session.includes("document.title==='MCCB 认知成套测验'"));
 check('original report entry labels are restored after safety bootstrap',session.includes('restoreOriginalReportEntries')&&session.includes('📊 综合报告')&&session.includes('📈 对比分析'));
 check('polish v3 is mounted without editing original homepage',session.includes('installOriginalUiPolish')&&session.includes("original-ui-polish.css?v=3.0.0")&&session.includes("body.classList.add('psy-polish')"));
 check('classic query can disable polish instantly',session.includes("params.get('ui')==='classic'")&&session.includes("body.classList.remove('psy-polish')"));
