@@ -152,7 +152,7 @@ async function main() {
     await test('homepage demo query still works after research-safe title rename', async()=>{
       await navigate(`${BASE}/index.html?demo=seed`,'document.readyState === "complete" && !!document.querySelector(".container")');
       await waitFor(`new URLSearchParams(location.search).get('demo')==='ready' && !!document.getElementById('psy-demo-banner')`,8000);
-      const seeded=await evaluate(`document.body.classList.contains('psy-polish') && document.getElementById('psy-demo-banner').textContent.includes('DEMO 合成数据') && typeof PsyExpDemoData!=='undefined'`);
+      const seeded=await evaluate(`document.body.classList.contains('psy-polish') && document.getElementById('psy-demo-banner').textContent.includes('DEMO 合成数据') && ParticipantManager.getAllParticipants().includes('DEMO-001')`);
       if(!seeded)throw new Error('demo seed/banner/polish did not activate on renamed homepage');
       await navigate(`${BASE}/index.html?demo=clear`,'document.readyState === "complete" && !!document.querySelector(".container")');
       await waitFor(`new URLSearchParams(location.search).get('demo')==='cleared'`,8000);
