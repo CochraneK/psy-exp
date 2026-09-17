@@ -83,6 +83,8 @@ async function main() {
       await navigate(`${BASE}/index.html`,'document.readyState === "complete" && !!document.querySelector(".container")');
       await waitFor(`document.querySelectorAll('.test-card').length===10 && typeof ResearchData!=='undefined' && typeof ResearchSession!=='undefined' && window.PSY_EXP_ORIGINAL_UI_MODERN_CORE==='1.0.0'`,8000);
       const shell=await evaluate(`(()=>({title:document.title==='psy-exp · 认知研究任务套件',boundary:document.querySelector('.research-boundary')?.textContent.includes('不生成官方 MCCB T 分或临床 percentile')===true,noPseudoStandardization:!document.body.textContent.includes('标准化认知功能评估工具')&&!document.body.textContent.includes('分数已标准化为百分比'),logo:!!document.querySelector('.header .logo'),dashboard:!!document.getElementById('dashboard'),domains:document.querySelectorAll('.domain-section').length===7,cards:document.querySelectorAll('.test-card').length===10,modeToggle:!!document.getElementById('modeToggle'),wideMode:!!document.getElementById('wm-toggle'),participantManager:!!document.getElementById('participantManagerOverlay'),resume:!!document.getElementById('resumeBtn'),noLaterWorkbench:!document.querySelector('.workbench-header,.subject-bar,.task-grid'),noResearchCss:![...document.styleSheets].some(s=>String(s.href||'').includes('research-ui.css')),polish:document.body.classList.contains('psy-polish')&&!!document.getElementById('original-ui-polish'),defaultUserMode:localStorage.getItem('mccb_mode')==='user'}))()`);
+      const invalid=await evaluate(`(()=>{const input=document.getElementById('participantInput');input.value='bad id';input.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('loginBtn').click();return ParticipantManager.getCurrent()===''&&!document.getElementById('loginBtn').disabled&&input.validationMessage.length>0})()`);
+      if(!invalid)throw new Error('invalid participant id produced a false logged-in UI state');
       const typed=await evaluate(`(()=>{const input=document.getElementById('participantInput');input.value='E2E1';input.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('loginBtn').click();return true})()`);
       if(!typed)throw new Error('could not type participant id through homepage input');
       await waitFor(`ParticipantManager.getCurrent()==='E2E1' && document.getElementById('loginBtn').disabled===true && document.getElementById('greetingArea').textContent.includes('E2E1') && document.getElementById('progressText').textContent.startsWith('0 / 10')`,8000);
@@ -138,6 +140,15 @@ async function main() {
       await waitFor(`ResearchData.snapshot().attempts.some(a=>a.testKey==='bacs')`,8000);
       const advanced=await evaluate(`document.getElementById('nextBtn').getAttribute('href').includes('mccb-fluency.html') && !document.body.textContent.includes('DEV mode') && !document.querySelector('a[href="data-governance.html"]')`);
       if(!advanced)throw new Error('runner did not advance cleanly to the third task after BACS');
+    });
+    await test('logout clears participant-specific dashboard and re-login restores progress', async()=>{
+      await navigate(`${BASE}/index.html`,'document.readyState === "complete" && typeof ResearchData!=="undefined" && window.PSY_EXP_ORIGINAL_UI_MODERN_CORE==="1.0.0"');
+      await waitFor(`ParticipantManager.getCurrent()==='E2E1' && document.getElementById('dashProgress').textContent.includes('2 / 10')`,8000);
+      await evaluate(`document.getElementById('logoutBtn').click()`);
+      const cleared=await evaluate(`ParticipantManager.getCurrent()==='' && document.getElementById('progressArea').style.display==='none' && document.getElementById('resumeBtn').style.display==='none' && document.getElementById('dashProgress').textContent.includes('0 / 10') && document.getElementById('dashGrid').textContent.includes('尚无测评数据') && document.getElementById('chartsPanel').style.display==='none'`);
+      if(!cleared)throw new Error('logout left prior participant data visible on researcher dashboard');
+      await evaluate(`(()=>{const input=document.getElementById('participantInput');input.value='E2E1';input.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('loginBtn').click();return true})()`);
+      await waitFor(`ParticipantManager.getCurrent()==='E2E1' && document.getElementById('progressText').textContent.startsWith('2 / 10') && document.getElementById('dashProgress').textContent.includes('2 / 10')`,8000);
     });
     await test('single report executes in restored visual language and exposes raw result', async()=>{
       await navigate(`${BASE}/research-report.html`,`document.readyState === 'complete' && document.getElementById('participantSelect').options.length > 1`);
