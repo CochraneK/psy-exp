@@ -11,7 +11,7 @@
   <img alt="MCCB boundary" src="https://img.shields.io/badge/MCCB-not%20an%20official%20implementation-F2994A">
 </p>
 
-[**在线演示**](https://cochranek.github.io/psy-exp/) · [**UI / UX 说明**](docs/UI_UX_V2.md) · [**Research evidence**](docs/EVIDENCE_REGISTER.md) · [**Design tokens**](docs/DESIGN_TOKENS.md)
+[**在线演示**](https://cochranek.github.io/psy-exp/) · [**Architecture**](docs/architecture.md) · [**Agent handoff**](HANDOFF.md) · [**UI / UX 说明**](docs/UI_UX_V2.md) · [**Research evidence**](docs/EVIDENCE_REGISTER.md) · [**Design tokens**](docs/DESIGN_TOKENS.md)
 
 </div>
 
@@ -33,6 +33,21 @@
 Researcher Console / 报告使用 `research-ui.css` 的长页面应用 shell；实验任务继续使用 `mccb-common.css` 的全屏任务 shell。两者故意分离，避免管理/报告页面被实验页的 `100vh + overflow:hidden` 布局截断。
 
 详见 [`docs/UI_UX_V2.md`](docs/UI_UX_V2.md)。
+
+## Agent / 协作接管
+
+本仓库把 Git 作为长期 canonical state。新的 Agent / 对话 / 电脑优先读取：
+
+```text
+AGENTS.md
+→ HANDOFF.md
+→ STATUS.md
+→ DECISIONS.md
+→ docs/architecture.md
+→ 与任务相关的 canonical protocol / validation files
+```
+
+这套 handoff 只负责连续性，不会覆盖 `task-manifest.json`、`protocol-lock.json`、`RESEARCH_VALIDATION.md` 等研究原生真相。
 
 ## 当前安全边界
 
