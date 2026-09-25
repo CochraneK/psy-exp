@@ -11,7 +11,7 @@
   <img alt="MCCB boundary" src="https://img.shields.io/badge/MCCB-not%20an%20official%20implementation-F2994A">
 </p>
 
-[**在线演示**](https://cochranek.github.io/psy-exp/) · [**Architecture**](docs/architecture.md) · [**Agent handoff**](HANDOFF.md) · [**UI / UX 说明**](docs/UI_UX_V2.md) · [**Research evidence**](docs/EVIDENCE_REGISTER.md) · [**Design tokens**](docs/DESIGN_TOKENS.md)
+**在线演示**（仓库私有化后已下线，恢复公开后重新启用） · [**Architecture**](docs/architecture.md) · [**Agent handoff**](HANDOFF.md) · [**UI / UX 说明**](docs/UI_UX_V2.md) · [**Research evidence**](docs/EVIDENCE_REGISTER.md) · [**Design tokens**](docs/DESIGN_TOKENS.md)
 
 </div>
 

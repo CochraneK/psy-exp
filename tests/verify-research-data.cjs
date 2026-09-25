@@ -43,6 +43,8 @@ const closed=ResearchData.closeSession(s.id,{status:'completed'});
 check('session closes',closed.status==='completed'&&!!closed.completedAt);
 const s2=ResearchData.beginSession('P001',{siteId:'SITE-TOKYO'});
 check('new session after close',s2.id!==s.id);
+const closedBad=ResearchData.closeSession(s2.id,{status:'not-a-status'});
+check('unknown close status normalizes to completed',closedBad.status==='completed'&&!!closedBad.completedAt);
 const snap=ResearchData.snapshot();
 check('snapshot has study/site/participant/session/attempt layers',snap.study&&snap.sites['SITE-TOKYO']&&snap.participants.P001&&Object.keys(snap.sessions).length===2&&snap.attempts.length===2);
 check('audit trail populated',snap.audit.length>=10);

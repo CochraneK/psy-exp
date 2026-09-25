@@ -15,6 +15,21 @@ const MIME = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function findChrome() {
+  if (process.env.CHROME_BIN && fs.existsSync(process.env.CHROME_BIN)) return process.env.CHROME_BIN;
+  if (process.platform === 'win32') {
+    const env = process.env;
+    const candidates = [
+      env['ProgramFiles'] && path.join(env['ProgramFiles'], 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      env['ProgramFiles(x86)'] && path.join(env['ProgramFiles(x86)'], 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      env['ProgramFiles'] && path.join(env['ProgramFiles'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      env['ProgramFiles(x86)'] && path.join(env['ProgramFiles(x86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    ].filter(Boolean);
+    for (const candidate of candidates) {
+      try { if (fs.existsSync(candidate)) return candidate; } catch {}
+    }
+    return null;
+  }
   for (const candidate of ['google-chrome-stable','google-chrome','chromium','chromium-browser']) {
     const r = spawnSync('which', [candidate], { encoding: 'utf8' });
     if (r.status === 0 && r.stdout.trim()) return r.stdout.trim();
