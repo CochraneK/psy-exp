@@ -147,7 +147,6 @@ async function main() {
     // Seven task screens. Each starts via its real UI control, waits for the
     // task screen to become active, settles, then asserts no overflow.
     const taskCases = [
-      { name: 'bacs', file: 'mccb-bacs.html', start: `document.getElementById('startBtn').click()`, screen: 'page-test' },
       { name: 'cpt', file: 'mccb-cpt.html', start: `document.getElementById('practiceBtn').click()`, screen: 'page-test' },
       { name: 'bvmt', file: 'mccb-bvmt.html', start: `document.getElementById('start').click()`, screen: 'study' },
       { name: 'mazes', file: 'mccb-mazes.html', start: `document.getElementById('start').click()`, screen: 'task' },
@@ -164,6 +163,23 @@ async function main() {
         await checkOverflow(`task/${c.name}`);
       });
     }
+    // BACS now gates the timed grid behind a mandatory practice screen
+    // (operator manual: the practice portion must be fully completed). Cover
+    // both the practice layout and the formal 110-cell grid layout.
+    await test('task screen stays in 390px viewport: bacs', async () => {
+      await navigate(`${BASE}/pages/mccb-bacs.html?mode=user&p=E2E1`);
+      await evaluate(`document.getElementById('startBtn').click()`);
+      await waitFor(`document.getElementById('page-practice').classList.contains('active')`, 6000);
+      await sleep(600);
+      await checkOverflow('task/bacs-practice');
+      const filled = await evaluate(`(() => { const inputs=[...document.querySelectorAll('#practiceGrid input')]; for(const inp of inputs){ inp.value='1'; inp.dispatchEvent(new Event('input',{bubbles:true})); } return inputs.length; })()`);
+      if(!filled) throw new Error('no practice inputs rendered');
+      await waitFor(`!document.getElementById('startFormalBtn').disabled`, 6000);
+      await evaluate(`document.getElementById('startFormalBtn').click()`);
+      await waitFor(`document.getElementById('page-test').classList.contains('active')`, 6000);
+      await sleep(600);
+      await checkOverflow('task/bacs-test');
+    });
     // LNS reaches the recall input (the padded screen) in two steps: start,
     // then the study screen's advance button.
     await test('task screen stays in 390px viewport: lns', async () => {
