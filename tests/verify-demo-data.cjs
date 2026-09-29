@@ -32,7 +32,7 @@ check('selects DEMO-001 after seeding',()=>assert.strictEqual(ParticipantManager
 check('does not delete pre-existing real participant',()=>assert(ParticipantManager.getAllParticipants().includes('REAL-001')));
 
 const demo1=ParticipantManager.getData('DEMO-001');
-check('complete demo has all ten completed tasks',()=>assert.strictEqual(Object.values(demo1.progress).filter(x=>x==='completed').length,10));
+check('complete demo has all eleven completed tasks',()=>assert.strictEqual(Object.values(demo1.progress).filter(x=>x==='completed').length,11));
 check('all demo results are explicitly synthetic and non-equivalent',()=>{
   for(const result of Object.values(demo1.results)){
     assert.strictEqual(result.demoSynthetic,true);
@@ -43,7 +43,7 @@ check('all demo results are explicitly synthetic and non-equivalent',()=>{
 });
 
 const partial=ParticipantManager.getData('DEMO-007');
-check('partial demo leaves five tasks unstarted',()=>assert.strictEqual(Object.values(partial.progress).filter(x=>x==='not_started').length,5));
+check('partial demo leaves six tasks unstarted',()=>assert.strictEqual(Object.values(partial.progress).filter(x=>x==='not_started').length,6));
 const edge=ParticipantManager.getData('DEMO-008');
 check('QC-edge demo stores CPT as timing-violation invalid result',()=>{
   assert.strictEqual(edge.progress.cpt,'completed_invalid');

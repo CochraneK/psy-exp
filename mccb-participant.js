@@ -4,8 +4,8 @@ const RESULT_SCHEMA_VERSION=4;
 const PARTICIPANT_SCHEMA_VERSION=4;
 const RUNTIME_VERSION='research-runtime-0.4.0';
 const DEFAULT_TASK_VERSION='research-web-0.4.0';
-const TASK_VERSIONS={tmt:'tmt-web-0.4.0',bacs:'bacs-web-0.4.0',fluency:'fluency-web-0.4.0',cpt:'cpt-web-0.4.0','spatial-span':'spatial-span-web-0.4.0',lns:'lns-web-0.4.0',hvlt:'hvlt-web-0.5.0',bvmt:'bvmt-web-0.4.0',mazes:'mazes-web-0.4.0',msceit:'msceit-web-0.4.0'};
-const TASK_TIMING_POLICY={tmt:{mode:'monotonic-elapsed'},bacs:{mode:'absolute-deadline'},fluency:{mode:'absolute-deadline'},hvlt:{mode:'absolute-deadline'},cpt:{mode:'absolute-trial-schedule-with-onset-log'},'spatial-span':{mode:'absolute-deadline'},lns:{mode:'absolute-deadline'},bvmt:{mode:'absolute-deadline'},mazes:{mode:'monotonic-elapsed'},msceit:{mode:'monotonic-elapsed'}};
+const TASK_VERSIONS={tmt:'tmt-web-0.4.0',bacs:'bacs-web-0.4.0',fluency:'fluency-web-0.4.0',cpt:'cpt-web-0.4.0','spatial-span':'spatial-span-web-0.4.0',lns:'lns-web-0.4.0',hvlt:'hvlt-web-0.5.0',bvmt:'bvmt-web-0.4.0',mazes:'mazes-web-0.4.0',msceit:'msceit-web-0.4.0',bwais:'bwais-web-0.1.0'};
+const TASK_TIMING_POLICY={tmt:{mode:'monotonic-elapsed'},bacs:{mode:'absolute-deadline'},fluency:{mode:'absolute-deadline'},hvlt:{mode:'absolute-deadline'},cpt:{mode:'absolute-trial-schedule-with-onset-log'},'spatial-span':{mode:'absolute-deadline'},lns:{mode:'absolute-deadline'},bvmt:{mode:'absolute-deadline'},mazes:{mode:'monotonic-elapsed'},msceit:{mode:'monotonic-elapsed'},bwais:{mode:'monotonic-elapsed'}};
 const VALID_TEST_KEYS=new Set(Object.keys(TASK_VERSIONS));
 const VALID_QC_STATUSES=new Set(['valid','aborted','interrupted','timing_violation','technical_failure','unverified']);
 const TEST_ORDER=[
@@ -18,9 +18,10 @@ const TEST_ORDER=[
   {key:'hvlt',name:'私有词语学习协议',file:'pages/mccb-hvlt.html'},
   {key:'bvmt',name:'视觉图形学习研究任务',file:'pages/mccb-bvmt.html'},
   {key:'mazes',name:'迷宫规划研究任务',file:'pages/mccb-mazes.html'},
-  {key:'msceit',name:'私有情绪管理协议',file:'pages/mccb-msceit.html'}
+  {key:'msceit',name:'私有情绪管理协议',file:'pages/mccb-msceit.html'},
+  {key:'bwais',name:'简易韦氏4分测验研究协议',file:'pages/mccb-bwais.html'}
 ];
-const KEY_TO_RESULT={tmt:'mccb-tmt-result',bacs:'mccb-bacs-result',fluency:'mccb-fluency-result',cpt:'mccb-cpt-result','spatial-span':'mccb-spatial-span-result',lns:'mccb-lns-result',hvlt:'mccb-hvlt-result',bvmt:'mccb-bvmt-result',mazes:'mccb-mazes-result',msceit:'mccb-msceit-result'};
+const KEY_TO_RESULT={tmt:'mccb-tmt-result',bacs:'mccb-bacs-result',fluency:'mccb-fluency-result',cpt:'mccb-cpt-result','spatial-span':'mccb-spatial-span-result',lns:'mccb-lns-result',hvlt:'mccb-hvlt-result',bvmt:'mccb-bvmt-result',mazes:'mccb-mazes-result',msceit:'mccb-msceit-result',bwais:'mccb-bwais-result'};
 const RESULT_TO_KEY=Object.fromEntries(Object.entries(KEY_TO_RESULT).map(([k,v])=>[v,k]));
 const _ls={
   get(k){try{return localStorage.getItem(k)}catch{return null}},
@@ -114,7 +115,7 @@ function installResearchSafetyUI(){
   if(/\/pages\/mccb-[^/]+\.html$/.test(path)&&!document.getElementById('research-prototype-banner')){const b=document.createElement('div');b.id='research-prototype-banner';b.setAttribute('role','note');b.textContent='RESEARCH PROTOTYPE · 当前网页任务未经 MCCB 数字等效性验证；结果仅供研究/开发。';b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;max-width:min(560px,calc(100vw - 24px));padding:8px 12px;border:1px solid rgba(245,158,11,.45);border-radius:10px;background:rgba(255,251,235,.96);color:#92400e;font-size:12px;line-height:1.5;box-shadow:0 4px 18px rgba(0,0,0,.08)';document.body.appendChild(b)}
 }
 
-function isOriginalHomepage(){if(typeof window==='undefined'||typeof document==='undefined')return false;const path=window.location&&window.location.pathname||'';return(path.endsWith('/')||path.endsWith('/index.html'))&&!!document.getElementById('dashboard')&&document.querySelectorAll('.test-card').length===10}
+function isOriginalHomepage(){if(typeof window==='undefined'||typeof document==='undefined')return false;const path=window.location&&window.location.pathname||'';return(path.endsWith('/')||path.endsWith('/index.html'))&&!!document.getElementById('dashboard')&&document.querySelectorAll('.test-card').length===11}
 function loadScriptOnce(src,globalName){return new Promise((resolve,reject)=>{if(globalName&&window[globalName]){resolve(window[globalName]);return}const prior=[...document.scripts].find(s=>{try{return new URL(s.src,location.href).pathname.endsWith('/'+src)}catch{return false}});if(prior){if(!globalName||window[globalName])resolve(window[globalName]);else{prior.addEventListener('load',()=>resolve(window[globalName]),{once:true});prior.addEventListener('error',reject,{once:true})}return}const s=document.createElement('script');s.src=src;s.async=false;s.onload=()=>resolve(globalName?window[globalName]:true);s.onerror=()=>reject(new Error(`failed to load ${src}`));document.head.appendChild(s)})}
 async function bootstrapOriginalHomepageModernCore(){if(!isOriginalHomepage())return false;const viewport=document.querySelector('meta[name="viewport"]');if(viewport)viewport.setAttribute('content','width=device-width, initial-scale=1.0');await loadScriptOnce('research-storage.js','ResearchStorage');await loadScriptOnce('research-data.js','ResearchData');await loadScriptOnce('research-governance.js','ResearchGovernance');await loadScriptOnce('mccb-scoring.js','MCCBScoring');await loadScriptOnce('research-session.js','ResearchSession');await loadScriptOnce('original-ui-controller.js','PSY_EXP_ORIGINAL_UI_MODERN_CORE');return true}
 

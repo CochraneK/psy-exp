@@ -11,6 +11,7 @@
     "hvlt": {"taskVersion":"hvlt-web-0.5.0","protocolId":"hvlt-r-5trial-recognition-private-shell-v1","page":"pages/mccb-hvlt.html"},
     "bvmt": {"taskVersion":"bvmt-web-0.4.0","protocolId":"synthetic-visual-pattern-v1","page":"pages/mccb-bvmt.html"},
     "mazes": {"taskVersion":"mazes-web-0.4.0","protocolId":"generated-perfect-mazes-v1","page":"pages/mccb-mazes.html"},
-    "msceit": {"taskVersion":"msceit-web-0.4.0","protocolId":"private-social-cognition-shell-v1","page":"pages/mccb-msceit.html"}
+    "msceit": {"taskVersion":"msceit-web-0.4.0","protocolId":"private-social-cognition-shell-v1","page":"pages/mccb-msceit.html"},
+    "bwais": {"taskVersion":"bwais-web-0.1.0","protocolId":"brief-wais-4subtest-private-shell-v1","page":"pages/mccb-bwais.html"}
   }
 }

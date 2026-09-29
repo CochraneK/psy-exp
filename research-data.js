@@ -10,7 +10,7 @@
   const DEFAULT_STUDY_ID='psy-exp-default-study';
   const DEFAULT_SITE_ID='local-browser-site';
   const RESULT_TO_TEST={
-    'mccb-tmt-result':'tmt','mccb-bacs-result':'bacs','mccb-fluency-result':'fluency','mccb-cpt-result':'cpt','mccb-spatial-span-result':'spatial-span','mccb-lns-result':'lns','mccb-hvlt-result':'hvlt','mccb-bvmt-result':'bvmt','mccb-mazes-result':'mazes','mccb-msceit-result':'msceit'
+    'mccb-tmt-result':'tmt','mccb-bacs-result':'bacs','mccb-fluency-result':'fluency','mccb-cpt-result':'cpt','mccb-spatial-span-result':'spatial-span','mccb-lns-result':'lns','mccb-hvlt-result':'hvlt','mccb-bvmt-result':'bvmt','mccb-mazes-result':'mazes','mccb-msceit-result':'msceit','mccb-bwais-result':'bwais'
   };
   const now=()=>new Date().toISOString();
   const clone=v=>{try{return v==null?v:JSON.parse(JSON.stringify(v))}catch{return null}};

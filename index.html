@@ -45,6 +45,7 @@
 
   /* Domain sections */
   .domain-section { margin-bottom: 40px; }
+  .supp-section { margin-bottom: 40px; }
   .domain-title {
     font-size: 20px; font-weight: 700; color: #1e293b;
     display: flex; align-items: center; gap: 10px;
@@ -129,6 +130,7 @@
   .tag-social { background: #ffedd5; color: #9a3412; }
   .tag-reasoning { background: #e0f2fe; color: #0369a1; }
   .tag-time { background: #f1f5f9; color: #64748b; }
+  .tag-supp { background: #fef9c3; color: #854d0e; }
 
   /* Dashboard — redesigned */
   .dashboard {
@@ -402,8 +404,8 @@
   <div class="header">
     <div class="logo">🧠</div>
     <h1>psy-exp 认知研究任务套件</h1>
-    <p class="subtitle">MCCB-related cognitive research prototype · 7 个认知域、10 项研究任务。当前数字流程不等同于官方 MCCB，也不继承其临床常模。</p>
-    <span class="badge-total">研究原型 · 10 项任务 · 7 个认知域</span>
+    <p class="subtitle">MCCB-related cognitive research prototype · 7 个认知域、11 项研究任务（含 1 项独立研究电池）。当前数字流程不等同于官方 MCCB，也不继承其临床常模。</p>
+    <span class="badge-total">研究原型 · 11 项任务 · 7 个认知域</span>
   </div>
 
   <div class="research-boundary" role="note" aria-label="研究边界">
@@ -424,7 +426,7 @@
     <button class="btn-sm btn-resume" id="loginBtn" onclick="loginParticipant()">登录</button>
     <div class="pb-progress" id="progressArea" style="display:none;">
       <div class="pb-bar-bg"><div class="pb-bar-fill" id="progressFill" style="width:0%"></div></div>
-      <div class="pb-text" id="progressText">0 / 10 完成</div>
+      <div class="pb-text" id="progressText">0 / 11 完成</div>
     </div>
     <span id="greetingArea" style="display:none;"></span>
     <button class="btn-sm btn-resume" id="resumeBtn" onclick="resumeTesting()">▶ 继续测验</button>
@@ -692,6 +694,28 @@
       </div>
     </div>
   </div>
+
+  <!-- ========= 补充研究电池: 简易韦氏 4 分测验 ========= -->
+  <div class="supp-section">
+    <div class="domain-title">
+      <span class="dom-icon">📝</span> 补充研究电池 <span style="font-weight:400;font-size:14px;color:#64748b;">Supplementary Battery</span>
+      <span class="dom-count">1 项测验</span>
+    </div>
+    <div class="test-grid">
+      <div class="test-card" onclick="goTest('pages/mccb-bwais.html')">
+        <div class="tc-header">
+          <span class="tc-number">#11</span>
+          <span class="tc-status">—</span>
+        </div>
+        <div class="tc-title">简易韦氏 4 分测验 <span class="tc-en">Brief WAIS: 4-Subtest Battery</span></div>
+        <div class="tc-desc">知识/相似/填图/积木 4 分测验。开放题需研究者判分；需要授权材料。</div>
+        <div class="tc-tags">
+          <span class="tc-tag tag-supp">补充电池</span>
+          <span class="tc-tag tag-time">~30 分钟</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -706,6 +730,7 @@ const TEST_META = [
   { key: 'mccb-bvmt-result',    name: 'BVMT-R 视觉空间记忆',        icon: '👁️', domain: '视觉学习',    num: '#8' },
   { key: 'mccb-mazes-result',   name: 'NAB 迷宫',                   icon: '🌀', domain: '推理与问题解决', num: '#9' },
   { key: 'mccb-msceit-result',  name: 'MSCEIT 情绪管理',           icon: '🤝', domain: '社会认知',    num: '#10'},
+  { key: 'mccb-bwais-result',   name: '简易韦氏 4 分测验',          icon: '📝', domain: '补充电池',    num: '#11' },
 ];
 
 function loadDashboard() {
@@ -768,8 +793,8 @@ function loadDashboard() {
     grid.innerHTML = html;
   }
 
-  const pct = Math.round((completed / 10) * 100);
-  progressEl.innerHTML = `已完成 <strong>${completed} / 10</strong> 项测验（${pct}%）
+  const pct = Math.round((completed / 11) * 100);
+  progressEl.innerHTML = `已完成 <strong>${completed} / 11</strong> 项测验（${pct}%）
     ${latestDate ? ' · 最近测评：' + latestDate.toLocaleDateString('zh-CN') : ''}`;
   fillEl.style.width = pct + '%';
 }
@@ -798,6 +823,10 @@ function getPrimaryScore(key, data) {
     }
     case 'mccb-mazes-result': return `总分 ${data.totalScore}/26 · 完成 ${data.completed} 个`;
     case 'mccb-msceit-result': return `${data.correct}/${data.total} 正确`;
+    case 'mccb-bwais-result': {
+      if (data.total == null) return '待判分';
+      return `总分 ${data.total}/124`;
+    }
     default: return '✓';
   }
 }
@@ -868,6 +897,7 @@ const HREF_TO_KEY = {
   'pages/mccb-bvmt.html': 'mccb-bvmt-result',
   'pages/mccb-mazes.html': 'mccb-mazes-result',
   'pages/mccb-msceit.html': 'mccb-msceit-result',
+  'pages/mccb-bwais.html': 'mccb-bwais-result',
 };
 
 function updateCardStatuses() {
@@ -1440,7 +1470,7 @@ function onParticipantInput() {
       const done = data ? Object.values(data.progress).filter(s => s === 'completed').length : 0;
       return '<div class="pd-item" onclick="selectParticipant(\'' + p + '\')">' +
         '<span>' + p + '</span>' +
-        '<span class="pd-status">' + done + '/10 完成</span></div>';
+        '<span class="pd-status">' + done + '/11 完成</span></div>';
     }).join('');
     dd.style.display = 'block';
   } else {

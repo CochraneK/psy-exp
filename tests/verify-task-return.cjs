@@ -7,7 +7,7 @@ const runtime=read('mccb-participant.js');
 const taskFiles=[
   'pages/mccb-tmt.html','pages/mccb-bacs.html','pages/mccb-fluency.html','pages/mccb-cpt.html',
   'pages/mccb-spatial-span.html','pages/mccb-lns.html','pages/mccb-hvlt.html','pages/mccb-bvmt.html',
-  'pages/mccb-mazes.html','pages/mccb-msceit.html'
+  'pages/mccb-mazes.html','pages/mccb-msceit.html','pages/mccb-bwais.html'
 ];
 let pass=0,fail=0;
 function check(name,cond){if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name)}}

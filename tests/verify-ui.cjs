@@ -47,7 +47,7 @@ check(/class=["']dashboard["']\s+id=["']dashboard["']/.test(consoleHtml), 'conso
 check(/class=["']mode-toggle-wrap["']/.test(consoleHtml) && /id=["']modeToggle["']/.test(consoleHtml), 'console restores original DEV/USER pill toggle');
 check(/id=["']wm-toggle["']/.test(consoleHtml), 'console restores original wide-mode control');
 check((consoleHtml.match(/class=["']domain-section["']/g)||[]).length===7, 'console restores seven original cognitive-domain sections');
-check((consoleHtml.match(/class=["']test-card["']/g)||[]).length===10, 'console restores ten original task cards');
+check((consoleHtml.match(/class=["']test-card["']/g)||[]).length===11, 'console restores eleven original task cards');
 check(/id=["']participantManagerOverlay["']/.test(consoleHtml) && /id=["']resumeBtn["']/.test(consoleHtml), 'console restores original participant manager and resume control');
 check(/id=["']dashGrid["']/.test(consoleHtml) && /id=["']dashProgressFill["']/.test(consoleHtml), 'console restores original dashboard progress grid');
 check(!/workbench-header|subject-bar|task-grid/.test(consoleHtml), 'console no longer uses later v4/v5 workbench shell');

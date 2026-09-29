@@ -30,6 +30,7 @@ const files = [
   'pages/mccb-bvmt.html',
   'pages/mccb-mazes.html',
   'pages/mccb-msceit.html',
+  'pages/mccb-bwais.html',
 ];
 
 let checked = 0;

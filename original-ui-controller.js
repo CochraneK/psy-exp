@@ -11,7 +11,8 @@
     'pages/mccb-hvlt.html':{key:'hvlt',result:'mccb-hvlt-result'},
     'pages/mccb-bvmt.html':{key:'bvmt',result:'mccb-bvmt-result'},
     'pages/mccb-mazes.html':{key:'mazes',result:'mccb-mazes-result'},
-    'pages/mccb-msceit.html':{key:'msceit',result:'mccb-msceit-result'}
+    'pages/mccb-msceit.html':{key:'msceit',result:'mccb-msceit-result'},
+    'pages/mccb-bwais.html':{key:'bwais',result:'mccb-bwais-result'}
   };
   const RESULT_TO_TASK=Object.fromEntries(Object.values(TASKS).map(x=>[x.result,x.key]));
   const LEGACY_GLOBAL_KEYS=Object.values(TASKS).map(x=>x.result);

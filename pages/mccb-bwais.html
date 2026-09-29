@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>简易韦氏 4 分测验研究任务 · 私有刺激配置</title>
+<link rel="stylesheet" href="../mccb-common.css">
+<script src="../mccb-participant.js"></script>
+<!-- Optional local/private file. The private/ directory is git-ignored and is not shipped on GitHub Pages. -->
+<script src="../private/stimuli.js"></script>
+<style>
+  .page{padding:2rem 1.25rem}.shell{width:min(760px,100%);margin:auto}.status{border:1px solid var(--border-light);border-radius:12px;padding:14px 16px;line-height:1.65;margin:16px 0}.status.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}.status.bad{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.phase{font-size:13px;color:var(--text-muted);margin-bottom:8px}.countdown{font-family:var(--font-mono);font-size:1.25rem;font-weight:700}.qbox{border:1px solid var(--border-light);border-radius:12px;padding:18px;background:var(--bg-card);margin:16px 0}.qtext{font-size:clamp(1.15rem,3.4vw,1.5rem);font-weight:700;line-height:1.75}.qimg{max-width:100%;max-height:340px;display:block;margin:0 auto 12px;border:1px solid var(--border-light);border-radius:10px}.sub-input{width:100%;min-height:120px;border:2px solid var(--border-light);border-radius:12px;padding:14px;font:inherit;line-height:1.8;resize:vertical}.meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.meta{background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;padding:14px}.meta b{display:block;font-size:22px}.meta span{font-size:12px;color:var(--text-muted)}.research-note{font-size:13px;color:var(--text-secondary);line-height:1.7}.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}.block-wrap{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;align-items:flex-start;margin:16px 0}.bcol{text-align:center}.bcol h3{font-size:14px;color:var(--text-muted);margin-bottom:10px;font-weight:600}.bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:240px}.bcell{aspect-ratio:1;border:2px solid var(--border-light);border-radius:8px;background:var(--bg-card);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.bcell.on{background:var(--accent-blue);border-color:var(--accent-blue)}.bcell.r{cursor:default}.bcell:focus-visible{outline:3px solid var(--accent-blue-hover);outline-offset:2px}.fb{min-height:1.5em;font-size:14px;color:var(--text-secondary);text-align:center;margin:8px 0}@media(max-width:560px){.meta-grid{grid-template-columns:1fr}.block-wrap{gap:16px}.bgrid{width:min(200px,42vw)}}
+</style>
+</head>
+<body>
+<main id="app">
+  <section id="page-welcome" class="page active">
+    <div class="shell">
+      <header><div class="logo">🧩</div><h2>简易韦氏 4 分测验研究任务</h2></header>
+      <p class="subtitle">知识 29 题 · 相似性 13 对 · 填图 21 题 · 木块 10 题 研究协议 · 私有刺激材料不随公开仓库分发</p>
+      <div class="status bad" id="materialStatus">正在检查私有刺激配置…</div>
+      <div class="inst-box">
+        <strong>流程：</strong>① 知识（开放作答）→ ② 相似性（开放作答）→ ③ 填图（每题 20 秒，超时自动提交当前输入）→ ④ 木块（4×4 网格点击拼摆；题 1–2 双尝试；题 7–10 按用时计分；连续 3 题得 0 分自动结束）。<br>
+        <strong>研究边界：</strong>本页面只提供数字研究流程壳。标准题目、图片、木块图案、答案键与正式常模不包含在公开仓库中；知识/相似性/填图为开放作答，只保存原文，需研究者在授权操作者表格上离线判分。即使加载了合法材料，网页自助施测也不自动等同标准口头施测。
+      </div>
+      <p class="research-note">本地部署可在 <code>private/stimuli.js</code> 注入 <code>window.PSY_PRIVATE_STIMULI.bwais</code>，需提供 <code>setId</code>/<code>version</code> 与 <code>knowledge</code>（29 题字符串）、<code>similarities</code>（13 个 [词A,词B] 对）、<code>picture</code>（21 个图片 URL/data URI）、<code>blocks</code>（10 个 16 长 0/1 数组，4×4 行优先）。示例结构见 <code>docs/private-stimuli.example.js</code>；<code>private/</code> 已加入 <code>.gitignore</code>。</p>
+      <footer class="actions"><button type="button" class="btn btn-primary" id="startBtn" disabled>开始研究任务</button><a class="btn btn-outline" href="../index.html" style="text-decoration:none">返回测验中心</a></footer>
+    </div>
+  </section>
+
+  <section id="page-sub" class="page">
+    <div class="shell">
+      <header><h2 id="subTitle">—</h2></header>
+      <p class="phase" id="subPhase">—</p>
+      <div class="qbox">
+        <img id="subImg" alt="" style="display:none">
+        <div class="qtext" id="subQuestion">—</div>
+      </div>
+      <p class="phase">剩余时间 <span class="countdown" id="subCountdown" style="display:none">—</span></p>
+      <p class="fb" id="subFeedback"></p>
+      <textarea id="subInput" class="sub-input" autocomplete="off" spellcheck="false"></textarea>
+      <div class="actions"><button type="button" class="btn btn-primary" id="subSubmitBtn">提交本题</button></div>
+    </div>
+  </section>
+  <section id="page-blocks" class="page">
+    <div class="shell" style="text-align:center">
+      <header><h2>木块设计</h2></header>
+      <p class="phase" id="blockPhase">—</p>
+      <p class="phase">剩余时间 <span class="countdown" id="blockCountdown">—</span></p>
+      <div class="block-wrap">
+        <div class="bcol"><h3>目标图案</h3><div id="blockTarget" class="bgrid" aria-label="目标图案"></div></div>
+        <div class="bcol"><h3>你的拼摆（点击格子切换颜色）</h3><div id="blockGrid" class="bgrid" aria-label="拼摆区域"></div></div>
+      </div>
+      <p class="fb" id="blockFeedback"></p>
+      <div class="actions"><button type="button" class="btn btn-primary" id="blockSubmitBtn">提交本项</button><button type="button" class="btn btn-outline" id="blockResetBtn">清空重来</button></div>
+    </div>
+  </section>
+
+  <section id="page-result" class="page page-result">
+    <div class="shell">
+      <h2>📊 研究任务完成</h2>
+      <div class="meta-grid">
+        <div class="meta"><b id="rk">—</b><span>知识作答数（满分 29 · 待研究判分）</span></div>
+        <div class="meta"><b id="rs">—</b><span>相似性作答数（满分 26 · 待研究判分）</span></div>
+        <div class="meta"><b id="rp">—</b><span>填图作答数（满分 21 · 待研究判分）</span></div>
+        <div class="meta"><b id="rb">—</b><span>木块自动计分（满分 48）</span></div>
+      </div>
+      <aside class="norm-ref"><strong>研究版提示：</strong><span>仅显示原始分与研究指标；未应用经验证的 MCCB 常模，不用于“正常/异常”判断或临床诊断解释。</span></aside>
+      <p class="research-note" id="resultMeta"></p>
+      <div class="actions"><button type="button" class="btn btn-primary" id="exportBtn">导出脱敏 JSON</button><a class="btn btn-outline" href="../index.html" style="text-decoration:none">返回测验中心</a></div>
+    </div>
+  </section>
+</main>
+<script>
+'use strict';
+const TEST_KEY='bwais';
+const PROTOCOL_ID='brief-wais-4subtest-private-shell-v1';
+const KNOWLEDGE_ORDER=[5,6,1,2,3,4,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29];
+const PICTURE_DEADLINE_MS=20000;
+const BLOCK_DEADLINE_MS={1:60000,2:60000,3:60000,4:60000,5:60000,6:60000,7:120000,8:120000,9:120000,10:120000};
+const cfg=(window.PSY_PRIVATE_STIMULI&&window.PSY_PRIVATE_STIMULI.bwais)||null;
+const state={phase:null,subIdx:0,subShownAt:0,answers:{knowledge:{},similarities:{},picture:{}},blockIdx:0,blockAttempt:1,grid:new Array(16).fill(0),blockShownAt:0,consecFails:0,blockItems:[],clock:null};
+const $=id=>document.getElementById(id);
+function navigate(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active')}
+function validateConfig(c){
+  if(!c||typeof c!=='object')return'未找到 private/stimuli.js 中的 bwais 配置。';
+  if(!c.setId||!c.version)return'私有配置必须声明 setId 与 version。';
+  if(!Array.isArray(c.knowledge)||c.knowledge.length!==29||c.knowledge.some(x=>typeof x!=='string'||!x.trim()))return'私有配置 knowledge 必须恰好是 29 个非空题目字符串。';
+  if(!Array.isArray(c.similarities)||c.similarities.length!==13||c.similarities.some(p=>!Array.isArray(p)||p.length!==2||!String(p[0]).trim()||!String(p[1]).trim()))return'私有配置 similarities 必须恰好是 13 个 [词A,词B] 对。';
+  if(!Array.isArray(c.picture)||c.picture.length!==21||c.picture.some(x=>typeof x!=='string'||!x.trim()))return'私有配置 picture 必须恰好是 21 个非空图片字符串（URL 或 data URI）。';
+  if(!Array.isArray(c.blocks)||c.blocks.length!==10||c.blocks.some(g=>!Array.isArray(g)||g.length!==16||g.some(v=>v!==0&&v!==1)))return'私有配置 blocks 必须恰好是 10 个 16 长的 0/1 数组（4×4 行优先）。';
+  return'';
+}
+function configFingerprint(){const text=JSON.stringify({id:cfg.setId,version:cfg.version,knowledge:cfg.knowledge,similarities:cfg.similarities,pictureCount:cfg.picture.length,blocks:cfg.blocks});let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')}
+const configError=validateConfig(cfg);
+if(configError){$('materialStatus').textContent=configError+' 公开仓库不会提供标准题目、图片、木块图案或答案键。';$('materialStatus').className='status bad';$('startBtn').disabled=true}else{$('materialStatus').textContent=`已加载私有材料：${cfg.setId} · ${cfg.version}。材料内容不会写入公开结果或 localStorage。`;$('materialStatus').className='status ok';$('startBtn').disabled=false}
+function gridsMatch(a,b){for(let i=0;i<16;i++)if(a[i]!==b[i])return false;return true}
+function scoreBlockItem(itemIdx,grid,target,elapsedMs,attempt){
+  if(!gridsMatch(grid,target))return 0;
+  if(itemIdx===1||itemIdx===2)return attempt===1?4:2;
+  if(itemIdx>=3&&itemIdx<=6)return 4;
+  if(itemIdx===7)return elapsedMs<=30000?6:elapsedMs<=40000?5:4;
+  if(itemIdx===8)return elapsedMs<=45000?6:elapsedMs<=70000?5:4;
+  return elapsedMs<=60000?6:elapsedMs<=80000?5:4;
+}
+window.__bwaisScoreBlock=scoreBlockItem;
+function subItems(){
+  if(state.phase==='knowledge')return KNOWLEDGE_ORDER.map(n=>({item:n,text:cfg.knowledge[n-1],img:null}));
+  if(state.phase==='similarities')return cfg.similarities.map((p,i)=>({item:i+1,text:'「'+String(p[0]).trim()+'」与「'+String(p[1]).trim()+'」有什么共同之处？',img:null}));
+  return cfg.picture.map((src,i)=>({item:i+1,text:'图中缺了什么？请写出你看到的缺失部分。',img:String(src)}));
+}
+function startSub(key){
+  state.phase=key;state.subIdx=0;
+  navigate('page-sub');
+  showSubItem();
+}
+function showSubItem(){
+  const items=subItems();
+  if(state.subIdx>=items.length){nextPhase();return}
+  const it=items[state.subIdx];
+  const label=state.phase==='knowledge'?'知识':state.phase==='similarities'?'相似性':'填图';
+  $('subTitle').textContent=label;
+  $('subPhase').textContent=`第 ${it.item} / ${items.length} 题`;
+  $('subQuestion').textContent=it.text;
+  $('subImg').style.display=it.img?'block':'none';
+  if(it.img)$('subImg').src=it.img;
+  $('subFeedback').textContent='';
+  $('subInput').value='';
+  state.subShownAt=Date.now();
+  if(state.clock){state.clock.cancel();state.clock=null}
+  if(state.phase==='picture'){
+    $('subCountdown').style.display='inline';
+    $('subCountdown').textContent='20 s';
+    state.clock=ExperimentRuntime.deadline(PICTURE_DEADLINE_MS,{testKey:TEST_KEY,label:`picture_item_${it.item}`,tickMs:200,onTick:({remainingMs})=>{$('subCountdown').textContent=Math.ceil(remainingMs/1000)+' s'},onDone:()=>{submitSubItem(items,it,true)}});
+  }else{
+    $('subCountdown').style.display='none';
+  }
+  $('subInput').focus();
+}
+function submitSubItem(items,it,auto){
+  if(state.clock){state.clock.cancel();state.clock=null}
+  const answer=String($('subInput').value||'').trim();
+  if(!auto&&!answer){$('subFeedback').textContent='请先输入答案（填图超时会自动提交当前输入）。';return}
+  $('subFeedback').textContent='';
+  if(state.phase==='picture'){
+    state.answers.picture[it.item]={item:it.item,answer,timeMs:Math.round(Date.now()-state.subShownAt),timedOut:!!auto};
+  }else{
+    state.answers[state.phase][it.item]=answer;
+  }
+  state.subIdx++;
+  if(state.subIdx>=items.length){nextPhase();return}
+  showSubItem();
+}
+function nextPhase(){
+  if(state.phase==='knowledge')startSub('similarities');
+  else if(state.phase==='similarities')startSub('picture');
+  else startBlocks();
+}
+function renderGrid(el,arr,interactive){
+  el.innerHTML='';
+  arr.forEach((v,i)=>{
+    const d=document.createElement('div');
+    d.className='bcell'+(v?' on':'')+(interactive?'':' r');
+    if(interactive){
+      d.setAttribute('role','button');d.setAttribute('tabindex','0');d.setAttribute('aria-pressed',v?'true':'false');
+      d.setAttribute('aria-label',(interactive?'拼摆格子 ':'目标格子 ')+(i+1));
+      d.addEventListener('click',()=>toggleCell(i));
+      d.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleCell(i)}});
+    }
+    el.appendChild(d);
+  });
+}
+function toggleCell(i){
+  state.grid[i]=state.grid[i]?0:1;
+  const cells=$('blockGrid').children;
+  cells[i].classList.toggle('on',!!state.grid[i]);
+  cells[i].setAttribute('aria-pressed',state.grid[i]?'true':'false');
+  $('blockFeedback').textContent='';
+}
+function startBlocks(){
+  state.blockIdx=0;state.blockAttempt=1;state.consecFails=0;state.blockItems=[];
+  navigate('page-blocks');
+  showBlockItem();
+}
+function showBlockItem(){
+  if(state.blockIdx>=10||state.consecFails>=3){finish();return}
+  const itemNo=state.blockIdx+1;
+  const target=cfg.blocks[state.blockIdx];
+  $('blockPhase').textContent=`第 ${itemNo} / 10 项 · 第 ${state.blockAttempt} 次尝试${itemNo<=2?'（题 1–2 双尝试）':''}`;
+  state.grid=new Array(16).fill(0);
+  renderGrid($('blockTarget'),target,false);
+  renderGrid($('blockGrid'),state.grid,true);
+  $('blockFeedback').textContent=itemNo>=7?'本题按完成用时计分：越快得分越高。':'拼出与左侧完全一致的图案即可得分。';
+  $('blockCountdown').textContent='—';
+  if(state.clock){state.clock.cancel();state.clock=null}
+  state.blockShownAt=Date.now();
+  state.clock=ExperimentRuntime.deadline(BLOCK_DEADLINE_MS[itemNo],{testKey:TEST_KEY,label:`block_item_${itemNo}_attempt_${state.blockAttempt}`,tickMs:250,onTick:({remainingMs})=>{$('blockCountdown').textContent=Math.ceil(remainingMs/1000)+' s'},onDone:()=>endBlockAttempt(itemNo,target)});
+}
+function submitBlock(){
+  if(!state.clock)return;
+  const itemNo=state.blockIdx+1;
+  if(gridsMatch(state.grid,cfg.blocks[state.blockIdx]))endBlockAttempt(itemNo,cfg.blocks[state.blockIdx]);
+  else $('blockFeedback').textContent='尚未正确。可继续调整，或等待本项时间结束。';
+}
+function resetBlock(){
+  if(!state.clock)return;
+  state.grid=new Array(16).fill(0);
+  renderGrid($('blockGrid'),state.grid,true);
+  $('blockFeedback').textContent='';
+}
+function endBlockAttempt(itemNo,target){
+  if(state.clock){state.clock.cancel();state.clock=null}
+  const elapsedMs=Math.round(Date.now()-state.blockShownAt);
+  const score=scoreBlockItem(itemNo,state.grid,target,elapsedMs,state.blockAttempt);
+  if(itemNo<=2&&score===0&&state.blockAttempt===1){
+    state.blockAttempt=2;
+    showBlockItem();
+    return;
+  }
+  state.blockItems.push({item:itemNo,score,timeMs:elapsedMs,attempts:state.blockAttempt});
+  if(score===0)state.consecFails++;else state.consecFails=0;
+  state.blockAttempt=1;
+  state.blockIdx++;
+  showBlockItem();
+}
+function finish(){
+  if(state.clock){state.clock.cancel();state.clock=null}
+  const sum=state.blockItems.reduce((a,b)=>a+b.score,0);
+  const data={
+    test:'简易韦氏 4 分测验研究协议',
+    protocol:PROTOCOL_ID,
+    date:new Date().toISOString(),
+    materialSet:{id:cfg.setId,version:cfg.version,fingerprint:configFingerprint()},
+    knowledge:{rawScore:null,maxScore:29,administered:Object.keys(state.answers.knowledge).length,answers:state.answers.knowledge},
+    similarities:{rawScore:null,maxScore:26,administered:Object.keys(state.answers.similarities).length,answers:state.answers.similarities},
+    pictureCompletion:{rawScore:null,maxScore:21,administered:Object.keys(state.answers.picture).length,answers:state.answers.picture},
+    blockDesign:{rawScore:sum,maxScore:48,administered:state.blockItems.length,items:state.blockItems},
+    reviewStatus:'unreviewed',
+    scoringNote:'知识/相似性/填图为开放作答，原文已保存；须由研究者依据授权操作者表格离线判分（官方施测路由/终止规则在判分时应用）。木块设计由私有图案自动计分并按题限时；旋转容差不实现。'
+  };
+  ParticipantManager.saveResult(TEST_KEY,data);
+  $('rk').textContent=data.knowledge.administered+' / 29';
+  $('rs').textContent=data.similarities.administered+' / 13';
+  $('rp').textContent=data.pictureCompletion.administered+' / 21';
+  $('rb').textContent=sum+' / 48';
+  $('resultMeta').textContent=`私有材料 ${cfg.setId} · ${cfg.version} · fingerprint ${data.materialSet.fingerprint}。开放作答待研究判分（reviewStatus: unreviewed）；木块已自动计分。`;
+  window.__bwaisResult=data;
+  navigate('page-result');
+}
+function exportResult(){
+  if(!window.__bwaisResult)return;
+  const blob=new Blob([JSON.stringify(window.__bwaisResult,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`bwais-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+}
+$('startBtn').addEventListener('click',()=>{
+  if(configError)return;
+  ParticipantManager.initFromUrl();
+  if(!ParticipantManager.getCurrent()){alert('请先从测验中心选择/创建被试编号。');return}
+  ParticipantManager.markInProgress(TEST_KEY);
+  state.phase=null;state.subIdx=0;state.answers={knowledge:{},similarities:{},picture:{}};
+  state.blockIdx=0;state.blockAttempt=1;state.grid=new Array(16).fill(0);state.consecFails=0;state.blockItems=[];state.clock=null;
+  startSub('knowledge');
+});
+$('subSubmitBtn').addEventListener('click',()=>{
+  const items=subItems();
+  const it=items[state.subIdx];
+  if(it)submitSubItem(items,it,false);
+});
+$('blockSubmitBtn').addEventListener('click',submitBlock);
+$('blockResetBtn').addEventListener('click',resetBlock);
+$('exportBtn').addEventListener('click',exportResult);
+window.addEventListener('beforeunload',e=>{if(ExperimentRuntime.getActiveTestKeys().includes(TEST_KEY)){e.preventDefault();e.returnValue='研究任务正在进行中，确定离开吗？'}});
+</script>
+</body>
+</html>

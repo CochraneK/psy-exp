@@ -28,7 +28,7 @@
 - `participant-runner.html` — **Participant Runner**：固定 USER mode 的参与者施测入口、任务进度、下一任务与设备/软件预检。
 - `research-report.html` — 单参与者 raw metrics + QC + protocol-compatible research rank。
 - `research-comparison.html` — 多参与者、按 reference group 隔离的研究对比与 CSV 导出。
-- `pages/` — 10 个具体研究任务。
+- `pages/` — 11 个具体研究任务（其中 10 项为 MCCB-related 认知任务，1 项为独立补充电池）。
 
 Researcher Console / 报告使用 `research-ui.css` 的长页面应用 shell；实验任务继续使用 `mccb-common.css` 的全屏任务 shell。两者故意分离，避免管理/报告页面被实验页的 `100vh + overflow:hidden` 布局截断。
 

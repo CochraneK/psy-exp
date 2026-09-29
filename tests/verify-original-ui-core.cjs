@@ -10,7 +10,7 @@ check('public homepage avoids standardization overclaim',!index.includes('标准
 check('root viewport allows browser zoom',!index.includes('user-scalable=no')&&!index.includes('maximum-scale=1'));
 check('original visual shell preserved',index.includes('class="header"')&&index.includes('class="dashboard" id="dashboard"')&&index.includes('id="modeToggle"')&&index.includes('#wm-toggle'));
 check('seven original domain sections preserved',(index.match(/class="domain-section"/g)||[]).length===7);
-check('ten original task cards preserved',(index.match(/class="test-card"/g)||[]).length===10);
+check('eleven original task cards preserved',(index.match(/class="test-card"/g)||[]).length===11);
 check('original homepage remains independent from research-ui.css',!index.includes('research-ui.css'));
 check('runtime bootstraps modern core only on original homepage',runtime.includes('bootstrapOriginalHomepageModernCore')&&runtime.includes('isOriginalHomepage'));
 for(const file of ['research-storage.js','research-data.js','research-governance.js','mccb-scoring.js','research-session.js','original-ui-controller.js'])check(`runtime loads ${file}`,runtime.includes(`'${file}'`));

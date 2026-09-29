@@ -15,7 +15,7 @@
   </header>
 
   <section aria-label="施测进度">
-    <div class="runner-progress-meta"><span>完成进度</span><strong id="progressText">0 / 10</strong></div>
+    <div class="runner-progress-meta"><span>完成进度</span><strong id="progressText">0 / 11</strong></div>
     <div class="runner-progressbar"><span id="progressBar" style="width:0%"></span></div>
   </section>
 
@@ -60,7 +60,8 @@ const META={
  hvlt:{desc:'词语学习任务；需要授权材料。'},
  bvmt:{desc:'视觉图形学习任务。'},
  mazes:{desc:'迷宫规划任务。'},
- msceit:{desc:'情绪管理任务；需要授权材料。'}
+ msceit:{desc:'情绪管理任务；需要授权材料。'},
+ bwais:{desc:'知识/相似/填图/积木 4 分测验；需要授权材料。'}
 };
 let activeParticipant='',activeResearchSession=null;
 function statusClass(s){return ['completed','completed_invalid','in_progress','aborted','interrupted','timing_violation','technical_failure'].includes(s)?s:'not_started'}

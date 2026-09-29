@@ -9,7 +9,7 @@
 
   function isOriginalHomepage(){
     if(!root.document)return false;
-    return !!root.document.getElementById('dashboard')&&!!root.document.getElementById('participantBar')&&root.document.querySelectorAll('.test-card').length===10;
+    return !!root.document.getElementById('dashboard')&&!!root.document.getElementById('participantBar')&&root.document.querySelectorAll('.test-card').length===11;
   }
   function installOriginalUiPolish(){
     if(!isOriginalHomepage())return false;
