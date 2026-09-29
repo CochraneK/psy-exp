@@ -229,7 +229,7 @@ html, body {
 .word-list .wl-item .remove-btn:hover { color: var(--color-danger); }
 
 /* === 结果页 === */
-#page-result { flex-direction: column; gap: 1.7500rem; text-align: center; padding: 2.5000rem 1.5000rem; }
+#page-result, .page-result { flex-direction: column; gap: 1.7500rem; text-align: center; padding: 2.5000rem 1.5000rem; }
 .result-grid {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 1.2500rem; width: 31.2500rem; max-width: 90vw;
@@ -348,7 +348,7 @@ body.wide-mode #page-welcome .logo { width: 6.5rem; height: 6.5rem; font-size: 3
 body.wide-mode #page-welcome h1 { font-size: 2.25rem; }
 body.wide-mode #page-welcome .subtitle,
 body.wide-mode #page-welcome .inst-box { max-width: 60rem; font-size: 1rem; }
-body.wide-mode #page-result { font-size: 110%; }
+body.wide-mode #page-result, body.wide-mode .page-result { font-size: 110%; }
 body.wide-mode .result-grid { width: 55rem; max-width: 92vw; gap: 1.5rem; }
 body.wide-mode .overlay-modal { max-width: 55rem; }
 
@@ -358,12 +358,12 @@ body.wide-mode canvas { max-width: none; }
 /* === 响应式 === */
 @media (max-width: 48rem) {
   #overlay .modal { padding: 1.7500rem 1.5000rem; }
-  #page-welcome, #page-instr, #page-result { padding-left: 1.2500rem; padding-right: 1.2500rem; }
+  #page-welcome, #page-instr, #page-result, .page-result { padding-left: 1.2500rem; padding-right: 1.2500rem; }
   #welcome .shell { padding-left: 1.2500rem; padding-right: 1.2500rem; }
 }
 @media (max-width: 30rem) {
   #overlay .modal { padding: 1.5000rem 1rem; }
-  #page-welcome, #page-instr, #page-result { padding-left: 1rem; padding-right: 1rem; }
+  #page-welcome, #page-instr, #page-result, .page-result { padding-left: 1rem; padding-right: 1rem; }
   #welcome .shell { padding-left: 1rem; padding-right: 1rem; }
   .result-grid, .results-grid { gap: 0.8750rem; }
 }
