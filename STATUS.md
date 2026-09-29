@@ -16,7 +16,7 @@ The repository is engineering-mature enough to run its browser research workflow
 - protocol/material/version-compatible research ranking;
 - guarded Fluency semantic review;
 - raw/report/comparison/export research surfaces;
-- automated static, UI/accessibility, browser-smoke, protocol, privacy/material and scoring regression checks.
+- automated static, UI/accessibility, desktop browser-smoke, mobile layout (390x844), protocol, privacy/material and scoring regression checks.
 
 ## Current limitations / external gates
 

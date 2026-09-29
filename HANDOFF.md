@@ -10,7 +10,7 @@ Keep `psy-exp` usable as a browser-native cognitive research prototype while pre
 - Ten browser tasks are registered through `task-manifest.json`.
 - Session QC, attempt history, protocol/material compatibility, and research-safe cohort ranking are implemented.
 - Protected/private task material is injected locally rather than distributed in the public repository.
-- CI includes static contracts, UI/accessibility checks, Chromium smoke, protected-material guards, protocol/data-model guards, and anti-pseudo-standardization checks.
+- CI includes static contracts, UI/accessibility checks, desktop Chromium smoke, mobile layout (390x844) smoke, protected-material guards, protocol/data-model guards, and anti-pseudo-standardization checks.
 - Public documentation explicitly distinguishes research workflow support from validated MCCB equivalence.
 
 ## Current non-code gates
@@ -36,6 +36,7 @@ The repository must **not** treat these as solved by engineering alone:
 node tests/full-battery.cjs
 node tests/verify-ui.cjs
 node tests/browser-smoke.cjs
+node tests/mobile-smoke.cjs
 ```
 
 ## Canonical files
