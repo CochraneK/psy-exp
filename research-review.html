@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>psy-exp 开放题研究审查</title>
+<link rel="stylesheet" href="mccb-common.css">
+<style>
+body{margin:0;background:var(--bg-page,#f0f2f5);min-height:100vh}#app{max-width:1200px;margin:0 auto;padding:24px}.header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--bg-card,#fff);border-radius:12px;padding:16px 24px;box-shadow:var(--shadow-sm);margin-bottom:24px}.header h1{margin:0;font-size:22px;color:var(--text-primary,#1a1a2e);flex:1}.header h1 small{font-size:14px;font-weight:400;color:#94a3b8;margin-left:8px}.header select{padding:8px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:15px;background:#fff;color:#1e293b;min-width:200px}.header .actions{display:flex;gap:8px}.btn{padding:8px 18px;border:none;border-radius:8px;font-size:14px;cursor:pointer}.btn-primary{background:#3b82f6;color:#fff}.btn-outline{background:transparent;color:#334155;border:2px solid #e2e8f0}.btn-success{background:#16a34a;color:#fff}.btn-danger{background:#dc2626;color:#fff}.norm-badge{font-size:12px;color:#64748b;background:#fef3c7;border:1px solid #e2e8f0;border-radius:999px;padding:3px 10px}.pending-bar{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 16px;margin-bottom:20px;color:#92400e;font-size:14px}.empty-state{text-align:center;padding:80px 24px;color:#94a3b8}.empty-state .icon{font-size:64px;margin-bottom:16px}.subject-card{background:#fff;border-radius:12px;padding:20px 24px;box-shadow:var(--shadow-sm);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.info{display:flex;gap:24px;flex-wrap:wrap}.info-item{text-align:center}.info-item .value{font-size:24px;font-weight:700;color:#1e293b}.info-item .label{font-size:13px;color:#94a3b8;margin-top:2px}.review-panel{background:#fff;border-radius:12px;padding:20px 24px;box-shadow:var(--shadow-sm);margin-bottom:20px;border-top:4px solid #e2e8f0}.review-panel.unreviewed{border-top-color:#d97706}.review-panel.verified{border-top-color:#16a34a}.review-panel.rejected{border-top-color:#dc2626}.review-panel.missing{border-top-color:#cbd5e1}.review-panel.qc-invalid{border-top-color:#6366f1}.panel-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.panel-head h2{margin:0;font-size:18px;color:#1e293b;flex:1}.status-badge{font-size:12px;font-weight:600;border-radius:999px;padding:4px 12px}.status-badge.unreviewed{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}.status-badge.verified{background:#dcfce7;color:#166534;border:1px solid #86efac}.status-badge.rejected{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}.status-badge.missing{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}.status-badge.qc-invalid{background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}.stat-chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.chip{font-size:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:999px;padding:3px 10px;color:#334155;font-family:var(--font-mono,monospace)}.score-rows{margin-top:14px}.score-row{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:center;margin:8px 0;font-size:14px;color:#334155}.score-row input{width:100px;padding:8px 10px;border:2px solid #e2e8f0;border-radius:8px;font-size:15px;font-family:var(--font-mono,monospace);color:#1e293b}.score-row input:focus{outline:none;border-color:#3b82f6}.total-preview{font-size:14px;color:#1e293b;margin-top:10px}.total-preview b{font-family:var(--font-mono,monospace);font-size:18px}.answers{margin:14px 0}.answers details{border:1px solid #e2e8f0;border-radius:8px;margin:8px 0;background:#f8fafc}.answers summary{cursor:pointer;padding:10px 14px;font-size:14px;font-weight:600;color:#334155;list-style:none}.answers summary::before{content:'▸ '}.answers details[open] summary::before{content:'▾ '}.answer-list{max-height:260px;overflow:auto;padding:8px 14px 12px}.answer-line{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:5px 0;border-bottom:1px dashed #e2e8f0;font-size:13px;line-height:1.6}.answer-line .no{color:#94a3b8;font-family:var(--font-mono,monospace)}.answer-line .txt{color:#1e293b;white-space:pre-wrap;word-break:break-word}.answer-line .meta{color:#94a3b8;font-size:11px;font-family:var(--font-mono,monospace)}.blocks-table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}.blocks-table th,.blocks-table td{border:1px solid #e2e8f0;padding:5px 10px;text-align:left;font-family:var(--font-mono,monospace);color:#334155}.review-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}.reviewer-input{padding:8px 12px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px;min-width:180px;color:#1e293b}.gate-note{font-size:13px;color:#64748b;background:#f8fafc;border-left:3px solid #cbd5e1;padding:8px 12px;border-radius:0 8px 8px 0;margin-top:12px;line-height:1.6}.guard-note{font-size:12px;color:#94a3b8;line-height:1.6;margin-top:4px}
+</style>
+<link rel="stylesheet" href="research-color-system.css?v=1.0.0">
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>🔍 psy-exp 开放题研究审查 <small id="reviewCount"></small></h1>
+    <div class="norm-badge" id="normBadge">开放作答判分 · 非临床常模</div>
+    <select id="participantSelect" aria-label="选择被试"><option value="">— 选择被试 —</option></select>
+    <div class="actions">
+      <button class="btn-outline" id="refreshBtn">🔄 刷新</button>
+      <button class="btn btn-primary" onclick="location.href='research-report.html'">📊 研究报告</button>
+      <button class="btn-outline" onclick="location.href='index.html'">🏠 首页</button>
+    </div>
+  </div>
+  <div class="pending-bar" id="pendingBar">正在统计待审查队列…</div>
+  <div class="empty-state" id="emptyState"><div class="icon">📋</div><h2>暂无可审查结果</h2><p>请先让被试在首页完成「语义流畅研究任务」或「简易韦氏 4 分测验研究协议」。</p></div>
+  <div id="reviewArea" hidden>
+    <div class="subject-card"><div class="info" id="subjectInfo"></div><div class="info" id="subjectStats"></div></div>
+    <div class="review-panel missing" id="fluPanel"></div>
+    <div class="review-panel missing" id="bwPanel"></div>
+    <p class="guard-note">审查仅记录研究判分与审查人元数据（状态 / 时间 / 审查人 / 分数）；结果仍为原始分与研究指标（非 MCCB T 分 / 临床百分位 / 诊断结论）。</p>
+  </div>
+</div>
+<script src="mccb-participant.js"></script>
+<script src="mccb-scoring.js"></script>
+<script>
+'use strict';
+const FLU_KEY='mccb-fluency-result',BW_KEY='mccb-bwais-result',BW_MAX={knowledge:29,similarities:26,pictureCompletion:21};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=v=>{if(v==null||v==='')return'—';const x=Number(v);return Number.isFinite(x)?(Number.isInteger(x)?String(x):x.toFixed(1)):String(v)};
+let bundle=null;
+function reviewerName(){try{return localStorage.getItem('mccb-reviewer-name')||''}catch(e){return ''}}
+function saveReviewer(v){try{if(v)localStorage.setItem('mccb-reviewer-name',String(v).slice(0,80))}catch(e){}}
+function badge(status){const map={verified:'已核验',rejected:'已驳回',unreviewed:'待审查',missing:'无结果','qc-invalid':'QC 无效'};return `<span class="status-badge ${status}">${map[status]||status}</span>`}
+function qcOf(src){const s=src&&src._meta&&src._meta.sessionQc&&src._meta.sessionQc.status;return s||'unverified'}
+function gateNote(t){if(!t)return'<div class="gate-note">该测验暂无评分画像。</div>';if(t.qcStatus!=='valid')return`<div class="gate-note">会话 QC：<b>${esc(t.qcStatus)}</b> — 不进入研究评分。</div>`;if(t.eligibleForResearchScoring===true)return'<div class="gate-note">研究评分：<b style="color:#166534">eligible</b>（QC valid + 已审查）。</div>';const reason=t.ineligibilityReason==='semantic_review_required'?'语义核验未通过':t.ineligibilityReason==='open_item_review_required'?'开放题判分未完成':esc(t.ineligibilityReason||'');return`<div class="gate-note">研究评分：<b style="color:#9a3412">ineligible</b> — ${reason}。</div>`}
+function scoreRow(label,inputId,max,raw){const pre=(raw!=null&&Number.isFinite(Number(raw)))?String(raw):'';return `<div class="score-row"><label for="${inputId}">${label}</label><input id="${inputId}" type="number" inputmode="numeric" min="0" max="${max}" step="1" value="${esc(pre)}" aria-label="${label}分数"><span class="chip">0 – ${max}</span></div>`}
+function answerBlock(title,answers,isPicture){
+  const map=answers&&typeof answers==='object'?answers:{};
+  const keys=Object.keys(map).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  let inner='<div class="answer-list">';
+  if(!keys.length)inner+='<div class="answer-line"><span class="no">—</span><span class="txt" style="color:#94a3b8">未记录作答</span></div>';
+  for(const k of keys){
+    const v=map[String(k)];
+    if(isPicture&&v&&typeof v==='object'){
+      inner+=`<div class="answer-line"><span class="no">#${k}</span><span><span class="txt">${esc(v.answer)}</span> <span class="meta">${v.timeMs!=null?(Math.round(v.timeMs/100)/10).toFixed(1)+' s':''}${v.timedOut?' · 超时':''}</span></span></div>`;
+    }else{
+      inner+=`<div class="answer-line"><span class="no">#${k}</span><span class="txt">${esc(v)}</span></div>`;
+    }
+  }
+  inner+='</div>';
+  return `<details${keys.length?'':' open'}><summary>${title}</summary>${inner}</details>`;
+}
+function readScore(inputId,max){const el=$(inputId);if(!el)return null;const raw=String(el.value||'').trim();if(raw==='')return null;const v=Number(raw);if(!Number.isFinite(v)||v<0||v>max)return null;return v}
+function updateBwTotal(blocksRaw){
+  const out=$('bwTotalPreview');if(!out)return;
+  const k=readScore('bwKnowledge',BW_MAX.knowledge),s=readScore('bwSimilarities',BW_MAX.similarities),p=readScore('bwPicture',BW_MAX.pictureCompletion);
+  const b=blocksRaw!=null?Number(blocksRaw):NaN;
+  out.textContent=(k!=null&&s!=null&&p!=null&&Number.isFinite(b))?String(k+s+p+b):'—（需三项开放题分数完整）';
+}
+function doFluReview(id,status){
+  const input=$('fluReviewer');const reviewer=input?String(input.value||'').trim():'';
+  saveReviewer(reviewer);
+  if(ParticipantManager.reviewFluency(status,reviewer||'local-researcher')){alert('语义流畅审查完成：'+(status==='verified'?'已核验':'已驳回')+'。');load()}else{alert('操作失败：请确认该被试存在 canonical 语义流畅结果。')}
+}
+function doBwReview(id,status,blocksRaw){
+  const input=$('bwReviewer');const reviewer=input?String(input.value||'').trim():'';
+  const k=readScore('bwKnowledge',BW_MAX.knowledge),s=readScore('bwSimilarities',BW_MAX.similarities),p=readScore('bwPicture',BW_MAX.pictureCompletion);
+  if(status==='verified'){
+    if(k==null||s==null||p==null){alert('请填写三项开放题的整数分数且不超过满分（知识 0–29、相似性 0–26、填图 0–21）。');return}
+    if(!Number.isFinite(Number(blocksRaw))){alert('木块设计缺少自动分，无法标记判分完成。');return}
+  }
+  saveReviewer(reviewer);
+  const scores=status==='verified'?{knowledge:k,similarities:s,pictureCompletion:p}:null;
+  if(ParticipantManager.reviewBwais(scores,status,reviewer||'local-researcher')){alert('简易韦氏开放题审查完成：'+(status==='verified'?'判分通过 (verified)':'已驳回')+'。');load()}else{alert('操作失败：请确认该被试存在 canonical 简易韦氏结果。')}
+}
+function renderFluency(id,data,profile){
+  const panel=$('fluPanel');
+  const r=data.results[FLU_KEY],inv=data.invalidResults[FLU_KEY],t=profile.tests.fluency||null;
+  const status=r?(r.reviewStatus||'unreviewed'):(inv?'qc-invalid':'missing');
+  panel.className='review-panel '+status;
+  let html=`<div class="panel-head"><h2>🗣 语义流畅（动物类别 · 键入自测）${badge(status)}</h2></div>`;
+  if(!r&&!inv){panel.innerHTML=html+'<div class="gate-note">该被试没有语义流畅结果。</div>';return}
+  const src=r||inv;
+  if(!r)html+=`<div class="gate-note">该结果 QC 状态为 <b>${esc(qcOf(src))}</b>，未进入 canonical 结果，此处仅展示、不能审查。</div>`;
+  html+='<div class="stat-chips"><span class="chip">total '+fmt(src.total)+'</span><span class="chip">unique '+fmt(src.unique)+'</span><span class="chip">duplicates '+fmt(src.duplicates)+'</span><span class="chip">'+(src.durationMs!=null?Math.round(src.durationMs/100)/10+' s':'— 时长')+'</span></div>';
+  if(Array.isArray(src.entries)&&src.entries.length)html+='<div class="stat-chips">'+src.entries.map(e=>'<span class="chip">'+esc(e)+'</span>').join('')+'</div>';
+  html+=gateNote(t);
+  if(r)html+='<div class="review-actions"><input class="reviewer-input" id="fluReviewer" placeholder="审查人（默认 local-researcher）" value="'+esc(reviewerName())+'" aria-label="审查人"><button class="btn btn-success" id="fluVerifyBtn">✓ 语义核验通过</button><button class="btn btn-danger" id="fluRejectBtn">✗ 驳回</button></div>';
+  panel.innerHTML=html;
+  if(r){$('fluVerifyBtn').onclick=()=>doFluReview(id,'verified');$('fluRejectBtn').onclick=()=>doFluReview(id,'rejected')}
+}
+function renderBwais(id,data,profile){
+  const panel=$('bwPanel');
+  const r=data.results[BW_KEY],inv=data.invalidResults[BW_KEY],t=profile.tests.bwais||null;
+  const status=r?(r.reviewStatus||'unreviewed'):(inv?'qc-invalid':'missing');
+  panel.className='review-panel '+status;
+  let html=`<div class="panel-head"><h2>🧩 简易韦氏 4 分测验（开放题判分）${badge(status)}</h2></div>`;
+  if(!r&&!inv){panel.innerHTML=html+'<div class="gate-note">该被试没有简易韦氏结果。</div>';return}
+  const src=r||inv,ms=src.materialSet||{};
+  if(ms.id)html+='<div class="stat-chips"><span class="chip">材料 '+esc(ms.id)+' · '+esc(ms.version||'?')+'</span><span class="chip">fingerprint '+esc(ms.fingerprint||'—')+'</span></div>';
+  if(!r)html+=`<div class="gate-note">该结果 QC 状态为 <b>${esc(qcOf(src))}</b>，未进入 canonical 结果，此处仅展示、不能审查。</div>`;
+  const bd=src.blockDesign||{};
+  html+='<h3 style="font-size:14px;color:#334155;margin:14px 0 6px">木块设计（自动计分 · 只读）</h3>';
+  html+='<div class="stat-chips"><span class="chip">score '+fmt(bd.rawScore)+' / '+fmt(bd.maxScore!=null?bd.maxScore:48)+'</span><span class="chip">items '+fmt(bd.administered)+'</span></div>';
+  if(Array.isArray(bd.items)&&bd.items.length){
+    html+='<div style="overflow-x:auto"><table class="blocks-table"><thead><tr><th>item</th><th>score</th><th>time (s)</th><th>attempts</th></tr></thead><tbody>';
+    for(const it of bd.items)html+='<tr><td>'+esc(it.item)+'</td><td>'+fmt(it.score)+'</td><td>'+fmt(it.timeMs!=null?Math.round(it.timeMs/100)/10:null)+'</td><td>'+fmt(it.attempts)+'</td></tr>';
+    html+='</tbody></table></div>';
+  }
+  html+='<div class="answers">';
+  html+=answerBlock('知识作答（'+((src.knowledge&&src.knowledge.administered!=null)?src.knowledge.administered:0)+' 题 · 每题 1 分 · 满分 29）',(src.knowledge||{}).answers,false);
+  html+=answerBlock('相似性作答（'+((src.similarities&&src.similarities.administered!=null)?src.similarities.administered:0)+' 对 · 满分 26）',(src.similarities||{}).answers,false);
+  html+=answerBlock('填图作答（'+((src.pictureCompletion&&src.pictureCompletion.administered!=null)?src.pictureCompletion.administered:0)+' 题 · 满分 21）',(src.pictureCompletion||{}).answers,true);
+  html+='</div>';
+  html+=gateNote(t);
+  if(r){
+    html+='<div class="score-rows">'+scoreRow('知识','bwKnowledge',BW_MAX.knowledge,(r.knowledge||{}).rawScore)+scoreRow('相似性','bwSimilarities',BW_MAX.similarities,(r.similarities||{}).rawScore)+scoreRow('填图','bwPicture',BW_MAX.pictureCompletion,(r.pictureCompletion||{}).rawScore)+'</div>';
+    html+='<div class="total-preview">判分总分预览（知识 + 相似性 + 填图 + 木块 '+fmt(bd.rawScore)+'）：<b id="bwTotalPreview">—</b> / 124</div>';
+    html+='<div class="review-actions"><input class="reviewer-input" id="bwReviewer" placeholder="审查人（默认 local-researcher）" value="'+esc(reviewerName())+'" aria-label="审查人"><button class="btn btn-success" id="bwVerifyBtn">✓ 判分通过（verified）</button><button class="btn btn-danger" id="bwRejectBtn">✗ 驳回</button></div>';
+  }
+  panel.innerHTML=html;
+  if(r){
+    const upd=()=>updateBwTotal(bd.rawScore);
+    ['bwKnowledge','bwSimilarities','bwPicture'].forEach(k=>$(k).addEventListener('input',upd));
+    $('bwVerifyBtn').onclick=()=>doBwReview(id,'verified',bd.rawScore);
+    $('bwRejectBtn').onclick=()=>doBwReview(id,'rejected',bd.rawScore);
+    upd();
+  }
+}
+function render(){
+  const currentId=$('participantSelect').value;
+  const profile=currentId?MCCBScoring.getProfile(currentId):null;
+  $('emptyState').style.display=profile?'none':'block';
+  $('reviewArea').hidden=!profile;
+  if(!profile)return;
+  const data=ParticipantManager.getData(currentId);
+  const q=profile.qcSummary||{};
+  $('subjectInfo').innerHTML=`<div class="info-item"><div class="value">${esc(currentId)}</div><div class="label">被试编号</div></div><div class="info-item"><div class="value">${Object.keys(profile.tests).length}/11</div><div class="label">已有结果</div></div>`;
+  $('subjectStats').innerHTML=`<div class="info-item"><div class="value">${q.valid||0}</div><div class="label">QC valid</div></div>`;
+  renderFluency(currentId,data,profile);
+  renderBwais(currentId,data,profile);
+}
+function load(){
+  bundle=MCCBScoring.getAllProfiles();
+  const s=$('participantSelect'),wanted=new URLSearchParams(location.search).get('p')||s.value;
+  s.innerHTML='<option value="">— 选择被试 —</option>';
+  for(const p of bundle.profiles){const o=document.createElement('option');o.value=p.id;o.textContent=`${p.id} · ${Object.keys(p.tests).length}/11`;s.appendChild(o)}
+  if(wanted&&bundle.profiles.some(p=>p.id===wanted))s.value=wanted;else if(bundle.profiles.length===1)s.value=bundle.profiles[0].id;
+  let flu=0,bw=0;
+  for(const id of ParticipantManager.getAllParticipants()){const d=ParticipantManager.getData(id);if(!d)continue;const f=d.results[FLU_KEY],b=d.results[BW_KEY];if(f&&f.reviewStatus==='unreviewed')flu++;if(b&&b.reviewStatus==='unreviewed')bw++}
+  $('pendingBar').textContent=`待审查（canonical 结果 · unreviewed）：语义流畅 ${flu} 人 · 简易韦氏开放题 ${bw} 人`+(flu||bw?'':' — 队列已清空');
+  $('reviewCount').textContent=`(${bundle.profiles.length} 人)`;
+  render();
+}
+$('participantSelect').addEventListener('change',render);
+$('refreshBtn').onclick=load;
+document.addEventListener('DOMContentLoaded',load);
+</script>
+</body>
+</html>

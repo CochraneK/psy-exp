@@ -33,6 +33,7 @@ jobs:
           node --check demo-data.js
           node --check server/research-backend.cjs
           node --check tests/verify-scoring.cjs
+          node --check tests/verify-review.cjs
           node --check tests/verify-participant.cjs
           node --check tests/verify-research-data.cjs
           node --check tests/verify-storage.cjs
@@ -75,6 +76,7 @@ jobs:
           test -f data-governance.html
           test -f research-report.html
           test -f research-comparison.html
+          test -f research-review.html
           test -f server/research-backend.cjs
           test -f task-manifest.json
           test -f protocol-lock.json
@@ -124,6 +126,8 @@ jobs:
           grep -q "research-ui.css?v=6.0.0" participant-runner.html
           grep -q "psy-exp 综合认知研究报告" research-report.html
           grep -q "psy-exp 多被试研究对比" research-comparison.html
+          grep -q "psy-exp 开放题研究审查" research-review.html
+          grep -q "非 MCCB T 分" research-review.html
           grep -q "MIN_REFERENCE_N=5" research-report.html
           grep -q "MIN_REFERENCE_N=5" research-comparison.html
           grep -q "非 MCCB T 分" research-report.html

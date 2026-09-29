@@ -18,6 +18,7 @@ const files = [
   'data-governance.html',
   'research-report.html',
   'research-comparison.html',
+  'research-review.html',
   'comprehensive-report.html',
   'comparison-report.html',
   'pages/mccb-tmt.html',

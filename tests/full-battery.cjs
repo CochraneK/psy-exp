@@ -15,6 +15,7 @@ const checks=[
   ['consent/import governance','tests/verify-governance.cjs'],
   ['authenticated reference backend','tests/verify-backend.cjs'],
   ['research scoring','tests/verify-scoring.cjs'],
+  ['open-item review contract','tests/verify-review.cjs'],
   ['synthetic demo dataset','tests/verify-demo-data.cjs'],
   ['task manifest/material policy','tests/verify-manifest.cjs'],
   ['protocol freeze/version governance','tests/verify-protocol-lock.cjs'],
