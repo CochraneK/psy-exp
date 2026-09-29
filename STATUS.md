@@ -14,7 +14,7 @@ The repository is engineering-mature enough to run its browser research workflow
 - task/runtime/protocol/material metadata;
 - session QC and attempt history;
 - protocol/material/version-compatible research ranking;
-- guarded Fluency semantic review;
+- guarded Fluency semantic review plus a BWAIS open-item review console (`research-review.html`, backed by `reviewFluency`/`reviewBwais` primitives);
 - raw/report/comparison/export research surfaces;
 - automated static, UI/accessibility, desktop browser-smoke, mobile layout (390x844), protocol, privacy/material and scoring regression checks.
 

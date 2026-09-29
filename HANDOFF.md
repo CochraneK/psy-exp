@@ -9,6 +9,7 @@ Keep `psy-exp` usable as a browser-native cognitive research prototype while pre
 - Researcher Console and Participant Runner are separate surfaces.
 - Eleven browser tasks are registered through `task-manifest.json` (10 MCCB-related + 1 independent supplementary battery, the Brief WAIS / 简易韦氏 4-subtest private shell).
 - Session QC, attempt history, protocol/material compatibility, and research-safe cohort ranking are implemented.
+- Open-item review is a first-class workflow: `research-review.html` (researcher console) + `reviewFluency`/`reviewBwais` primitives in `mccb-participant.js`; contract-tested by `tests/verify-review.cjs` (one of the 14 full-battery groups).
 - Protected/private task material is injected locally rather than distributed in the public repository.
 - CI includes static contracts, UI/accessibility checks, desktop Chromium smoke, mobile layout (390x844) smoke, protected-material guards, protocol/data-model guards, and anti-pseudo-standardization checks.
 - Public documentation explicitly distinguishes research workflow support from validated MCCB equivalence.
@@ -25,10 +26,12 @@ The repository must **not** treat these as solved by engineering alone:
 
 ## Immediate next actions
 
-1. Keep future product/UI changes inside the existing research boundary.
-2. When a task/scoring/protocol behavior changes, update the manifest/protocol/validation documentation in the same bounded unit.
-3. Re-run the portable battery and GitHub CI before merge.
-4. If empirical validation work becomes available, record it in `RESEARCH_VALIDATION.md` rather than weakening current disclaimers.
+1. Owner: populate the local (git-ignored) `private/stimuli.js` with BWAIS material — 29 knowledge items, 13 similarity pairs, 21 picture items, 10 block-design grids, plus `setId`/`version`. Without it the shell fails closed.
+2. Score open-ended responses in `research-review.html` (Fluency semantic + BWAIS open items). BWAIS `verified` requires all three open-item scores **and** the auto-scored block raw score.
+3. Keep future product/UI changes inside the existing research boundary.
+4. When a task/scoring/protocol behavior changes, update the manifest/protocol/validation documentation in the same bounded unit.
+5. Re-run the portable battery (14 groups) and GitHub CI before merge.
+6. If empirical validation work becomes available, record it in `RESEARCH_VALIDATION.md` rather than weakening current disclaimers.
 
 ## Validation
 
