@@ -9,7 +9,7 @@
 <!-- Optional local/private file. The private/ directory is git-ignored and is not shipped on GitHub Pages. -->
 <script src="../private/stimuli.js"></script>
 <style>
-  .page{padding:2rem 1.25rem}.shell{width:min(720px,100%);margin:auto}.status{border:1px solid var(--border-light);border-radius:12px;padding:14px 16px;line-height:1.65;margin:16px 0}.status.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}.status.bad{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.word{font-size:clamp(2.2rem,8vw,4.5rem);font-weight:800;letter-spacing:.06em;min-height:7rem;display:flex;align-items:center;justify-content:center}.phase{font-size:13px;color:var(--text-muted);margin-bottom:8px}.countdown{font-family:var(--font-mono);font-size:1.25rem;font-weight:700}.recall-box{width:100%;min-height:180px;border:2px solid var(--border-light);border-radius:12px;padding:14px;font:inherit;line-height:1.8;resize:vertical}.meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.meta{background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;padding:14px}.meta b{display:block;font-size:22px}.meta span{font-size:12px;color:var(--text-muted)}.research-note{font-size:13px;color:var(--text-secondary);line-height:1.7}.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}@media(max-width:560px){.meta-grid{grid-template-columns:1fr}}
+  .page{padding:2rem 1.25rem}.shell{width:min(720px,100%);margin:auto}.status{border:1px solid var(--border-light);border-radius:12px;padding:14px 16px;line-height:1.65;margin:16px 0}.status.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}.status.bad{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.word{font-size:clamp(2.2rem,8vw,4.5rem);font-weight:800;letter-spacing:.06em;min-height:7rem;display:flex;align-items:center;justify-content:center}.phase{font-size:13px;color:var(--text-muted);margin-bottom:8px}.countdown{font-family:var(--font-mono);font-size:1.25rem;font-weight:700}.recall-box{width:100%;min-height:180px;border:2px solid var(--border-light);border-radius:12px;padding:14px;font:inherit;line-height:1.8;resize:vertical}.meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.meta{background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;padding:14px}.meta b{display:block;font-size:22px}.meta span{font-size:12px;color:var(--text-muted)}.research-note{font-size:13px;color:var(--text-secondary);line-height:1.7}.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}.recog-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.recog-item{border:2px solid var(--border-light);background:var(--bg-card);border-radius:10px;padding:14px 8px;font:inherit;font-size:16px;font-weight:600;cursor:pointer;text-align:center;user-select:none}.recog-item:hover{border-color:var(--accent-blue)}.recog-item.on{background:var(--accent-blue);border-color:var(--accent-blue);color:#fff}@media(max-width:560px){.meta-grid{grid-template-columns:1fr}.recog-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -17,12 +17,13 @@
   <section id="page-welcome" class="page active">
     <div class="shell">
       <header><div class="logo">🔐</div><h2>言语学习研究任务</h2></header>
-      <p class="subtitle">HVLT-related protocol shell · 私有刺激材料不随公开仓库分发</p>
+      <p class="subtitle">HVLT-R 5 试次 + 再认研究协议 · 私有刺激材料不随公开仓库分发</p>
       <div class="status bad" id="materialStatus">正在检查私有刺激配置…</div>
       <div class="inst-box">
-        <strong>研究边界：</strong>本页面只提供数字研究流程壳。标准/授权词表、答案材料与正式常模不包含在公开仓库中。即使加载了合法材料，本网页视觉/自助施测也不自动等同标准口头施测。
+        <strong>流程：</strong>5 轮学习试次（逐词呈现 + 自由回忆）→ 再认（点选所有你记得学过的词）→ 延迟段 → 延迟回忆。<br>
+        <strong>研究边界：</strong>本页面只提供数字研究流程壳。标准/授权词表、干扰词、答案材料与正式常模不包含在公开仓库中。即使加载了合法材料，本网页视觉/自助施测也不自动等同标准口头施测。
       </div>
-      <p class="research-note">本地部署可在 <code>private/stimuli.js</code> 注入 <code>window.PSY_PRIVATE_STIMULI.hvlt</code>。示例结构见 <code>docs/private-stimuli.example.js</code>；<code>private/</code> 已加入 <code>.gitignore</code>。</p>
+      <p class="research-note">本地部署可在 <code>private/stimuli.js</code> 注入 <code>window.PSY_PRIVATE_STIMULI.hvlt</code>，需同时提供 <code>words</code>（目标词）与等长 <code>foils</code>（干扰词）；延迟段时长由 <code>delayedRecallMs</code> 决定（标准约 300000 ms = 5 分钟）。示例结构见 <code>docs/private-stimuli.example.js</code>；<code>private/</code> 已加入 <code>.gitignore</code>。</p>
       <footer class="actions"><button type="button" class="btn btn-primary" id="startBtn" disabled>开始研究任务</button><a class="btn btn-outline" href="../index.html" style="text-decoration:none">返回测验中心</a></footer>
     </div>
   </section>
@@ -45,6 +46,16 @@
     </div>
   </section>
 
+  <section id="page-recognition" class="page">
+    <div class="shell">
+      <header><h2>再认</h2></header>
+      <p class="subtitle">下面列出了你之前学过的词和若干干扰词。点选所有你记得学过的词（可多选），完成后提交。</p>
+      <p class="phase">已选择 <span id="recogCount">0</span> 项</p>
+      <div id="recogGrid" class="recog-grid"></div>
+      <div class="actions"><button class="btn btn-primary" id="recogSubmitBtn" type="button">提交再认</button></div>
+    </div>
+  </section>
+
   <section id="page-delay" class="page">
     <div class="shell" style="text-align:center">
       <header><h2>延迟阶段</h2></header>
@@ -60,6 +71,9 @@
         <div class="meta"><b id="r1">—</b><span>学习 1 正确回忆</span></div>
         <div class="meta"><b id="r2">—</b><span>学习 2 正确回忆</span></div>
         <div class="meta"><b id="r3">—</b><span>学习 3 正确回忆</span></div>
+        <div class="meta"><b id="r4">—</b><span>学习 4 正确回忆</span></div>
+        <div class="meta"><b id="r5">—</b><span>学习 5 正确回忆</span></div>
+        <div class="meta"><b id="rc">—</b><span>再认正确（含正确拒绝）</span></div>
         <div class="meta"><b id="rd">—</b><span>延迟正确回忆</span></div>
       </div>
       <aside class="norm-ref"><strong>研究版提示：</strong><span>仅显示原始分与研究指标；未应用经验证的 MCCB 常模，不用于“正常/异常”判断或临床诊断解释。</span></aside>
@@ -71,26 +85,33 @@
 <script>
 'use strict';
 const TEST_KEY='hvlt';
+const PROTOCOL_ID='hvlt-r-5trial-recognition-private-shell-v1';
+const LEARNING_TRIALS=5;
+const RECOGNITION_SEED=0x5a5a5a5a;
 const cfg=(window.PSY_PRIVATE_STIMULI&&window.PSY_PRIVATE_STIMULI.hvlt)||null;
-const state={trial:1,scores:[],summaries:[],delayed:null,clock:null};
+const state={trial:1,scores:[],summaries:[],recognition:null,delayed:null,clock:null,checked:new Set()};
 const $=id=>document.getElementById(id);
 function navigate(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active')}
 function normalize(v){return String(v||'').trim().toLocaleLowerCase()}
 function parseRecall(text){return String(text||'').split(/[\s,，、;；]+/).map(normalize).filter(Boolean)}
-function validateConfig(c){if(!c||typeof c!=='object')return'未找到 private/stimuli.js 中的 hvlt 配置。';if(!c.setId||!c.version)return'私有配置必须声明 setId 与 version。';if(!Array.isArray(c.words)||c.words.length<2)return'私有配置 words 必须是非空词表。';const words=c.words.map(normalize);if(words.some(w=>!w)||new Set(words).size!==words.length)return'私有词表包含空值或重复项。';for(const k of ['presentationMsPerWord','interWordMs','delayedRecallMs'])if(!Number.isFinite(Number(c[k]))||Number(c[k])<=0)return`私有配置 ${k} 必须为正数毫秒值。`;return''}
-function configFingerprint(){const text=[cfg.setId,cfg.version,cfg.words.length,cfg.presentationMsPerWord,cfg.interWordMs,cfg.delayedRecallMs].join('|');let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')}
+function validateConfig(c){if(!c||typeof c!=='object')return'未找到 private/stimuli.js 中的 hvlt 配置。';if(!c.setId||!c.version)return'私有配置必须声明 setId 与 version。';if(!Array.isArray(c.words)||c.words.length<2)return'私有配置 words 必须是非空词表。';const words=c.words.map(normalize);if(words.some(w=>!w)||new Set(words).size!==words.length)return'私有词表包含空值或重复项。';if(!Array.isArray(c.foils)||c.foils.length!==c.words.length)return`私有配置 foils 必须是 ${c.words.length} 个干扰词（与 words 等长）。`;const foils=c.foils.map(normalize);if(foils.some(w=>!w)||new Set(foils).size!==foils.length)return'私有 foils 包含空值或重复项。';const wordSet=new Set(words);if(foils.some(f=>wordSet.has(f)))return'私有 foils 不能与 words 重复。';for(const k of ['presentationMsPerWord','interWordMs','delayedRecallMs'])if(!Number.isFinite(Number(c[k]))||Number(c[k])<=0)return`私有配置 ${k} 必须为正数毫秒值。`;return''}
+function configFingerprint(){const text=[cfg.setId,cfg.version,cfg.words.length,cfg.foils.length,cfg.presentationMsPerWord,cfg.interWordMs,cfg.delayedRecallMs].join('|');let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')}
 const configError=validateConfig(cfg);
 if(configError){$('materialStatus').textContent=configError+' 公开仓库不会提供标准词表或授权材料。';$('materialStatus').className='status bad';$('startBtn').disabled=true}else{$('materialStatus').textContent=`已加载私有材料：${cfg.setId} · ${cfg.version}。材料内容不会写入公开结果或 localStorage。`;$('materialStatus').className='status ok';$('startBtn').disabled=false}
 
 function scoreRecall(entries){const target=new Set(cfg.words.map(normalize));const seen=new Set();let correct=0,duplicates=0,intrusions=0;for(const item of entries){if(seen.has(item)){duplicates++;continue}seen.add(item);if(target.has(item))correct++;else intrusions++}return{correct,totalEntered:entries.length,uniqueEntered:seen.size,duplicates,intrusions}}
-function startStudy(){navigate('page-study');const words=cfg.words.slice();const per=Number(cfg.presentationMsPerWord),gap=Number(cfg.interWordMs),cycle=per+gap,total=words.length*cycle;$('studyPhase').textContent=`学习阶段 ${state.trial} / 3`;let lastIndex=-1,lastVisible=false;state.clock=ExperimentRuntime.deadline(total,{testKey:TEST_KEY,label:`learning_trial_${state.trial}`,tickMs:40,onTick:({elapsedMs,remainingMs})=>{const idx=Math.min(words.length-1,Math.floor(elapsedMs/cycle)),within=elapsedMs-idx*cycle,visible=within<per;if(idx!==lastIndex||visible!==lastVisible){$('studyWord').textContent=visible?words[idx]:'·';lastIndex=idx;lastVisible=visible}$('studyCountdown').textContent=`${Math.ceil(remainingMs/1000)} s`;},onDone:()=>{$('studyWord').textContent='—';openRecall(false)}})}
-function openRecall(delayed){navigate('page-recall');$('recallTitle').textContent=delayed?'延迟回忆':'立即回忆';$('recallInput').value='';$('recallInput').focus();$('submitRecallBtn').dataset.delayed=delayed?'1':'0'}
-function submitRecall(){const delayed=$('submitRecallBtn').dataset.delayed==='1',summary=scoreRecall(parseRecall($('recallInput').value));if(delayed){state.delayed=summary;finish()}else{state.scores.push(summary.correct);state.summaries.push(summary);if(state.trial<3){state.trial++;startStudy()}else startDelay()}}
+function scoreRecognition(checked){const targets=cfg.words.map(normalize),foils=cfg.foils.map(normalize);let hits=0,misses=0,falseAlarms=0,correctRejections=0;for(const w of targets){if(checked.has(w))hits++;else misses++}for(const f of foils){if(checked.has(f))falseAlarms++;else correctRejections++}return{hits,misses,falseAlarms,correctRejections,correct:hits+correctRejections,total:targets.length+foils.length}}
+function seededShuffle(arr,seed){const a=arr.slice();let x=seed>>>0;for(let i=a.length-1;i>0;i--){x^=x<<13;x^=x>>>17;x^=x<<5;x>>>=0;const j=x%(i+1),t=a[i];a[i]=a[j];a[j]=t}return a}
+function startStudy(){navigate('page-study');const words=cfg.words.slice();const per=Number(cfg.presentationMsPerWord),gap=Number(cfg.interWordMs),cycle=per+gap,total=words.length*cycle;$('studyPhase').textContent=`学习阶段 ${state.trial} / ${LEARNING_TRIALS}`;let lastIndex=-1,lastVisible=false;state.clock=ExperimentRuntime.deadline(total,{testKey:TEST_KEY,label:`learning_trial_${state.trial}`,tickMs:40,onTick:({elapsedMs,remainingMs})=>{const idx=Math.min(words.length-1,Math.floor(elapsedMs/cycle)),within=elapsedMs-idx*cycle,visible=within<per;if(idx!==lastIndex||visible!==lastVisible){$('studyWord').textContent=visible?words[idx]:'·';lastIndex=idx;lastVisible=visible}$('studyCountdown').textContent=`${Math.ceil(remainingMs/1000)} s`;},onDone:()=>{$('studyWord').textContent='—';openRecall(false)}})}
+function openRecall(delayed){navigate('page-recall');$('recallTitle').textContent=delayed?'延迟回忆':'立即回忆 · 第 '+state.trial+' 轮';$('recallInput').value='';$('recallInput').focus();$('submitRecallBtn').dataset.delayed=delayed?'1':'0'}
+function submitRecall(){const delayed=$('submitRecallBtn').dataset.delayed==='1',summary=scoreRecall(parseRecall($('recallInput').value));if(delayed){state.delayed=summary;finish()}else{state.scores.push(summary.correct);state.summaries.push(summary);if(state.trial<LEARNING_TRIALS){state.trial++;startStudy()}else startRecognition()}}
 function startDelay(){navigate('page-delay');const duration=Number(cfg.delayedRecallMs);state.clock=ExperimentRuntime.deadline(duration,{testKey:TEST_KEY,label:'delayed_recall_wait',tickMs:200,onTick:({remainingMs})=>{$('delayCountdown').textContent=`剩余 ${Math.ceil(remainingMs/1000)} s`;},onDone:()=>openRecall(true)})}
-function finish(){const data={test:'Verbal Learning Research Task',protocol:'hvlt-related-private-stimulus-shell',date:new Date().toISOString(),stimulusSet:{id:cfg.setId,version:cfg.version,fingerprint:configFingerprint(),wordCount:cfg.words.length},trial1:state.scores[0]||0,trial2:state.scores[1]||0,trial3:state.scores[2]||0,delayedRecall:state.delayed?state.delayed.correct:0,responseSummary:{learning:state.summaries,delayed:state.delayed},timing:{presentationMsPerWord:Number(cfg.presentationMsPerWord),interWordMs:Number(cfg.interWordMs),delayedRecallMs:Number(cfg.delayedRecallMs)}};ParticipantManager.saveResult(TEST_KEY,data);$('r1').textContent=data.trial1;$('r2').textContent=data.trial2;$('r3').textContent=data.trial3;$('rd').textContent=data.delayedRecall;$('resultMeta').textContent=`私有材料 ${cfg.setId} · ${cfg.version} · fingerprint ${data.stimulusSet.fingerprint}。结果仅保存计数/汇总，不保存标准词表或逐词答案。`;window.__hvltResult=data;navigate('page-result')}
+function startRecognition(){navigate('page-recognition');state.checked=new Set();$('recogCount').textContent='0';const all=cfg.words.concat(cfg.foils).map(normalize);const order=seededShuffle(all,RECOGNITION_SEED);const grid=$('recogGrid');grid.innerHTML='';for(const w of order){const item=document.createElement('button');item.type='button';item.className='recog-item';item.textContent=w;item.dataset.word=w;item.setAttribute('aria-pressed','false');item.addEventListener('click',()=>{if(state.checked.has(w)){state.checked.delete(w);item.classList.remove('on');item.setAttribute('aria-pressed','false')}else{state.checked.add(w);item.classList.add('on');item.setAttribute('aria-pressed','true')}$('recogCount').textContent=String(state.checked.size)});grid.appendChild(item)}}
+function submitRecognition(){state.recognition=scoreRecognition(state.checked);startDelay()}
+function finish(){const data={test:'Verbal Learning Research Task',protocol:PROTOCOL_ID,date:new Date().toISOString(),stimulusSet:{id:cfg.setId,version:cfg.version,fingerprint:configFingerprint(),wordCount:cfg.words.length,foilsCount:cfg.foils.length},trial1:state.scores[0]||0,trial2:state.scores[1]||0,trial3:state.scores[2]||0,trial4:state.scores[3]||0,trial5:state.scores[4]||0,recognition:state.recognition?state.recognition.correct:0,recognitionDetail:state.recognition||null,delayedRecall:state.delayed?state.delayed.correct:0,responseSummary:{learning:state.summaries,delayed:state.delayed},timing:{presentationMsPerWord:Number(cfg.presentationMsPerWord),interWordMs:Number(cfg.interWordMs),delayedRecallMs:Number(cfg.delayedRecallMs)}};ParticipantManager.saveResult(TEST_KEY,data);$('r1').textContent=data.trial1;$('r2').textContent=data.trial2;$('r3').textContent=data.trial3;$('r4').textContent=data.trial4;$('r5').textContent=data.trial5;$('rc').textContent=data.recognition;$('rd').textContent=data.delayedRecall;$('resultMeta').textContent=`私有材料 ${cfg.setId} · ${cfg.version} · fingerprint ${data.stimulusSet.fingerprint}。结果仅保存计数/汇总，不保存标准词表、干扰词或逐词答案。`;window.__hvltResult=data;navigate('page-result')}
 function exportResult(){if(!window.__hvltResult)return;const blob=new Blob([JSON.stringify(window.__hvltResult,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`verbal-learning-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url)}
-$('startBtn').addEventListener('click',()=>{if(configError)return;ParticipantManager.initFromUrl();if(!ParticipantManager.getCurrent()){alert('请先从测验中心选择/创建被试编号。');return}ParticipantManager.markInProgress(TEST_KEY);state.trial=1;state.scores=[];state.summaries=[];state.delayed=null;startStudy()});
-$('submitRecallBtn').addEventListener('click',submitRecall);$('exportBtn').addEventListener('click',exportResult);
+$('startBtn').addEventListener('click',()=>{if(configError)return;ParticipantManager.initFromUrl();if(!ParticipantManager.getCurrent()){alert('请先从测验中心选择/创建被试编号。');return}ParticipantManager.markInProgress(TEST_KEY);state.trial=1;state.scores=[];state.summaries=[];state.recognition=null;state.checked=new Set();state.delayed=null;startStudy()});
+$('submitRecallBtn').addEventListener('click',submitRecall);$('recogSubmitBtn').addEventListener('click',submitRecognition);$('exportBtn').addEventListener('click',exportResult);
 window.addEventListener('beforeunload',e=>{if(ExperimentRuntime.getActiveTestKeys().includes(TEST_KEY)){e.preventDefault();e.returnValue='研究任务正在进行中，确定离开吗？'}});
 </script>
 </body>

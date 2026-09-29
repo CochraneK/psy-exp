@@ -4,7 +4,7 @@ function withQc(result,status='valid',taskVersion='fixture-v1'){return{...result
 function makeResults(overrides={}){return Object.assign({
 'mccb-bacs-result':withQc({protocol:'synthetic-symbol-coding-v1',correct:88,attempted:90}),
 'mccb-fluency-result':withQc({protocol:'typed-animal-fluency-v1',total:32,unique:30,reviewStatus:'verified'}),
-'mccb-hvlt-result':withQc({protocol:'hvlt-related-private-stimulus-shell',trial1:7,trial2:9,trial3:10,delayedRecall:9,stimulusSet:{id:'set-a',version:'1',fingerprint:'fp-a'}}),
+'mccb-hvlt-result':withQc({protocol:'hvlt-r-5trial-recognition-private-shell-v1',trial1:7,trial2:9,trial3:10,trial4:11,trial5:12,recognition:20,delayedRecall:9,stimulusSet:{id:'set-a',version:'1',fingerprint:'fp-a'}}),
 'mccb-bvmt-result':withQc({protocol:'synthetic-visual-pattern-v1',trials:[{score:9},{score:11},{score:12}],delayedRecall:{score:10},delayedScore:10}),
 'mccb-cpt-result':withQc({protocol:'custom-identical-pairs-v1',hits:110,misses:8,falseAlarms:10,meanHitRT:420,dPrime:3.2,totalTrials:150}),
 'mccb-msceit-result':withQc({protocol:'private-social-cognition-shell-v1',total:24,correct:18,rawScore:18,itemSet:{id:'set-a',version:'1'},scoring:{version:'score-1',rawScore:18,correct:18,total:24}}),

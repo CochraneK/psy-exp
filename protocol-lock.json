@@ -8,7 +8,7 @@
     "cpt": {"taskVersion":"cpt-web-0.4.0","protocolId":"identical-pairs-4digit-research-v2","page":"pages/mccb-cpt.html"},
     "spatial-span": {"taskVersion":"spatial-span-web-0.4.0","protocolId":"synthetic-spatial-sequence-v1","page":"pages/mccb-spatial-span.html"},
     "lns": {"taskVersion":"lns-web-0.4.0","protocolId":"synthetic-letter-number-ordering-v1","page":"pages/mccb-lns.html"},
-    "hvlt": {"taskVersion":"hvlt-web-0.4.0","protocolId":"hvlt-related-private-stimulus-shell","page":"pages/mccb-hvlt.html"},
+    "hvlt": {"taskVersion":"hvlt-web-0.5.0","protocolId":"hvlt-r-5trial-recognition-private-shell-v1","page":"pages/mccb-hvlt.html"},
     "bvmt": {"taskVersion":"bvmt-web-0.4.0","protocolId":"synthetic-visual-pattern-v1","page":"pages/mccb-bvmt.html"},
     "mazes": {"taskVersion":"mazes-web-0.4.0","protocolId":"generated-perfect-mazes-v1","page":"pages/mccb-mazes.html"},
     "msceit": {"taskVersion":"msceit-web-0.4.0","protocolId":"private-social-cognition-shell-v1","page":"pages/mccb-msceit.html"}
