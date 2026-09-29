@@ -115,7 +115,9 @@ html, body {
 .page.active { opacity: 1; pointer-events: auto; transform: translateY(0); z-index: var(--z-page-active); }
 
 /* === Welcome 页 === */
-#page-welcome { flex-direction: column; gap: 1.7500rem; text-align: center; padding: 2.5000rem 1.5000rem; }
+#page-welcome, #page-instr { flex-direction: column; gap: 1.7500rem; text-align: center; padding: 2.5000rem 1.5000rem; }
+/* 手机视口下 .shell 欢迎内容不贴屏幕边缘（仅作用于 welcome 段，不影响测试屏 .shell） */
+#welcome .shell { padding: 2rem 1.5rem; }
 #page-welcome .logo {
   width: 5rem; height: 5rem;
   background: var(--grad-logo);
@@ -356,10 +358,12 @@ body.wide-mode canvas { max-width: none; }
 /* === 响应式 === */
 @media (max-width: 48rem) {
   #overlay .modal { padding: 1.7500rem 1.5000rem; }
-  #page-welcome, #page-result { padding-left: 1.2500rem; padding-right: 1.2500rem; }
+  #page-welcome, #page-instr, #page-result { padding-left: 1.2500rem; padding-right: 1.2500rem; }
+  #welcome .shell { padding-left: 1.2500rem; padding-right: 1.2500rem; }
 }
 @media (max-width: 30rem) {
   #overlay .modal { padding: 1.5000rem 1rem; }
-  #page-welcome, #page-result { padding-left: 1rem; padding-right: 1rem; }
+  #page-welcome, #page-instr, #page-result { padding-left: 1rem; padding-right: 1rem; }
+  #welcome .shell { padding-left: 1rem; padding-right: 1rem; }
   .result-grid, .results-grid { gap: 0.8750rem; }
 }
