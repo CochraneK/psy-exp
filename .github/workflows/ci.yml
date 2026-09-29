@@ -46,6 +46,7 @@ jobs:
           node --check tests/validate-inline-scripts.cjs
           node --check tests/verify-ui.cjs
           node --check tests/browser-smoke.cjs
+          node --check tests/mobile-smoke.cjs
           node --check tests/full-battery.cjs
 
       - name: Portable full battery
@@ -56,6 +57,9 @@ jobs:
 
       - name: Chromium browser E2E smoke
         run: node tests/browser-smoke.cjs
+
+      - name: Chromium mobile layout smoke (390x844)
+        run: node tests/mobile-smoke.cjs
 
       - name: Research workspace/report/runtime contract
         shell: bash
