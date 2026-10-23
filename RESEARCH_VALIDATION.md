@@ -83,7 +83,16 @@ actual stimulus duration
 response time
 ```
 
-这些数据用于判断 session 数据质量与设备/浏览器差异，但目前尚未完成目标硬件矩阵的 timing conformance study。因此，“timer 更正确”不能写成“已经心理测量等效”。
+这些数据用于判断 session 数据质量与设备/浏览器差异，但目前尚未完成目标硬件矩阵的 timing conformance study。现有数字认知研究显示，个人设备类型、输入界面和 web-vs-lab 场景可对 reaction-time 指标产生系统偏移；因此，“同一段浏览器代码”或“RT 与实验室值相关”都不能自动推出 timing equivalence。
+
+正式 timing validation 至少应预先定义：
+- 目标 browser / OS / device / input-method 矩阵；
+- 每个 RT-sensitive task 的允许绝对偏差与 agreement 标准，而不只看相关系数；
+- 重复测量与设备切换是否允许，以及相应的 QC / exclusion / stratification 规则；
+- 是否需要固定设备或固定输入方式；
+- 原始 RT、onset error 与环境 metadata 的保留策略。
+
+在获得校准证据前，不对不同设备的 RT 做未经验证的“延迟校正”。因此，“timer 更正确”不能写成“已经心理测量等效”。
 
 ## Research scoring policy
 
@@ -238,7 +247,8 @@ The current evidence supports the need to evaluate, separately:
 - practice/familiarization effects;
 - metric-level validity (for example accuracy vs RT vs derived scores);
 - remote/unsupervised administration;
-- target-population and device/browser context.
+- target-population and device/browser context;
+- device/input-method effects on RT and web-vs-lab agreement.
 
 It does **not** validate this repository or establish MCCB equivalence.
 

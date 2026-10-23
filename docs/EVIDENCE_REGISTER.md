@@ -31,6 +31,25 @@ The study explicitly examined reliability, convergent validity, practice effects
 
 **psy-exp implication:** browser delivery and successful CI are not enough. Remote use requires its own target-population, device/browser, repeated-measure, and user-experience evidence.
 
+
+### Device choice can shift measured reaction time
+
+**Passell E, Strong RW, Rutter LA, et al. (2021). _Cognitive test scores vary with choice of personal digital device._ Behavior Research Methods.**  
+DOI: `10.3758/s13428-021-01597-3`
+
+In a very large web-based sample, timed cognitive performance differed across device classes and interfaces. The paper specifically reports slower measured reaction times on mobile devices—particularly Android phones—and differences associated with screen/interface characteristics, consistent with device latency contributing measurement variance.
+
+**psy-exp implication:** device/browser metadata and target-device validation are not optional for RT-sensitive tasks. Raw millisecond values from heterogeneous personal hardware must not be assumed exchangeable merely because the browser code is identical.
+
+### Web and laboratory RT can correlate without being equivalent
+
+**Backx R, Skirrow C, Dente P, Barnett JH, Cormack FK. (2020). _Comparing Web-Based and Lab-Based Cognitive Assessment Using the Cambridge Neuropsychological Test Automated Battery: A Within-Subjects Counterbalanced Study._ Journal of Medical Internet Research.**  
+DOI: `10.2196/16792`
+
+The within-subject comparison found that some performance indices showed useful agreement across settings, while reaction times were systematically slower in web-based assessment. Correlation therefore did not by itself establish equivalence or agreement for RT.
+
+**psy-exp implication:** a future timing-conformance study must test absolute bias/agreement—not only correlation—and must separate accuracy/performance indices from reaction-time endpoints.
+
 ### Test-retest reliability and practice effects in a computerized battery
 
 **Rijnen SJM, van der Linden SD, Emons WHM, et al. (2018). _Test-retest reliability and practice effects of a computerized neuropsychological battery: A solution-oriented approach._ Psychological Assessment.**  
@@ -64,11 +83,13 @@ The paper evaluates a computerized battery using explicit reliability and validi
 2. **Validate the metric, not just the task.** Accuracy, RT, variability, interference scores, and composites can have different psychometric behavior.
 3. **Repeated use needs repeated-use evidence.** Test-retest reliability, practice effects, and familiarization must be assessed explicitly.
 4. **Remote delivery is a separate validation context.** Device, browser, supervision, environment, and target population matter.
-5. **Keep raw data and provenance.** Derived metrics should remain traceable to raw performance, task version, protocol, material/scoring signature, and QC state.
-6. **CI is engineering evidence only.** Automated tests can guard implementation invariants but cannot establish psychometric validity.
+5. **Correlation is not timing equivalence.** For RT-sensitive measures, assess systematic bias/agreement across target devices and administration settings rather than relying on correlation alone.
+6. **Do not silently correct device latency.** Device/browser metadata may support stratification, QC, or exclusion rules, but any numerical latency correction requires its own validated calibration model.
+7. **Keep raw data and provenance.** Derived metrics should remain traceable to raw performance, task version, protocol, material/scoring signature, and QC state.
+8. **CI is engineering evidence only.** Automated tests can guard implementation invariants but cannot establish psychometric validity.
 
 ## Evidence status
 
-- Source discovery/review: Scite literature search, 2026-09-17.
+- Source discovery/review: Scite + Consensus cross-check, 2026-09-17.
 - This is a **curated evidence register**, not a systematic review.
 - Before a formal study or validated mode, replace this lightweight register with a preregistered literature review and study-specific validation plan.
