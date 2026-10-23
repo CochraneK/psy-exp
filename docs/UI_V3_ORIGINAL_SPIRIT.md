@@ -1,5 +1,7 @@
 # UI v3 — Original Spirit / Modernized
 
+> **Historical design note.** This records an earlier visual pass and is not the current architecture contract. See [`UI_UX_V2.md`](UI_UX_V2.md) for the canonical current surface mapping and [`DESIGN_TOKENS.md`](DESIGN_TOKENS.md) for current color semantics.
+
 This visual pass restores the density and quiet visual language of the earlier psy-exp workspace without rolling back the hardened research architecture.
 
 Principles:
