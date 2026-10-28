@@ -1,7 +1,7 @@
 {
   "manifestVersion": 5,
   "projectMode": "research-prototype",
-  "runtimeVersion": "research-runtime-0.4.0",
+  "runtimeVersion": "research-runtime-0.5.0",
   "scoringVersion": "research-scoring-0.4.0",
   "dataModelVersion": "research-data-model-1.1.0",
   "storageArchitecture": "local-primary-http-replica-1.1.0",

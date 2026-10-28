@@ -81,6 +81,16 @@ The HTTP replica path (`research-storage.js`) gains offline resilience **without
 - **Version bump (single commit, all seven surfaces)**: `local-primary-http-replica-1.0.0` → `1.1.0` in `research-storage.js`, `task-manifest.json`, `ci.yml` (3 hard greps), `docs/BACKEND_V1.md` (+ new "Auto-sync and offline resilience (v1.1.0)" section), `docs/RESEARCH_DATA_MODEL.md`, `tests/verify-storage.cjs`, `tests/browser-smoke.cjs` (2 E2E assertions).
 - **Contracts**: `verify-storage.cjs` grows 11 → 28 assertions (backoff window and doubling, backoff gate, manual bypass, 401 fatal, auto-stop on blocked, re-auth recovery, FIFO block/recovery ordering, the four `maybeAutoSync` guards, environment guard). Token remains memory-only; no new localStorage keys; Bearer/HTTPS-only rules unchanged; backward compatible (old outbox items lack the new fields, so no gate triggers).
 
+## Unified page-leave guard: research-runtime 0.4.0 → 0.5.0 (2026-09-30)
+
+Eleven task pages wired ad-hoc `beforeunload` warnings — 6 pages with three divergent implementations (phase check / state flag / runtime active-session check) and 5 timed tasks (lns, spatial-span, bvmt, mazes, msceit) with **no close/refresh warning at all**, so an accidental tab close silently discarded in-flight timed data. The guard is now unified in the shared runtime.
+
+- **Single owner**: `mccb-participant.js` registers exactly one `beforeunload` listener in `installRuntimeGuards`; it is inert unless `ParticipantManager.startLeaveGuard()` has been called, and `endLeaveGuard()` disarms it. Message: “任务正在进行中，确定离开吗？”.
+- **Activation window = recorded session window**: pages call `startLeaveGuard()` immediately after `markInProgress(...)` and `endLeaveGuard()` immediately after `saveResult(...)`, so the warning is live exactly while an ExperimentRuntime session is open (markInProgress→complete). Every finish/timeout/abort path funnels through `saveResult` and therefore disarms; msceit’s private-scoring `technical_failure` path deliberately keeps the guard armed (session still active, nothing saved yet).
+- **One deliberate alignment (documented behavior change)**: CPT no longer warns during its 10-trial unscored practice phase — practice creates no runtime session, so nothing recorded is at risk. Every other page keeps an equivalent or wider warning window.
+- **Not a protocol change**: no stimulus exposure, response window, raw score, or timing semantics change — per `docs/PROTOCOL_GOVERNANCE.md` a safety/presentation-layer change preserves protocol identity. `protocol-lock.json` and all `taskVersion`/`protocolId` values are unchanged; only the runtime identifier moves 0.4.0 → 0.5.0 (additive public API), synced in the same commit across `mccb-participant.js`, `task-manifest.json` (cross-checked by `verify-manifest.cjs`), `README.md`, `tests/verify-governance.cjs`, and `tests/verify-backend.cjs`.
+- **Contracts**: `verify-participant.cjs` grows 68 → 88 assertions — a fake-window section proving exactly one listener, default-inert, armed blocking with the exact message, disarm, and idempotence; plus a wiring sweep over all 11 `TEST_ORDER` pages asserting `startLeaveGuard(`/`endLeaveGuard(` presence and the absence of any page-local `beforeunload` listener. CI inherits it via `full-battery.cjs`.
+
 ## Identity
 
 Repository-facing maintainer identity uses **CochraneK**.

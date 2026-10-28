@@ -239,6 +239,7 @@ function finish(){
     scoringNote:'知识/相似性/填图为开放作答，原文已保存；须由研究者依据合成材料预期答案（tools/bwais-scenes.cjs）离线判分。木块设计由合成图案自动计分并按题限时；旋转容差不实现。材料为程序生成合成素材，非韦氏/RAVIT 原件，不产生韦氏分数。'
   };
   ParticipantManager.saveResult(TEST_KEY,data);
+  ParticipantManager.endLeaveGuard();
   $('rk').textContent=data.knowledge.administered+' / 29';
   $('rs').textContent=data.similarities.administered+' / 13';
   $('rp').textContent=data.pictureCompletion.administered+' / 21';
@@ -257,6 +258,7 @@ $('startBtn').addEventListener('click',()=>{
   ParticipantManager.initFromUrl();
   if(!ParticipantManager.getCurrent()){alert('请先从测验中心选择/创建被试编号。');return}
   ParticipantManager.markInProgress(TEST_KEY);
+  ParticipantManager.startLeaveGuard();
   state.phase=null;state.subIdx=0;state.answers={knowledge:{},similarities:{},picture:{}};
   state.blockIdx=0;state.blockAttempt=1;state.grid=new Array(16).fill(0);state.consecFails=0;state.blockItems=[];state.clock=null;
   startSub('knowledge');
@@ -269,7 +271,6 @@ $('subSubmitBtn').addEventListener('click',()=>{
 $('blockSubmitBtn').addEventListener('click',submitBlock);
 $('blockResetBtn').addEventListener('click',resetBlock);
 $('exportBtn').addEventListener('click',exportResult);
-window.addEventListener('beforeunload',e=>{if(ExperimentRuntime.getActiveTestKeys().includes(TEST_KEY)){e.preventDefault();e.returnValue='研究任务正在进行中，确定离开吗？'}});
 </script>
 </body>
 </html>

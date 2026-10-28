@@ -126,7 +126,7 @@ HVLT 结果只保存材料 ID / version / fingerprint 与回忆计数；MSCEIT s
 公共 runtime：`mccb-participant.js`
 
 ```text
-runtime: research-runtime-0.4.0
+runtime: research-runtime-0.5.0
 participant schema: 4
 result schema: 4
 ```

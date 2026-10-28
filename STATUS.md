@@ -13,6 +13,7 @@ The repository is engineering-mature enough to run its browser research workflow
 - local session/result persistence plus HTTP replica architecture with auto-sync and offline backoff (`local-primary-http-replica-1.1.0`);
 - task/runtime/protocol/material metadata;
 - session QC and attempt history;
+- one runtime-registered leave guard across all eleven tasks (warns on close/refresh only while a session is open; no page-local `beforeunload` listeners);
 - protocol/material/version-compatible research ranking;
 - guarded Fluency semantic review plus a BWAIS open-item review console (`research-review.html`, backed by `reviewFluency`/`reviewBwais` primitives);
 - raw/report/comparison/export research surfaces;

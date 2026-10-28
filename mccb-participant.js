@@ -2,7 +2,7 @@
 'use strict';
 const RESULT_SCHEMA_VERSION=4;
 const PARTICIPANT_SCHEMA_VERSION=4;
-const RUNTIME_VERSION='research-runtime-0.4.0';
+const RUNTIME_VERSION='research-runtime-0.5.0';
 const DEFAULT_TASK_VERSION='research-web-0.4.0';
 const TASK_VERSIONS={tmt:'tmt-web-0.4.0',bacs:'bacs-web-0.4.0',fluency:'fluency-web-0.4.0',cpt:'cpt-web-0.4.0','spatial-span':'spatial-span-web-0.4.0',lns:'lns-web-0.4.0',hvlt:'hvlt-web-0.5.0',bvmt:'bvmt-web-0.4.0',mazes:'mazes-web-0.4.0',msceit:'msceit-web-0.4.0',bwais:'bwais-web-0.2.0'};
 const TASK_TIMING_POLICY={tmt:{mode:'monotonic-elapsed'},bacs:{mode:'absolute-deadline'},fluency:{mode:'absolute-deadline'},hvlt:{mode:'absolute-deadline'},cpt:{mode:'absolute-trial-schedule-with-onset-log'},'spatial-span':{mode:'absolute-deadline'},lns:{mode:'absolute-deadline'},bvmt:{mode:'absolute-deadline'},mazes:{mode:'monotonic-elapsed'},msceit:{mode:'monotonic-elapsed'},bwais:{mode:'monotonic-elapsed'}};
@@ -55,6 +55,7 @@ const ExperimentRuntime=(()=>{
 
 function normalizeParticipantData(id,data){if(!data||typeof data!=='object')return null;data.cohortId=data.cohortId||id;data.progress=data.progress||{};data.sessions=data.sessions||{};data.results=data.results||{};data.invalidResults=data.invalidResults||{};data.attemptHistory=data.attemptHistory||{};return data}
 
+let leaveGuardActive=false;
 const ParticipantManager={
   getCurrent(){return _ls.get('mccb-current-participant')||''},
   setCurrent(cohortId){const id=normalizeId(cohortId);if(!id){_ls.remove('mccb-current-participant');return true}if(!isValidCohortId(id)){if(typeof console!=='undefined')console.warn('无效被试编号，仅允许 1-64 位字母、数字、点、下划线和连字符。');return false}if(!_ls.set('mccb-current-participant',id))return false;const list=this.getAllParticipants();if(!list.includes(id)){list.push(id);if(!_ls.set('mccb-participant-list',JSON.stringify(list)))return false}if(!_ls.get('mccb-participant-'+id))return!!this._createParticipant(id);return true},
@@ -66,6 +67,8 @@ const ParticipantManager={
   getProgress(k){const d=this.getData();return d&&d.progress[k]||'not_started'},
   setProgress(k,status){if(!VALID_TEST_KEYS.has(k))return false;const d=this.getData();if(!d)return false;d.progress[k]=status;return this._saveData(d.cohortId,d)},
   markInProgress(k){if(!VALID_TEST_KEYS.has(k))return false;const d=this.getData();if(!d)return false;ExperimentRuntime.start(k);d.progress[k]='in_progress';d.sessions[k]=ExperimentRuntime.snapshot(k);return this._saveData(d.cohortId,d)},
+  startLeaveGuard(){leaveGuardActive=true;return true},
+  endLeaveGuard(){leaveGuardActive=false;return true},
   invalidateSession(k,status,reason){if(!VALID_TEST_KEYS.has(k))return false;ExperimentRuntime.invalidate(k,status,reason);return this._persistActiveSessionQc()},
   _persistActiveSessionQc(){const d=this.getData();if(!d)return false;for(const k of VALID_TEST_KEYS){const s=ExperimentRuntime.snapshot(k);if(!s)continue;d.sessions[k]=s;if(s.completedAt==null&&s.status!=='valid')d.progress[k]=s.status}return this._saveData(d.cohortId,d)},
   saveResult(k,resultData){const id=this.getCurrent(),resultKey=KEY_TO_RESULT[k];if(!isValidCohortId(id)||!resultKey||!resultData||typeof resultData!=='object')return false;const sessionQc=ExperimentRuntime.complete(k),enriched={...resultData,_meta:{schemaVersion:RESULT_SCHEMA_VERSION,taskVersion:sessionQc&&sessionQc.taskVersion||taskVersion(k),runtimeVersion:RUNTIME_VERSION,administration:'digital_research_adaptation',mccbEquivalent:false,participantId:id,recordedAt:new Date().toISOString(),provenance:{runtimeVersion:RUNTIME_VERSION,taskVersion:sessionQc&&sessionQc.taskVersion||taskVersion(k),source:'browser-local'},sessionQc}},d=this.getData(id);if(!d)return false;d.sessions[k]=sessionQc;const history=d.attemptHistory[resultKey]||(d.attemptHistory[resultKey]=[]);history.push(enriched);if(history.length>20)history.splice(0,history.length-20);const valid=sessionQc&&sessionQc.status==='valid';if(valid){d.results[resultKey]=enriched;d.progress[k]='completed'}else{d.invalidResults[resultKey]=enriched;d.progress[k]=d.results[resultKey]?'completed':'completed_invalid'}if(!this._saveData(id,d)){if(typeof console!=='undefined')console.error('被试结果保存失败:',id,k);return false}const scoped='mccb-participant-'+id+'-'+resultKey;if(valid)_ls.set(scoped,JSON.stringify(enriched));else{_ls.remove(resultKey);if(!d.results[resultKey])_ls.remove(scoped)}return true},
@@ -132,6 +135,7 @@ function installRuntimeGuards(){
     if(/\/pages\/mccb-[^/]+\.html$/.test(path)){const params=new URLSearchParams(window.location.search);if(!params.has('mode')){params.set('mode','user');window.location.replace(path+'?'+params.toString()+(window.location.hash||''));return}}
     if(/\/comprehensive-report\.html$/.test(path)){window.location.replace('research-report.html'+(window.location.search||'')+(window.location.hash||''));return}
     if(/\/comparison-report\.html$/.test(path)){window.location.replace('research-comparison.html'+(window.location.search||'')+(window.location.hash||''));return}
+    window.addEventListener('beforeunload',e=>{if(!leaveGuardActive)return;e.preventDefault();e.returnValue='任务正在进行中，确定离开吗？'});
     window.addEventListener('load',()=>{bootstrapOriginalHomepageModernCore().catch(e=>console.warn('Original UI modern-core bootstrap failed',e&&e.message||e))},{once:true});
   }
 }
