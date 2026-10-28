@@ -47,7 +47,7 @@
       case'bvmt':return{protocol,trials:[{score:4+i},{score:6+i},{score:8+i}],delayedRecall:7+i};
       case'mazes':return{protocol,totalScore:10+i*2,maxScore:26,completed:7,totalTime:360-i*15};
       case'msceit':return{protocol,total:24,correct:12+i,rawScore:18+i*3,elapsed:280-i*8,itemSet:{id:'demo-synthetic-private-placeholder',version:'demo-v1'},scoring:{version:'demo-v1',correct:12+i,total:24,rawScore:18+i*3}};
-      case'bwais':return{protocol,materialSet:{id:'demo-synthetic-private-placeholder',version:'demo-v1',fingerprint:'DEMO-NOT-LICENSED-MATERIAL'},knowledge:{rawScore:20+i,maxScore:29,administered:29,answers:{}},similarities:{rawScore:14+i,maxScore:26,administered:13,answers:{}},pictureCompletion:{rawScore:15+(i%5),maxScore:21,administered:21,answers:{}},blockDesign:{rawScore:28+i*2,maxScore:48,administered:10,items:[]},total:(20+i)+(14+i)+(15+(i%5))+(28+i*2),reviewStatus:'verified'};
+      case'bwais':return{protocol,materialSet:{id:'demo-synthetic-bwais',version:'gen-demo-v1',fingerprint:'DEMO-SYNTHETIC-GENERATED'},knowledge:{rawScore:20+i,maxScore:29,administered:29,answers:{}},similarities:{rawScore:14+i,maxScore:26,administered:13,answers:{}},pictureCompletion:{rawScore:15+(i%5),maxScore:21,administered:21,answers:{}},blockDesign:{rawScore:28+i*2,maxScore:48,administered:10,items:[]},total:(20+i)+(14+i)+(15+(i%5))+(28+i*2),reviewStatus:'verified'};
       default:return{protocol};
     }
   }

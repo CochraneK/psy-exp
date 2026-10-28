@@ -13,7 +13,7 @@ global.window={ParticipantManager};
 let pass=0,fail=0;function check(name,cond,detail=''){if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}}
 function bwaisResult(overrides={}){return Object.assign({
   test:'简易韦氏 4 分测验研究协议',
-  protocol:'brief-wais-4subtest-private-shell-v1',
+  protocol:'brief-wais-4subtest-synthetic-v1',
   date:'2026-09-30T00:00:00.000Z',
   materialSet:{id:'set-r',version:'1',fingerprint:'fp-review'},
   knowledge:{rawScore:null,maxScore:29,administered:29,answers:{1:'猫',2:'狗'}},

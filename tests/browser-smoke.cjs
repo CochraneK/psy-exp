@@ -141,10 +141,10 @@ async function main() {
       const ok=await evaluate(`!!document.querySelector('.comparison-layout') && !!document.querySelector('.participant-chip') && !document.querySelector('.selector-panel') && document.body.textContent.includes('CSV') && document.body.textContent.includes('N≥5') && document.body.textContent.includes('E2E1')`);if(!ok)throw new Error('restored comparison controls, participant, matrix, or small-N guardrail missing');
     });
 
-    await test('private-material task shells fail closed without bundled assets', async()=>{
+    await test('private shells fail closed; synthetic BWAIS battery is publicly executable', async()=>{
       await navigate(`${BASE}/pages/mccb-hvlt.html?p=E2E1&mode=user`,`document.readyState === 'complete' && !!document.getElementById('startBtn')`);const hvltOk=await evaluate(`document.getElementById('startBtn').disabled===true && document.getElementById('materialStatus').classList.contains('bad')`);if(!hvltOk)throw new Error('HVLT public shell did not fail closed without private material');
       await navigate(`${BASE}/pages/mccb-msceit.html?p=E2E1&mode=user`,`document.readyState === 'complete' && !!document.getElementById('start')`);const msceitOk=await evaluate(`document.getElementById('start').disabled===true && document.getElementById('status').classList.contains('bad')`);if(!msceitOk)throw new Error('MSCEIT public shell did not fail closed without private material');
-      await navigate(`${BASE}/pages/mccb-bwais.html?p=E2E1&mode=user`,`document.readyState === 'complete' && !!document.getElementById('startBtn')`);const bwaisOk=await evaluate(`document.getElementById('startBtn').disabled===true && document.getElementById('materialStatus').classList.contains('bad')`);if(!bwaisOk)throw new Error('BWAIS public shell did not fail closed without private material');
+      await navigate(`${BASE}/pages/mccb-bwais.html?p=E2E1&mode=user`,`document.readyState === 'complete' && !!document.getElementById('startBtn')`);const bwaisOk=await evaluate(`document.getElementById('startBtn').disabled===false && document.getElementById('materialStatus').classList.contains('ok')`);if(!bwaisOk)throw new Error('BWAIS synthetic battery must be publicly executable (synthetic material module loads and enables start)');
     });
 
     const failures=results.filter(x=>!x[1]);console.log(`\nBrowser E2E smoke: ${results.length-failures.length} passed / ${failures.length} failed`);if(failures.length)process.exitCode=1;

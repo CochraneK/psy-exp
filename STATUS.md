@@ -9,7 +9,7 @@ The repository is engineering-mature enough to run its browser research workflow
 ## Current capabilities
 
 - researcher/participant surface separation;
-- eleven browser cognitive research tasks (10 MCCB-related + 1 independent supplementary battery, the Brief WAIS / 简易韦氏 4-subtest private shell);
+- eleven browser cognitive research tasks (10 MCCB-related + 1 independent supplementary battery, the Brief WAIS / 简易韦氏 4-subtest synthetic battery with code-generated stimuli);
 - local session/result persistence plus optional HTTP replica architecture;
 - task/runtime/protocol/material metadata;
 - session QC and attempt history;
