@@ -32,7 +32,7 @@ The running experiment uses a synchronous primary adapter. By default this is br
 
 `task page → synchronous local primary → bundle checkpoint → bounded outbox → authenticated HTTP replica`
 
-The HTTP replica is deliberately asynchronous. Network latency or outage must never become part of a timed trial's critical path. Bearer credentials are held in memory only and are not written to localStorage.
+The HTTP replica is deliberately asynchronous. Network latency or outage must never become part of a timed trial's critical path. Bearer credentials are held in memory only and are not written to localStorage. Storage architecture `local-primary-http-replica-1.1.0` adds offline resilience: a bounded FIFO outbox with exponential backoff (5s base, 10min cap), fatal-failure action gates, and automatic recovery triggers (`online`, tab re-visibility) — see [`BACKEND_V1.md`](BACKEND_V1.md).
 
 See [`BACKEND_V1.md`](BACKEND_V1.md) for the replica contract and reference server.
 

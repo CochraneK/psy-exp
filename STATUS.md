@@ -10,7 +10,7 @@ The repository is engineering-mature enough to run its browser research workflow
 
 - researcher/participant surface separation;
 - eleven browser cognitive research tasks (10 MCCB-related + 1 independent supplementary battery, the Brief WAIS / 简易韦氏 4-subtest synthetic battery with code-generated stimuli);
-- local session/result persistence plus optional HTTP replica architecture;
+- local session/result persistence plus HTTP replica architecture with auto-sync and offline backoff (`local-primary-http-replica-1.1.0`);
 - task/runtime/protocol/material metadata;
 - session QC and attempt history;
 - protocol/material/version-compatible research ranking;

@@ -131,6 +131,7 @@
     const RD=root.ResearchData,RS=root.ResearchStorage,PM=root.ParticipantManager;
     const participantData=PM.exportAllData(),sid=session&&!session.blocked?session.id:null;
     RD.syncParticipantData(participantData,{sessionId:sid});
+    if(RS.startAutoSync)RS.startAutoSync();
     const cfg=RS.getConfig();
     if(!cfg.replica||!cfg.replica.enabled)return{queued:false,sessionId:sid};
     const bundle=RD.exportBundle({participantData});

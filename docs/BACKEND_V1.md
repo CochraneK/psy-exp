@@ -18,7 +18,7 @@ Task page
 Machine-readable versions:
 
 - Research data model: `research-data-model-1.1.0`
-- Storage architecture: `local-primary-http-replica-1.0.0`
+- Storage architecture: `local-primary-http-replica-1.1.0`
 - Protocol governance: `protocol-lock-v1`
 
 The browser-local primary remains authoritative for the running task. Replica synchronization is an asynchronous durability/collection path, not a timing dependency.
@@ -36,6 +36,19 @@ The browser-local primary remains authoritative for the running task. Replica sy
 - a memory-only session token API.
 
 The Bearer token is **not persisted to localStorage**. Navigating to another page clears that in-memory token. In the static prototype, this means Runner pages normally queue checkpoints and a researcher later flushes them from `data-governance.html`. A production authentication provider can supply fresh short-lived credentials without changing the experiment data model.
+
+## Auto-sync and offline resilience (v1.1.0)
+
+The outbox is now resilient to offline windows and misconfigured credentials, while network requests remain strictly outside the timed-trial critical path:
+
+- **Error classification.** Flush failures split into retryable (network unreachable, HTTP 429, HTTP 5xx) and fatal (HTTP 401/403 → `auth_failed`; HTTP 400/404/405/413 → `rejected`).
+- **Exponential backoff.** Retryable failures park the item with `nextRetryAt = now + min(5s × 2^(attempts−1), 10min)`. Automatic flushes stop at the first parked item and issue no request until the window elapses.
+- **Action gates.** Fatal failures mark the item with `blockedReason`; automatic flushes stop with `blocked:<reason>` until a researcher acts. A manual flush (the “立即同步” button or `syncBundle`) clears action gates and bypasses backoff, because a manual sync is an explicit researcher decision.
+- **Automatic recovery triggers.** `startAutoSync()` (idempotent, browser-only) attaches `online` and `visibilitychange→visible` listeners plus a 1.5s deferred initial sweep. `maybeAutoSync()` is the guard-chained entry point used by those triggers and by the governance page after a replica config save.
+- **State.** `getState()` also reports `pending` (outbox length). Status values are `idle | syncing | error | blocked | backoff`.
+- **Ordering.** The outbox stays FIFO; a blocked or parked first item prevents newer snapshots from overwriting it on the reference server.
+
+Checkpointing remains a synchronous local write plus an asynchronous, bounded, fire-and-forget sync; nothing in this layer may block a timed trial.
 
 ## Reference API
 

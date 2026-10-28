@@ -86,6 +86,7 @@ async function checkpointResearchData(reason){
   if(!activeParticipant||typeof ResearchData==='undefined')return;
   const participantData=ParticipantManager.exportAllData(),sid=activeResearchSession&&!activeResearchSession.blocked?activeResearchSession.id:null;
   ResearchData.syncParticipantData(participantData,{sessionId:sid});
+  if(ResearchStorage.startAutoSync)ResearchStorage.startAutoSync();
   const cfg=ResearchStorage.getConfig();if(!cfg.replica.enabled)return;
   const bundle=ResearchData.exportBundle({participantData});ResearchStorage.stageBundle(bundle,{studyId:cfg.replica.studyId||ResearchData.snapshot().study.id,reason});
   if(cfg.replica.autoSync&&ResearchStorage.getTokenState().present)try{await ResearchStorage.flushOutbox()}catch(e){console.warn('Replica sync deferred',e&&e.message||e)}

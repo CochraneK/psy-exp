@@ -11,6 +11,7 @@ Keep `psy-exp` usable as a browser-native cognitive research prototype while pre
 - Session QC, attempt history, protocol/material compatibility, and research-safe cohort ranking are implemented.
 - Open-item review is a first-class workflow: `research-review.html` (researcher console) + `reviewFluency`/`reviewBwais` primitives in `mccb-participant.js`; contract-tested by `tests/verify-review.cjs` (one of the 14 full-battery groups).
 - Protected/private task material is injected locally rather than distributed in the public repository.
+- Local-primary storage plus HTTP replica has offline resilience (`local-primary-http-replica-1.1.0`): bounded FIFO outbox with exponential backoff, fatal-failure action gates (researcher-triggered manual sync bypasses), and automatic recovery triggers (online / tab re-visibility); network never enters a timed trial's critical path.
 - CI includes static contracts, UI/accessibility checks, desktop Chromium smoke, mobile layout (390x844) smoke, protected-material guards, protocol/data-model guards, and anti-pseudo-standardization checks.
 - Public documentation explicitly distinguishes research workflow support from validated MCCB equivalence.
 

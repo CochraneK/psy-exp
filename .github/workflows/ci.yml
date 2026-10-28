@@ -90,13 +90,13 @@ jobs:
           test -f docs/BACKEND_V1.md
           grep -q '"protocolGovernance": "protocol-lock-v1"' task-manifest.json
           grep -q '"dataModelVersion": "research-data-model-1.1.0"' task-manifest.json
-          grep -q '"storageArchitecture": "local-primary-http-replica-1.0.0"' task-manifest.json
+          grep -q '"storageArchitecture": "local-primary-http-replica-1.1.0"' task-manifest.json
           grep -q '"lockVersion": 1' protocol-lock.json
           grep -q "MODEL_VERSION='research-data-model-1.1.0'" research-data.js
-          grep -q "STORAGE_ARCH_VERSION='local-primary-http-replica-1.0.0'" research-storage.js
+          grep -q "STORAGE_ARCH_VERSION='local-primary-http-replica-1.1.0'" research-storage.js
           grep -q "Research Data Model v1.1" docs/RESEARCH_DATA_MODEL.md
           grep -q "Study → Site → Participant → Session → Attempt" docs/RESEARCH_DATA_MODEL.md
-          grep -q "local-primary-http-replica-1.0.0" docs/BACKEND_V1.md
+          grep -q "local-primary-http-replica-1.1.0" docs/BACKEND_V1.md
           grep -q "research-storage.js" participant-runner.html
           grep -q "research-data.js" participant-runner.html
           grep -q "protocolLockHash" participant-runner.html
