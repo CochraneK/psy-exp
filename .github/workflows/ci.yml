@@ -50,7 +50,15 @@ jobs:
           node --check tests/verify-ui.cjs
           node --check tests/browser-smoke.cjs
           node --check tests/mobile-smoke.cjs
+          node --check tests/verify-cohort-t.cjs
+          node --check tests/verify-reports-e2e.cjs
+          node --check tests/verify-export-csv.cjs
           node --check tests/full-battery.cjs
+          node --check mccb-norms.js
+          node --check mccb-official-scores.js
+          node --check mccb-dashboard-export.js
+          node --check mccb-report-templates.js
+          python3 -m py_compile analysis/refresh.py analysis/extract_report_templates.py tests/_roundtrip_driver.py
 
       - name: Portable full battery
         run: node tests/full-battery.cjs
@@ -63,6 +71,14 @@ jobs:
 
       - name: Chromium mobile layout smoke (390x844)
         run: node tests/mobile-smoke.cjs
+
+      - name: Reports center E2E (Chromium CDP, synthetic seed)
+        run: node tests/verify-reports-e2e.cjs
+
+      - name: CSV export → refresh.py roundtrip (Chromium CDP + Python/scipy)
+        run: |
+          python3 -m pip install --quiet scipy
+          node tests/verify-export-csv.cjs
 
       - name: Research workspace/report/runtime contract
         shell: bash
@@ -80,6 +96,19 @@ jobs:
           test -f research-report.html
           test -f research-comparison.html
           test -f research-review.html
+          test -f research-reports.html
+          test -f mccb-norms.js
+          test -f mccb-official-scores.js
+          test -f mccb-dashboard-export.js
+          test -f mccb-report-templates.js
+          test -f analysis/refresh.py
+          test -f analysis/chart.min.js
+          test -f analysis/requirements.txt
+          test -f tests/_roundtrip_driver.py
+          test -f demo/index.html
+          test -f demo/mccb_dashboard.html
+          test -f demo/person.html
+          test -f demo/.nojekyll
           test -f server/research-backend.cjs
           test -f task-manifest.json
           test -f protocol-lock.json
@@ -92,14 +121,24 @@ jobs:
           test -f docs/RESEARCH_DATA_MODEL.md
           test -f docs/BACKEND_V1.md
           grep -q '"protocolGovernance": "protocol-lock-v1"' task-manifest.json
-          grep -q '"dataModelVersion": "research-data-model-1.1.0"' task-manifest.json
+          grep -q '"manifestVersion": 6' task-manifest.json
+          grep -q '"scoringVersion": "research-scoring-0.5.0"' task-manifest.json
+          grep -q '"dataModelVersion": "research-data-model-1.2.0"' task-manifest.json
           grep -q '"storageArchitecture": "local-primary-http-replica-1.1.0"' task-manifest.json
           grep -q '"tableExportVersion": "research-table-export-1.0.0"' task-manifest.json
           grep -q '"lockVersion": 1' protocol-lock.json
-          grep -q "MODEL_VERSION='research-data-model-1.1.0'" research-data.js
+          grep -q '"cohortNorm": "cohort-t-0.1.0"' protocol-lock.json
+          grep -q "MODEL_VERSION='research-data-model-1.2.0'" research-data.js
           grep -q "STORAGE_ARCH_VERSION='local-primary-http-replica-1.1.0'" research-storage.js
           grep -q "EXPORT_VERSION='research-table-export-1.0.0'" research-export.js
-          grep -q "Research Data Model v1.1" docs/RESEARCH_DATA_MODEL.md
+          grep -q "Research Data Model v1.2" docs/RESEARCH_DATA_MODEL.md
+          grep -q "SCORING_VERSION = 'research-scoring-0.5.0'" mccb-scoring.js
+          grep -q "cohort-t-0.1.0" mccb-norms.js
+          grep -q "MIN_COHORT_N = 5" mccb-norms.js
+          grep -q "研究口径" research-reports.html
+          grep -q "这不是 MCCB 官方常模 T 分" research-reports.html
+          grep -q "官方分将优先显示" research-reports.html
+          grep -q "非 MCCB 官方常模" mccb-dashboard-export.js
           grep -q "Study → Site → Participant → Session → Attempt" docs/RESEARCH_DATA_MODEL.md
           grep -q "local-primary-http-replica-1.1.0" docs/BACKEND_V1.md
           grep -q "research-storage.js" participant-runner.html

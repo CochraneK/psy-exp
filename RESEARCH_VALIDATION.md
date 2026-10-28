@@ -90,8 +90,15 @@ response time
 当前 scoring version：
 
 ```text
-research-scoring-0.4.0
+research-scoring-0.5.0
 ```
+
+v0.5.0 在 0.4.0 的 cohort rank index 之外新增两条研究参考通道（均为 research 口径，不是 MCCB 官方常模）：
+
+- **cohort-t 同队列参考 T**（`mccb-norms.js`，`cohort-t-0.1.0`）：T = 50 + 10·Φ⁻¹(rank/100)，域内并列均排名，每测验项池 N≥5 守卫；数学正确性由 `tests/verify-cohort-t.cjs`（31 项断言，含与解析解/手算值比对）覆盖。
+- **KW 组间显著性**（`mccb-dashboard-export.js` 自包含实现 + `analysis/refresh.py` scipy 实现）：`tests/verify-export-csv.cjs` 以同一输入交叉验证两套实现的 H/p/eta2/k/N/n（p 值差异 < 1e-9）。
+
+以上均为**软件工程正确性证据**，不构成心理测量验证或常模等效性声明（见四层验证模型）。
 
 ### 已删除的旧方法
 

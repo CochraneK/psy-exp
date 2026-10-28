@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCCB 报告中心 · psy-exp</title>
+<style>
+:root{
+  --teal:#0d9488; --teal-dark:#0f766e; --teal-soft:#ccfbf1;
+  --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f5f7f7;
+  --amber-bg:#fff7ed; --amber-line:#fed7aa; --amber-ink:#9a3412;
+  --red:#dc2626;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;height:100vh}
+a{color:var(--teal-dark)}
+/* ---- 顶栏 ---- */
+header.top{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:10px 16px;flex-wrap:wrap}
+.back{font-size:13px;font-weight:600;text-decoration:none;padding:6px 10px;border:1px solid var(--line);border-radius:8px;color:var(--teal-dark);background:#f8fffe}
+.back:hover{border-color:var(--teal);background:var(--teal-soft)}
+.title-block h1{margin:0;font-size:15px;letter-spacing:.2px}
+.title-block .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.top-right{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+/* ---- 口径横幅 ---- */
+.scale-banner{background:var(--amber-bg);border-bottom:1px solid var(--amber-line);color:var(--amber-ink);font-size:12.5px;padding:7px 16px;line-height:1.5}
+.scale-banner strong{font-weight:700}
+/* ---- 工具条 ---- */
+.toolbar{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:9px 16px;flex-wrap:wrap}
+.tb-item{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.tb-item select,.tb-item input[type=number]{font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}
+.tb-item select{max-width:230px}
+.summary{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.viewseg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.viewseg button{border:0;background:#fff;padding:6px 14px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.viewseg button.on{background:var(--teal);color:#fff}
+/* ---- 按钮 ---- */
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--teal);color:var(--teal-dark)}
+.btn-primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn-primary:hover{background:var(--teal-dark);color:#fff}
+.btn-danger{border-color:#fecaca;color:var(--red)}
+.btn-danger:hover{background:#fef2f2;border-color:var(--red)}
+.btn-sm{padding:4px 9px;font-size:12px}
+/* ---- 主体 ---- */
+main{flex:1;min-height:0;display:flex}
+#frame{flex:1;border:0;background:#fff;width:100%}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);font-size:14px;gap:6px;padding:40px;text-align:center}
+.empty .big{font-size:34px}
+/* ---- 弹窗 ---- */
+.modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:#fff;border-radius:14px;width:min(880px,96vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,23,42,.25)}
+.modal-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal-head h2{margin:0;font-size:15px;flex:1}
+.modal-x{border:0;background:none;font-size:16px;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:6px}
+.modal-x:hover{background:#f3f4f6;color:var(--ink)}
+.modal-body{padding:14px 18px;overflow:auto}
+.modal-foot{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.modal-foot .spacer{flex:1}
+.m-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;color:var(--muted)}
+.m-row label{display:flex;align-items:center;gap:6px}
+.m-row input{font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px}
+.m-row .w150{width:150px}.m-row .w220{width:220px}
+fieldset{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:0 0 12px}
+legend{font-size:12px;font-weight:700;color:var(--teal-dark);padding:0 6px}
+.grid9{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid9 label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted)}
+.grid9 input{font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;font-variant-numeric:tabular-nums}
+.grid9 input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-soft)}
+.muted{color:var(--muted)}.small{font-size:11.5px;margin:2px 0 0}
+@media (max-width:720px){
+  .grid9{grid-template-columns:repeat(2,1fr)}
+  .summary{margin-left:0}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="back" href="index.html">← 工作台</a>
+  <div class="title-block">
+    <h1>📊 MCCB 报告中心</h1>
+    <div class="sub">群体总览 / 个人分析报告 · 浏览器内实时渲染（refresh.py 模板 1:1 移植，无后端）</div>
+  </div>
+  <div class="top-right">
+    <button class="btn" id="btnOfficial" title="注入 NAB 官方计分 T 分（官方分优先于同队列参考 T）">🔑 官方分注入</button>
+    <button class="btn" id="btnCsv" title="导出 dashboard 兼容 CSV（T 分列=官方分||同队列参考 T，研究口径）">⬇️ 分析导出 CSV</button>
+  </div>
+</header>
+
+<div class="scale-banner">
+  ⚠️ 参考口径：本页 T 分为<strong>同队列参考 T（研究口径）</strong>——T=50+10·Φ⁻¹(rank/100)，rank 为各测验项在本队列池内的并列均排名，域分为域内测验 rank 均值（每测验项需 N≥5）。
+  <strong>这不是 MCCB 官方常模 T 分</strong>，不继承 MCCB 常模解释，不用于临床诊断判断；如该访视有 NAB 官方计分，请用「🔑 官方分注入」，官方分将优先显示。
+</div>
+
+<div class="toolbar">
+  <div class="tb-item">
+    <span>被试</span>
+    <select id="selParticipant"></select>
+  </div>
+  <div class="tb-item viewseg" id="viewSeg">
+    <button data-v="overview" class="on">群体总览</button>
+    <button data-v="person">个人报告</button>
+  </div>
+  <div class="tb-item" id="demoBlock" hidden>
+    <label>年龄 <input id="inAge" type="number" min="1" max="120" step="0.1" placeholder="岁"></label>
+    <label>性别
+      <select id="inGender">
+        <option value="">未标注</option>
+        <option value="male">男</option>
+        <option value="female">女</option>
+      </select>
+    </label>
+    <button class="btn btn-sm" id="btnDemo">保存人口学</button>
+  </div>
+  <div class="summary" id="summaryLine"></div>
+</div>
+
+<main id="main">
+  <iframe id="frame" title="报告渲染区"></iframe>
+  <div class="empty" id="emptyState" hidden>
+    <div class="big">🗂️</div>
+    <p><strong>暂无可报告的测评访视</strong></p>
+    <p>请先在「工作台」完成至少一项测验（带完成时间戳的作答记录），<br>即可在此实时生成群体总览与个人纵向报告。</p>
+  </div>
+</main>
+
+<!-- 官方分注入弹窗 -->
+<div class="modal-mask" id="modalMask" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="官方计分 T 分注入">
+    <div class="modal-head">
+      <h2>🔑 官方计分 T 分注入 <span class="muted" id="mPid"></span></h2>
+      <button class="modal-x" id="mClose" title="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="m-row">
+        <label>访视日期
+          <select id="mDate"></select>
+        </label>
+        <label>来源 <input id="mSource" type="text" placeholder="如：NAB v4 官方计分 / 授权人工"></label>
+        <label>备注 <input id="mNote" type="text" placeholder="可选"></label>
+      </div>
+      <fieldset>
+        <legend>综合 T 分（9）</legend>
+        <div class="grid9" id="mAgt"></div>
+      </fieldset>
+      <fieldset>
+        <legend>测验项 T 分（9）</legend>
+        <div class="grid9" id="mTestAgt"></div>
+      </fieldset>
+      <p class="muted small">只填手头已有的项（1–99，一位小数）；留空项继续用同队列参考 T。同一访视重复保存将覆盖旧记录；删除不影响测评原始数据。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="mDel">删除该访视官方分</button>
+      <span class="spacer"></span>
+      <button class="btn" id="mCancel">取消</button>
+      <button class="btn btn-primary" id="mSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="research-data.js"></script>
+<script src="mccb-participant.js"></script>
+<script src="mccb-norms.js"></script>
+<script src="mccb-official-scores.js"></script>
+<script src="mccb-dashboard-export.js"></script>
+<script src="mccb-report-templates.js"></script>
+<script>
+(function(){
+  'use strict';
+  var TPL = window.MCCBReportTemplates;
+  var EX = window.DashboardExport;
+  var PM = window.ParticipantManager;
+  var RD = window.ResearchData;
+  var OFF = window.OfficialScores;
+  var STUDY_FILE = EX.STUDY_FILE;
+  var DIAG_NAME = EX.DIAG_NAME;
+  var RATER = EX.RATER;
+  var CORE_TESTS = EX.RAW_COLUMNS;
+  var COMP_BASES = EX.COMP_BASES;
+  var COMP_LABELS = {
+    'SoP':'处理速度','AV':'注意警觉','WM':'工作记忆','Vrbl Lrng':'言语学习',
+    'Vis Lrng':'视觉学习','RPS':'推理问题','SC':'社会认知',
+    'Overall Comp':'综合','Neurocog Comp':'神经认知'
+  };
+  var TEST_AGT_LABELS = {};
+  CORE_TESTS.forEach(function(c){ TEST_AGT_LABELS[c] = c; });
+
+  var el = function(id){ return document.getElementById(id); };
+  var frame = el('frame');
+  var state = { pid: '', view: 'overview' };
+  var lastRows = [];
+
+  function stamp(){ return new Date().toISOString().slice(0,16).replace('T',' '); }
+  function jsonp(x){ return JSON.stringify(x).replace(/</g,'\\<'); }
+
+  /* KW 显著性（gammaLn/gammp/chi2Sf/kwTest/buildSig）已移至 mccb-dashboard-export.js（EX.buildSig），单源可测 */
+
+  /* ============ 行 → refresh.py record 形状 ============ */
+  function rowsToRecords(rows){
+    return rows.map(function(r){
+      var sc={}, tc={};
+      COMP_BASES.forEach(function(b){ if(r.sc[b]!=null) sc[b]=r.sc[b]; });
+      CORE_TESTS.forEach(function(c){ if(r.tc[c]!=null) tc[c]=r.tc[c]; });
+      return {
+        date:r.date, file:STUDY_FILE, diag:DIAG_NAME, id:r.pid, name:r.pid,
+        pkey:STUDY_FILE+'|'+r.pid, pid:r.pid, gender:r.gender, age:r.age,
+        phase:String(r.phase), rater:RATER,
+        tests:r.tests, comp:Object.keys(sc).length, sc:sc, tc:tc
+      };
+    });
+  }
+
+  /* ============ 模板装配（srcdoc 内桥接 URL 参数 + 链接拦截） ============ */
+  var NAV_SCRIPT = '<script>' +
+    'document.addEventListener(\'click\',function(e){' +
+      'var t=e.target; if(!t||!t.closest) return;' +
+      'var a=t.closest("a[href^=\'person.html\']");' +
+      'if(a){' +
+        'e.preventDefault(); e.stopPropagation();' +
+        'var h=a.getAttribute(\'href\')||\'\';' +
+        'var i=h.indexOf(\'person=\');' +
+        'if(i>=0){ var q=h.slice(i+7).split(\'&\')[0]; window.parent.postMessage({type:\'mccb-report-nav\',view:\'person\',person:q},\'*\'); }' +
+        'return;' +
+      '}' +
+      'var b=t.closest("a[href*=\'mccb_dashboard.html\']");' +
+      'if(b){ e.preventDefault(); e.stopPropagation(); window.parent.postMessage({type:\'mccb-report-nav\',view:\'overview\'},\'*\'); }' +
+    '},true);' +
+    '<\/script>';
+  function assemble(tpl, data, query){
+    var html = tpl.split('@@CHARTJS@@').join(TPL.chartSrc());
+    html = html.split('@@CSS@@').join(TPL.baseCss);
+    html = html.split('@@DATA@@').join(jsonp(data));
+    if(query){
+      var bridge = '<script>window.__params=function(){return new URLSearchParams(' + jsonp(query) + ');};<\/script>';
+      html = html.replace(/<head(\s[^>]*)?>/i, function(m){ return m + bridge; });
+      html = html.split('new URLSearchParams(location.search)').join('window.__params()');
+    }
+    html = html.replace(/<\/body>/i, NAV_SCRIPT + '</body>');
+    return html;
+  }
+
+  /* ============ 渲染 ============ */
+  function render(){
+    var rows;
+    try { rows = EX.buildRows(); }
+    catch(err){
+      el('summaryLine').textContent = '数据构建失败：' + err.message;
+      return;
+    }
+    lastRows = rows;
+    if(!rows.length){
+      frame.style.display='none';
+      el('emptyState').hidden=false;
+      el('summaryLine').textContent='';
+      return;
+    }
+    frame.style.display='';
+    el('emptyState').hidden=true;
+    var records = rowsToRecords(rows);
+    var mn='', mx='';
+    records.forEach(function(r){ if(!mn||r.date<mn) mn=r.date; if(r.date>mx) mx=r.date; });
+    var html;
+    if(state.view==='person' && state.pid){
+      var pdata={ records:records, core_tests:CORE_TESTS, comp_bases:COMP_BASES, comp_labels:COMP_LABELS, generated:stamp() };
+      var pkey=STUDY_FILE+'|'+state.pid;
+      html = assemble(TPL.person, pdata, 'person='+encodeURIComponent(pkey));
+    } else {
+      var data={
+        records:records,
+        files:{},
+        core_tests:CORE_TESTS,
+        comp_bases:COMP_BASES,
+        comp_labels:COMP_LABELS,
+        test_agt:CORE_TESTS.slice(),
+        test_agt_labels:TEST_AGT_LABELS,
+        diag_order:[DIAG_NAME],
+        sig:EX.buildSig(records),
+        generated:stamp()
+      };
+      data.files[STUDY_FILE]={ rows:records.length, test:false, min:mn, max:mx };
+      html = assemble(TPL.dashboard, data, '');
+    }
+    frame.srcdoc = html;
+    updateSummary();
+  }
+  function updateSummary(){
+    var pids = PM.getAllParticipants();
+    var withVisits = lastRows.length ? lastRows.reduce(function(s,r){ s[r.pid]=1; return s; },{}) : {};
+    var nv = Object.keys(withVisits).length;
+    var offCount = 0;
+    try {
+      var store = OFF.getStore();
+      Object.keys(store).forEach(function(pid){
+        (store[pid].visits||[]).forEach(function(v){
+          if(Object.keys(v.agt||{}).length || Object.keys(v.testAgt||{}).length) offCount++;
+        });
+      });
+    } catch(e){}
+    var maxN = 0;
+    lastRows.forEach(function(r){ if(r.cohortN>maxN) maxN=r.cohortN; });
+    el('summaryLine').textContent =
+      '被试 ' + pids.length + '（有访视 ' + nv + '）· 访视 ' + lastRows.length +
+      ' · 官方分注入 ' + offCount + ' 访视 · 队列池 N≈' + (maxN||0);
+  }
+
+  /* ============ 被试选择器 / 视图切换 / 人口学 ============ */
+  function fillParticipantSelect(){
+    var sel = el('selParticipant');
+    sel.innerHTML='';
+    var pids = PM.getAllParticipants();
+    var opt0=document.createElement('option');
+    opt0.value=''; opt0.textContent='— 不指定（仅群体总览）—';
+    sel.appendChild(opt0);
+    pids.forEach(function(pid){
+      var n=0;
+      lastRows.forEach(function(r){ if(r.pid===pid) n++; });
+      var o=document.createElement('option');
+      o.value=pid;
+      o.textContent = pid + (n ? '（' + n + ' 次访视）' : '（无访视）');
+      sel.appendChild(o);
+    });
+    sel.value = state.pid;
+  }
+  function syncControls(){
+    var seg = el('viewSeg');
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+      b.classList.toggle('on', b.dataset.v===state.view);
+    });
+    el('demoBlock').hidden = !state.pid;
+    if(state.pid){
+      var p=null;
+      try { p = (RD._load().participants||{})[state.pid] || null; } catch(e){ p=null; }
+      el('inAge').value = p && p.age!=null ? p.age : '';
+      el('inGender').value = p && p.gender ? p.gender : '';
+    }
+    el('selParticipant').value = state.pid;
+  }
+  function refreshAll(){
+    fillParticipantSelect();
+    syncControls();
+    render();
+  }
+  el('selParticipant').addEventListener('change', function(e){
+    state.pid = e.target.value;
+    if(state.pid) state.view='person';
+    syncControls(); render();
+  });
+  el('viewSeg').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button[data-v]') : null;
+    if(!b) return;
+    state.view = b.dataset.v;
+    if(state.view==='person' && !state.pid){
+      var first = PM.getAllParticipants().filter(function(pid){
+        return lastRows.some(function(r){ return r.pid===pid; });
+      })[0] || '';
+      if(!first){ alert('暂无有访视的被试，请先在工作台完成测验。'); return; }
+      state.pid = first;
+    }
+    syncControls(); render();
+  });
+  el('btnDemo').addEventListener('click', function(){
+    if(!state.pid) return;
+    var age = el('inAge').value;
+    var gender = el('inGender').value;
+    try {
+      RD.setParticipantDemographics(state.pid, {
+        age: age==='' ? null : Number(age),
+        gender: gender || null,
+        operatorId: 'report-center'
+      });
+    } catch(err){
+      alert('保存失败：' + err.message);
+      return;
+    }
+    render();
+  });
+
+  /* ============ 官方分注入弹窗 ============ */
+  var mDateSel = el('mDate'), mAgtGrid = el('mAgt'), mTestAgtGrid = el('mTestAgt');
+  function buildAgtGrid(container, bases, prefix){
+    container.innerHTML='';
+    bases.forEach(function(b){
+      var lab=document.createElement('label');
+      var inp=document.createElement('input');
+      inp.type='number'; inp.min='1'; inp.max='99'; inp.step='0.1';
+      inp.placeholder='—'; inp.id = prefix+'_'+b.replace(/\W+/g,'_');
+      lab.appendChild(document.createTextNode(b));
+      lab.appendChild(inp);
+      container.appendChild(lab);
+    });
+  }
+  buildAgtGrid(mAgtGrid, COMP_BASES, 'agt');
+  buildAgtGrid(mTestAgtGrid, CORE_TESTS, 'tagt');
+  function gridValues(prefix){
+    var out={};
+    COMP_BASES.forEach(function(b){
+      var v = el(prefix+'_'+b.replace(/\W+/g,'_')).value;
+      if(v!=='' && v!=null){ var x=Number(v); if(Number.isFinite(x)&&x>=1&&x<=99) out[b]=Math.round(x*10)/10; }
+    });
+    return out;
+  }
+  function pidVisits(pid){
+    var out=[];
+    lastRows.forEach(function(r){ if(r.pid===pid) out.push(r.date); });
+    return out.sort();
+  }
+  function openModal(){
+    var pid = state.pid || PM.getAllParticipants().filter(function(x){
+      return lastRows.some(function(r){ return r.pid===x; });
+    })[0];
+    if(!pid){ alert('暂无被试，请先在工作台完成测验。'); return; }
+    state.pid = pid;
+    syncControls();
+    var dates = pidVisits(pid);
+    mDateSel.innerHTML='';
+    if(!dates.length){ alert('该被试还没有任何测评访视，无法注入官方分。'); return; }
+    dates.slice().reverse().forEach(function(d){
+      var o=document.createElement('option'); o.value=d; o.textContent=d;
+      mDateSel.appendChild(o);
+    });
+    fillModalFor(pid, dates[dates.length-1]);
+    el('modalMask').hidden=false;
+  }
+  function fillModalFor(pid, date){
+    el('mPid').textContent = '· ' + pid + ' · ' + date;
+    el('mSource').value=''; el('mNote').value='';
+    var v = null;
+    try { v = OFF.getVisit(pid, date); } catch(e){ v=null; }
+    COMP_BASES.forEach(function(b){
+      el('agt_'+b.replace(/\W+/g,'_')).value = v && v.agt && v.agt[b]!=null ? v.agt[b] : '';
+    });
+    CORE_TESTS.forEach(function(b){
+      el('tagt_'+b.replace(/\W+/g,'_')).value = v && v.testAgt && v.testAgt[b]!=null ? v.testAgt[b] : '';
+    });
+  }
+  function closeModal(){ el('modalMask').hidden=true; }
+  el('mDate').addEventListener('change', function(e){
+    fillModalFor(state.pid, e.target.value);
+  });
+  el('mSave').addEventListener('click', function(){
+    var date = mDateSel.value;
+    var agt = gridValues('agt');
+    var testAgt = (function(){
+      var out={};
+      CORE_TESTS.forEach(function(b){
+        var v = el('tagt_'+b.replace(/\W+/g,'_')).value;
+        if(v!=='' && v!=null){ var x=Number(v); if(Number.isFinite(x)&&x>=1&&x<=99) out[b]=Math.round(x*10)/10; }
+      });
+      return out;
+    })();
+    if(!Object.keys(agt).length && !Object.keys(testAgt).length){
+      alert('请至少填写一项 T 分（1–99）。');
+      return;
+    }
+    try {
+      OFF.addVisit(state.pid, {
+        date: date, agt: agt, testAgt: testAgt,
+        source: el('mSource').value, note: el('mNote').value
+      });
+    } catch(err){
+      alert('保存失败：' + err.message);
+      return;
+    }
+    closeModal();
+    render();
+  });
+  el('mDel').addEventListener('click', function(){
+    if(!state.pid || !mDateSel.value) return;
+    if(!confirm('删除 ' + state.pid + ' 在 ' + mDateSel.value + ' 的官方分记录？（不影响原始测评数据）')) return;
+    OFF.removeVisit(state.pid, mDateSel.value);
+    closeModal();
+    render();
+  });
+  el('btnOfficial').addEventListener('click', openModal);
+  el('mClose').addEventListener('click', closeModal);
+  el('mCancel').addEventListener('click', closeModal);
+  el('modalMask').addEventListener('click', function(e){ if(e.target===el('modalMask')) closeModal(); });
+
+  /* ============ CSV 导出 ============ */
+  el('btnCsv').addEventListener('click', function(){
+    try {
+      var r = EX.exportDashboardCsv();
+      alert('已导出 ' + r.filename + '\n' + r.rows + ' 行（每被试每访视一行）\n\n将 CSV 放入 analysis/ 目录后运行 refresh.py 即可纳入 dashboard 工作台。');
+    } catch(err){
+      alert('导出失败：' + err.message);
+    }
+  });
+
+  /* ============ iframe 内链接导航（群体总览明细 → 个人报告） ============ */
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if(!d || d.type!=='mccb-report-nav') return;
+    if(d.view==='person' && d.person){
+      var decoded='';
+      try { decoded = decodeURIComponent(d.person); } catch(err){ decoded = d.person; }
+      var pid = decoded.split('|').pop();
+      state.pid = pid; state.view='person';
+    } else {
+      state.view='overview';
+    }
+    syncControls(); render();
+  });
+
+  /* ============ 启动 ============ */
+  refreshAll();
+})();
+</script>
+</body>
+</html>

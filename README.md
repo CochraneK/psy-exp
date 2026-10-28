@@ -30,6 +30,7 @@
 - `research-comparison.html` — 多参与者、按 reference group 隔离的研究对比与 CSV 导出。
 - `research-review.html` — 开放题审查台（Fluency 语义核验 + BWAIS 开放题判分）。
 - `data-governance.html` — 研究数据治理：Study/Site/consent/session 生命周期、replica 同步、受控导入，以及统计表格导出（participant_wide / attempts / provenance / audit_log 四张 CSV 表 + 导出审计链）。
+- `research-reports.html` — **报告中心（结果处理层）**：浏览器内渲染群体总览 / 个人报告（与 MCCB 工作台模板 1:1），队列内参考 T（研究口径，N≥5 守卫）+ 官方分注入（官方分优先），一键导出 refresh.py 兼容 CSV（34 列）。
 - `pages/` — 11 个具体研究任务（其中 10 项为 MCCB-related 认知任务，1 项为独立补充电池）。
 
 Researcher Console / 报告使用 `research-ui.css` 的长页面应用 shell；实验任务继续使用 `mccb-common.css` 的全屏任务 shell。两者故意分离，避免管理/报告页面被实验页的 `100vh + overflow:hidden` 布局截断。
@@ -241,7 +242,10 @@ CI 还包含 fail-closed guard，防止：
 - 公共树重新出现操作者表格或公开 HVLT word list；
 - Windows/本机绝对路径和旧 browser harness 回归；
 - 任务页重新禁止浏览器缩放；
-- manifest / runtime / scoring metadata 漂移。
+- manifest / runtime / scoring metadata 漂移；
+- 报告中心丢失「队列参考 T 非 MCCB 官方常模」口径声明。
+
+2026-10 起 CI 新增两个真实 Chromium E2E：`tests/verify-reports-e2e.cjs`（报告中心渲染 / 深链 / postMessage 桥 / 官方分闭环 / CSV 接线，全合成种子）与 `tests/verify-export-csv.cjs`（浏览器建 CSV → Python `analysis/refresh.py` 重跑 → 逐记录比对 + JS/scipy 两套 KW 实现交叉验证）。
 
 旧的机器绑定 `tests/cpt_report.py` 已移除；它不属于当前自定义 CPT 浏览器协议，也不再作为 CI 的 Python 特例存在。
 
@@ -249,18 +253,27 @@ CI 还包含 fail-closed guard，防止：
 
 ```text
 psy-exp/
-├── index.html
-├── participant-runner.html
+├── index.html                  Researcher Console
+├── participant-runner.html     Participant Runner
+├── research-report.html        单参与者报告
+├── research-comparison.html    多被试对比
+├── research-review.html        开放题审查
+├── research-reports.html       报告中心（结果处理层，2026-10 并入）
 ├── research-ui.css
-├── mccb-participant.js
-├── mccb-scoring.js
+├── mccb-participant.js         任务运行时
+├── mccb-scoring.js             research-safe scoring 引擎
+├── mccb-norms.js               同队列参考 T（cohort-t-0.1.0，研究口径）
+├── mccb-official-scores.js     官方计分 T 注入存储
+├── mccb-dashboard-export.js    34 列 refresh.py 兼容 CSV 导出 + KW 实现
+├── mccb-report-templates.js    报告中心模板（与 refresh.py 逐字节一致）
 ├── task-manifest.json
-├── research-report.html
-├── research-comparison.html
+├── protocol-lock.json
 ├── RESEARCH_VALIDATION.md
+├── analysis/                   MCCB 分析框架（清洗版 refresh.py + 模板提取器）
+├── demo/                       100% 合成数据演示站（seed 20261028）
 ├── docs/
 ├── pages/
-├── tests/
+├── tests/                      15 组便携电池 + Chromium E2E + CSV 回环
 └── .github/workflows/ci.yml
 ```
 

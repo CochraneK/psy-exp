@@ -102,6 +102,24 @@ Research surfaces could only hand over a JSON bundle; statistical software (SPSS
 - **BIDS-style TSV deliberately deferred** (v1.1.0 candidate): no concrete consumer yet; avoiding dead code.
 - **Contracts**: `tests/verify-export.cjs` (75 assertions: module shape, manifest alignment, wide/attempts derivations, RFC 4180, audit-trail failure paths, page/CI wiring, and three free-text privacy negatives) joins `full-battery.cjs` (14 → 15 groups); `data-governance.html` gains a “统计表格导出（CSV）” section (four buttons + status line + privacy note + format-spec card) with CI wiring greps; `docs/RESEARCH_DATA_MODEL.md` gains a “Table export” section; README product structure lists the previously unlisted `research-review.html` / `data-governance.html` surfaces.
 
+## MCCB analysis pipeline integration (2026-10-28)
+
+The `CochraneK/mccb-dashboard` repository's analysis layer was **merged into this repository** as its result-processing stage; that repo becomes a redirect stub (old URLs stay alive). Decision owner: project owner, 2026-10-28 ("psy-exp 可以重构，毕竟 psy-exp 也是基于 mccb 的自我开发版本，然后 mccb 的这个分析报告，刚好可以当结果的处理部分").
+
+What landed:
+
+- **`analysis/`** — the cleaned (synthetic-demo-mapped) `refresh.py` scanner/generator + `extract_report_templates.py` + `chart.min.js` + demo data mapping. It is the *framework* for the MCCB-compatible CSV/XLS schema: `build_records` (record shape, `pkey = file|baseid`), `kw_group_sig` (scipy Kruskal-Wallis, epsilon-squared), and the three self-contained HTML templates (dashboard / per-file / per-person). No real participant data ships in the repo.
+- **`research-reports.html`** — in-browser report center (researcher surface): renders the same templates 1:1 (byte-identical, verified roundtrip in `mccb-report-templates.js`) over browser-local data, with a caliber banner making explicit that cohort reference T is a **research-caliber within-cohort reference, not MCCB official norms**.
+- **`mccb-dashboard-export.js`** — dashboard-compatible CSV export (34 columns, refresh.py column-for-column) plus the shared Kruskal-Wallis implementation used by the report center. Official-score-injected values take priority over cohort T.
+- **`demo/`** — the 100%-synthetic demo site (seed `20261028`) moved from the dashboard repo.
+- **Version bump (same change)**: `task-manifest.json` `manifestVersion` 5→6, `scoringVersion` → `research-scoring-0.5.0` (new cohort-t + official-score channels), `dataModelVersion` → `research-data-model-1.2.0` (participant demographics `age`/`gender` consumed by the report center); `protocol-lock.json` gains a `scoring` section locking `cohort-t-0.1.0` / `official-scores-v1`.
+
+Boundaries that stay:
+
+- cohort reference T (cohort-t-0.1.0) requires N≥5 per test pool and is **never** an MCCB official norm or clinical interpretation — the report center and CSV export carry the caliber statement by design (CI-grepped).
+- real participant data (the local MCCB workspace) **never** enters this repository; `demo/` and all CI seeds are synthetic.
+- `analysis/refresh.py` ships with the demo `DIAG_MAP` only; local research mappings stay outside the repo.
+
 ## Identity
 
 Repository-facing maintainer identity uses **CochraneK**.

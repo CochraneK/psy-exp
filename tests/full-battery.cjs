@@ -15,6 +15,7 @@ const checks=[
   ['consent/import governance','tests/verify-governance.cjs'],
   ['authenticated reference backend','tests/verify-backend.cjs'],
   ['research scoring','tests/verify-scoring.cjs'],
+  ['cohort T + KW math (portable)','tests/verify-cohort-t.cjs'],
   ['open-item review contract','tests/verify-review.cjs'],
   ['research table export','tests/verify-export.cjs'],
   ['synthetic demo dataset','tests/verify-demo-data.cjs'],

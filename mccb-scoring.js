@@ -7,7 +7,7 @@
  * percentiles, or an MCCB composite.
  */
 const MCCBScoring = (() => {
-  const SCORING_VERSION = 'research-scoring-0.4.0';
+  const SCORING_VERSION = 'research-scoring-0.5.0';
   const DOMAINS = {
     speed_processing:{label:'处理速度',labelEn:'Speed of Processing',tests:['bacs','fluency','tmt'],color:'#3498db'},
     attention:{label:'注意/警觉',labelEn:'Attention / Vigilance',tests:['cpt'],color:'#2ecc71'},

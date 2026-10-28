@@ -17,7 +17,7 @@ Task page
 
 Machine-readable versions:
 
-- Research data model: `research-data-model-1.1.0`
+- Research data model: `research-data-model-1.2.0`
 - Storage architecture: `local-primary-http-replica-1.1.0`
 - Protocol governance: `protocol-lock-v1`
 

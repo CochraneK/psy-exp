@@ -64,7 +64,7 @@ check(/ResearchStorage\.stageBundle/.test(runner) && /syncParticipantData/.test(
 check(!/href=["']data-governance\.html["']/.test(runner), 'participant runner does not expose researcher governance controls');
 
 const researchData = fs.readFileSync(path.join(ROOT, 'research-data.js'), 'utf8');
-check(/research-data-model-1\.1\.0/.test(researchData) && /sessionEligibility/.test(researchData), 'research data model includes v1.1 consent/session governance');
+check(/research-data-model-1\.2\.0/.test(researchData) && /sessionEligibility/.test(researchData), 'research data model includes v1.2 consent/session governance');
 
 const governance = fs.readFileSync(path.join(ROOT, 'data-governance.html'), 'utf8');
 check(/research-storage\.js/.test(governance) && /research-data\.js/.test(governance) && /research-governance\.js/.test(governance), 'data governance loads storage, model and validator layers');

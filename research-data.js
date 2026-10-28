@@ -1,11 +1,11 @@
-/* Research Data Model v1.1: versioned Study/Site/Participant/Session/Attempt provenance + consent governance. */
+/* Research Data Model v1.2: versioned Study/Site/Participant/Session/Attempt provenance + consent governance + participant demographics (age/gender). */
 (function(root,factory){
   const api=factory(root||globalThis);
   if(typeof module==='object'&&module.exports)module.exports=api;
   if(root)root.ResearchData=api;
 })(typeof window!=='undefined'?window:globalThis,function(root){
   'use strict';
-  const MODEL_VERSION='research-data-model-1.1.0';
+  const MODEL_VERSION='research-data-model-1.2.0';
   const STORAGE_KEY='psy-exp-research-data-v1';
   const DEFAULT_STUDY_ID='psy-exp-default-study';
   const DEFAULT_SITE_ID='local-browser-site';
@@ -32,7 +32,7 @@
     const d=data&&typeof data==='object'?data:blank();d.schemaVersion=1;d.modelVersion=MODEL_VERSION;d.createdAt=d.createdAt||now();d.updatedAt=d.updatedAt||now();
     d.study=d.study&&typeof d.study==='object'?d.study:{id:DEFAULT_STUDY_ID,label:'psy-exp local research study',consentVersion:null,protocolGovernance:'protocol-lock-v1'};if(!Object.prototype.hasOwnProperty.call(d.study,'consentVersion'))d.study.consentVersion=null;d.study.protocolGovernance='protocol-lock-v1';
     d.sites=d.sites&&typeof d.sites==='object'?d.sites:{};if(!d.sites[DEFAULT_SITE_ID])d.sites[DEFAULT_SITE_ID]={id:DEFAULT_SITE_ID,label:'Local browser site',createdAt:now()};
-    d.participants=d.participants&&typeof d.participants==='object'?d.participants:{};for(const p of Object.values(d.participants)){if(p&&typeof p==='object'){p.status=p.status||'active';if(!Object.prototype.hasOwnProperty.call(p,'consent'))p.consent=null}}
+    d.participants=d.participants&&typeof d.participants==='object'?d.participants:{};for(const p of Object.values(d.participants)){if(p&&typeof p==='object'){p.status=p.status||'active';if(!Object.prototype.hasOwnProperty.call(p,'consent'))p.consent=null;if(!Object.prototype.hasOwnProperty.call(p,'age'))p.age=null;if(!Object.prototype.hasOwnProperty.call(p,'gender'))p.gender=null}}
     d.sessions=d.sessions&&typeof d.sessions==='object'?d.sessions:{};d.attempts=Array.isArray(d.attempts)?d.attempts:[];d.audit=Array.isArray(d.audit)?d.audit:[];d.builds=d.builds&&typeof d.builds==='object'?d.builds:{};return d
   }
   function load(){return normalize(storage.get())}
@@ -69,5 +69,21 @@
   function snapshot(){return clone(load())}
   function exportBundle(extra={}){if(extra.participantData)syncParticipantData(extra.participantData);const d=load();return{exportedAt:now(),format:'psy-exp-research-data-bundle',modelVersion:MODEL_VERSION,researchData:d,participantData:clone(extra.participantData)||null}}
   function downloadBundle(extra={}){if(typeof document==='undefined')return false;const blob=new Blob([JSON.stringify(exportBundle(extra),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`psy-exp-research-data-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;a.click();URL.revokeObjectURL(url);return true}
-  return{MODEL_VERSION,STORAGE_KEY,DEFAULT_STUDY_ID,DEFAULT_SITE_ID,setStorageAdapter,getStorageAdapterInfo,configureStudy,ensureParticipant,setParticipantConsent,sessionEligibility,beginSession,getActiveSession,updateSession,closeSession,closeActiveSessions,reopenSession,deleteParticipant,recordAttempt,syncParticipantData,registerBuild,snapshot,exportBundle,downloadBundle,_load:load,_save:save,_clear:storage.clear};
+  // v1.2: 人口学字段（age 岁 / gender male|female|unspecified|null），供报告中心与 dashboard 兼容导出使用
+  function setParticipantDemographics(participantId,{age=null,gender=null,operatorId='local-researcher',note=null}={}){
+    const id=safeId(participantId),d=load();if(!d.participants[id])ensureParticipant(id);
+    const p=d.participants[id];if(!p)return null;
+    const ageN=age==null||age===''?null:Number(age);
+    if(ageN!=null&&(!Number.isFinite(ageN)||ageN<1||ageN>120))throw new Error('AGE_INVALID');
+    const g=gender==null||gender===''?null:String(gender).trim().toLowerCase();
+    if(g!=null&&!['male','female','unspecified'].includes(g))throw new Error('GENDER_INVALID');
+    p.age=ageN!=null?Math.round(ageN*10)/10:null;
+    p.gender=g;
+    p.demographicsNote=note?String(note).slice(0,200):null;
+    p.updatedAt=now();
+    audit(d,'participant_demographics_set',{participantId:id,age:p.age,gender:p.gender,operatorId:safeId(operatorId)});
+    save(d);
+    return clone(p);
+  }
+  return{MODEL_VERSION,STORAGE_KEY,DEFAULT_STUDY_ID,DEFAULT_SITE_ID,setStorageAdapter,getStorageAdapterInfo,configureStudy,ensureParticipant,setParticipantConsent,setParticipantDemographics,sessionEligibility,beginSession,getActiveSession,updateSession,closeSession,closeActiveSessions,reopenSession,deleteParticipant,recordAttempt,syncParticipantData,registerBuild,snapshot,exportBundle,downloadBundle,_load:load,_save:save,_clear:storage.clear};
 });

@@ -13,5 +13,11 @@
     "mazes": {"taskVersion":"mazes-web-0.4.0","protocolId":"generated-perfect-mazes-v1","page":"pages/mccb-mazes.html"},
     "msceit": {"taskVersion":"msceit-web-0.4.0","protocolId":"private-social-cognition-shell-v1","page":"pages/mccb-msceit.html"},
     "bwais": {"taskVersion":"bwais-web-0.2.0","protocolId":"brief-wais-4subtest-synthetic-v1","page":"pages/mccb-bwais.html"}
+  },
+  "scoring": {
+    "bundle": "research-scoring-0.5.0",
+    "cohortNorm": "cohort-t-0.1.0",
+    "officialScoresStore": "official-scores-v1",
+    "policy": "Research scoring bundle or cohort reference norm changes require a task-manifest.json scoringVersion bump in the same reviewed change. Cohort reference T remains a research-caliber within-cohort reference (requires N>=5 per test pool), never an MCCB official norm or clinical interpretation."
   }
 }

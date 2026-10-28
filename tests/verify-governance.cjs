@@ -8,7 +8,7 @@ const Governance=require(path.resolve(__dirname,'../research-governance.js'));
 let pass=0,fail=0;const check=(name,cond,detail='')=>{if(cond){pass++;console.log('  ✅ '+name)}else{fail++;console.log('  ❌ '+name+(detail?' — '+detail:''))}};
 console.log('=== Consent / import governance ===');
 ResearchData._clear();
-check('data model upgraded',ResearchData.MODEL_VERSION==='research-data-model-1.1.0');
+check('data model upgraded',ResearchData.MODEL_VERSION==='research-data-model-1.2.0');
 check('default primary adapter is synchronous',ResearchData.getStorageAdapterInfo().synchronous===true);
 ResearchData.configureStudy({studyId:'STUDY-GOV',siteId:'SITE-A',consentVersion:'consent-v2'});ResearchData.ensureParticipant('P001',{siteId:'SITE-A'});
 let eligibility=ResearchData.sessionEligibility('P001');check('configured consent blocks session before grant',eligibility.eligible===false&&eligibility.reason==='consent_required');

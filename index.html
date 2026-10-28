@@ -446,6 +446,8 @@
         <button class="dash-clear-btn" onclick="openParticipantManager()" title="管理所有被试">👥 被试管理</button>
         <button class="dash-clear-btn" onclick="window.location.href='comprehensive-report.html'" title="查看综合认知报告">📊 综合报告</button>
         <button class="dash-clear-btn" onclick="window.location.href='comparison-report.html'" title="多被试认知域对比">📈 对比分析</button>
+        <button class="dash-clear-btn" onclick="window.location.href='research-reports.html'" title="报告中心：群体总览 / 个人分析报告 / 官方分注入（研究口径，非 MCCB 常模）">📊 报告中心</button>
+        <button class="dash-clear-btn" onclick="exportDashboardCsv()" title="导出分析兼容 CSV（dashboard 口径；T 分列=官方分||同队列参考 T，研究口径）">⬇️ 分析导出</button>
         <button class="dash-clear-btn" onclick="exportData()" title="导出测评数据为 JSON">导出数据</button>
         <button class="dash-clear-btn" onclick="document.getElementById('importInput').click()" title="从 JSON 导入测评数据">导入数据</button>
         <button class="dash-clear-btn" onclick="exportPDF()" title="生成 PDF 测评报告">📄 PDF 报告</button>
@@ -1286,7 +1288,8 @@ function renderParticipantList() {
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">被试编号</th>' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">进度</th>' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">最近更新</th>' +
-    '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:160px;"></th>' +
+    '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">人口学</th>' +
+    '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:200px;"></th>' +
     '</tr></thead><tbody>';
 
   summaries.forEach(s => {
@@ -1295,6 +1298,9 @@ function renderParticipantList() {
       ? new Date(s.updatedAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       : '—';
     const isCurrent = s.isCurrent ? '<span style="display:inline-block;padding:1px 6px;border-radius:6px;background:#dbeafe;color:#2563eb;font-size:11px;font-weight:600;">当前</span>' : '';
+    const demo = (window.ResearchData && window.ResearchData._load().participants[s.id]) || {};
+    const ageVal = demo.age != null ? demo.age : '';
+    const genderVal = demo.gender || '';
     html += `<tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:10px 14px;font-weight:600;color:#1e293b;">${s.id} ${isCurrent}</td>
       <td style="padding:10px 14px;">
@@ -1306,6 +1312,16 @@ function renderParticipantList() {
         </div>
       </td>
       <td style="padding:10px 14px;color:#64748b;font-size:12px;">${dateStr}</td>
+      <td style="padding:10px 14px;white-space:nowrap;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" min="1" max="120" placeholder="年龄" value="${ageVal}" title="年龄（岁），留空=未填" style="width:58px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;" onchange="saveDemo('${s.id}',this,'age')">
+          <select title="性别" style="padding:4px 6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;background:#fff;" onchange="saveDemo('${s.id}',this,'gender')">
+            <option value="">未填</option>
+            <option value="male"${genderVal==='male'?' selected':''}>男</option>
+            <option value="female"${genderVal==='female'?' selected':''}>女</option>
+          </select>
+        </div>
+      </td>
       <td style="padding:10px 14px;text-align:right;white-space:nowrap;">
         <button onclick="viewParticipantReport('${s.id}')" title="查看该被试的综合认知报告" style="background:none;border:1px solid #bfdbfe;color:#2563eb;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s;margin-right:8px;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">报告</button>
         <button onclick="deleteParticipant('${s.id}')" style="background:none;border:1px solid #fecaca;color:#ef4444;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''">删除</button>
@@ -1320,6 +1336,18 @@ function renderParticipantList() {
 
 function viewParticipantReport(cohortId) {
   window.location.href = 'comprehensive-report.html?p=' + encodeURIComponent(cohortId);
+}
+
+function saveDemo(id, el, field) {
+  if (!window.ResearchData) { alert('ResearchData 尚未加载完成，请稍后重试。'); return; }
+  try {
+    const cur = (window.ResearchData._load().participants[id]) || {};
+    if (field === 'age') {
+      window.ResearchData.setParticipantDemographics(id, { age: el.value === '' ? null : Number(el.value), gender: cur.gender || null });
+    } else {
+      window.ResearchData.setParticipantDemographics(id, { age: cur.age != null ? Number(cur.age) : null, gender: el.value || null });
+    }
+  } catch (e) { alert('人口学保存失败：' + (e && e.message || e)); }
 }
 
 function deleteParticipant(cohortId) {

@@ -1,6 +1,10 @@
-# Research Data Model v1.1
+# Research Data Model v1.2
 
-`research-data.js` is the versioned Study/Site/Participant/Session/Attempt provenance layer used beside `ParticipantManager`. Version `research-data-model-1.1.0` keeps timed task persistence local and synchronous while adding consent governance, explicit session lifecycle rules and a pluggable primary-storage boundary.
+`research-data.js` is the versioned Study/Site/Participant/Session/Attempt provenance layer used beside `ParticipantManager`. Version `research-data-model-1.2.0` keeps timed task persistence local and synchronous while adding consent governance, explicit session lifecycle rules and a pluggable primary-storage boundary.
+
+## v1.2 additions
+
+- **Participant demographics** (`age`, `gender`): recorded per participant via `setParticipantDemographics(pid, {age, gender, operatorId})` with audit; consumed by the report center (`research-reports.html`) and the dashboard-compatible CSV export (`mccb-dashboard-export.js`). Demographics are optional research metadata — tasks and scoring never require them.
 
 ## Hierarchy
 
@@ -38,7 +42,7 @@ See [`BACKEND_V1.md`](BACKEND_V1.md) for the replica contract and reference serv
 
 ## Compatibility with ParticipantManager
 
-`ParticipantManager` remains the canonical task-result store in the browser prototype. Research Data Model v1.1 records provenance and synchronizes attempt metadata from `ParticipantManager.attemptHistory` idempotently.
+`ParticipantManager` remains the canonical task-result store in the browser prototype. Research Data Model v1.2 records provenance and synchronizes attempt metadata from `ParticipantManager.attemptHistory` idempotently.
 
 Participant Runner binds the selected participant to an eligible research session, fingerprints `task-manifest.json` and `protocol-lock.json`, records environment/preflight metadata, and checkpoints the combined bundle outside timed task execution.
 
