@@ -55,6 +55,19 @@ Participant Runner binds the selected participant to an eligible research sessio
 
 The bundle is research provenance data, not a validated clinical record.
 
+## Table export (research-table-export 1.0.0)
+
+`research-export.js` (registered in `task-manifest.json` as `tableExportVersion`) adds flat CSV tables beside the JSON bundle for import into statistical software (SPSS/R):
+
+- `participant_wide` — one row per participant: identity / site / consent from the research layer, progress counts, and canonical task scores for all eleven tasks.
+- `attempts` — every attempt from `attemptHistory` (including invalid): per-task `attempt_number`, `is_canonical`, session QC fields, task version / protocol id, and that task's score columns.
+- `provenance` — research-layer attempt records (session linkage, source key).
+- `audit_log` — the governance audit trail, including `table_exported` entries.
+
+Format: UTF-8 with BOM; RFC 4180 (CRLF; fields containing commas/quotes/newlines are quoted, embedded quotes doubled); null → empty cell; boolean → 0/1. Score extraction mirrors the null-safe reads in `mccb-scoring.js` (including the `Number(null)===0` guard for BWAIS open items).
+
+Privacy boundary: tables carry counts and scores only — free-text responses (fluency entries, BWAIS open-item answers) and private material content never enter a table and remain in the JSON bundle. Each table export appends a `table_exported` audit entry (table, row count, operator, export version) via the existing research-data persistence path, so the audit trail travels with the bundle. BIDS-style TSV output is deliberately deferred to a v1.1.0 candidate until a concrete consumer exists.
+
 ## Production boundary
 
 The included JSON-file backend is a contract/reference implementation, not production research infrastructure. A formal deployment still needs institution-appropriate authentication/authorization, TLS, encrypted managed storage and backups, secret rotation, retention/deletion enforcement, centralized audit, monitoring, recovery testing and validated migrations. None of those controls establish MCCB psychometric equivalence or clinical suitability.

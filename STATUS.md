@@ -17,6 +17,7 @@ The repository is engineering-mature enough to run its browser research workflow
 - protocol/material/version-compatible research ranking;
 - guarded Fluency semantic review plus a BWAIS open-item review console (`research-review.html`, backed by `reviewFluency`/`reviewBwais` primitives);
 - raw/report/comparison/export research surfaces;
+- research-grade CSV table export on the data-governance page (`participant_wide` / `attempts` / `provenance` / `audit_log`, `research-table-export-1.0.0`) with a `table_exported` audit trail — counts and scores only, free-text responses never enter a table;
 - automated static, UI/accessibility, desktop browser-smoke, mobile layout (390x844), protocol, privacy/material and scoring regression checks.
 
 ## Current limitations / external gates

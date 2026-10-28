@@ -65,6 +65,22 @@
 
 <section class="section grid two">
   <article class="card">
+    <div class="section-title"><h2>统计表格导出（CSV）</h2><p>研究级扁平表 · 供 SPSS/R 等统计软件读取</p></div>
+    <p class="small">四张表：<strong>participant_wide</strong>（每被试一行，canonical 结果 + site/consent 合并，主分析表）；<strong>attempts</strong>（全部作答尝试，含 invalid，带 is_canonical 与 QC 列）；<strong>provenance</strong>（研究层 attempt 溯源）；<strong>audit_log</strong>（治理审计链，含本次导出记录）。</p>
+    <div class="button-row"><button id="exportParticipantWideBtn" class="rui-btn primary" type="button">导出 participant_wide</button><button id="exportAttemptsBtn" class="rui-btn" type="button">导出 attempts</button><button id="exportProvenanceBtn" class="rui-btn" type="button">导出 provenance</button><button id="exportAuditBtn" class="rui-btn" type="button">导出 audit_log</button></div>
+    <p id="exportStatus" class="small"></p>
+    <p class="small">隐私边界：CSV 只含计数与分值；自由作答原文（语义流畅词条、开放题回答）与私有素材内容不入表，仍随 JSON bundle 保留。</p>
+  </article>
+  <article class="card">
+    <div class="section-title"><h2>CSV 格式规范</h2><p>research-table-export 1.0.0</p></div>
+    <p class="small">UTF-8 带 BOM · RFC 4180（CRLF 换行，含逗号/引号/换行的字段加引号，内部引号加倍）· null → 空字段 · 布尔 → 0/1 · 列名英文 snake_case，SPSS 兼容。</p>
+    <p class="small">审计链：每次表格导出写入一条 <code>table_exported</code> 记录（表名 / 行数 / 操作者 / 导出版本）到研究审计链，并随 JSON bundle 一起导出。</p>
+    <p class="small">BIDS 风格 TSV 有意推迟（v1.1.0 候选）：尚无真实消费者，避免死代码。</p>
+  </article>
+</section>
+
+<section class="section grid two">
+  <article class="card">
     <div class="section-title"><h2>受控导入 / 恢复</h2><p>先验证，再应用</p></div>
     <input id="importFile" type="file" accept="application/json,.json">
     <div id="importPreview" class="notice info" style="margin-top:12px">先选择导出的 research-data bundle；只有通过结构校验后才允许应用。</div>
@@ -84,6 +100,7 @@
 <script src="research-storage.js"></script>
 <script src="research-data.js"></script>
 <script src="research-governance.js"></script>
+<script src="research-export.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);let pendingBundle=null;
@@ -105,6 +122,11 @@ $('saveReplicaBtn').onclick=async()=>{try{ResearchStorage.configureReplica({enab
 $('healthBtn').onclick=async()=>{try{ResearchStorage.setSessionToken($('replicaToken').value);const h=await ResearchStorage.health();$('replicaStatus').textContent=`health OK · ${h.service} ${h.version}`}catch(e){$('replicaStatus').textContent='health 失败：'+e.message}};
 $('syncBtn').onclick=async()=>{try{ResearchStorage.setSessionToken($('replicaToken').value);const bundle=ResearchGovernance.exportLocalBundle(),r=await ResearchStorage.syncBundle(bundle,{reason:'governance_manual'});$('replicaStatus').textContent=r.ok?`同步完成：sent ${r.sent}`:`同步未完成：${r.reason||r.error||'unknown'} · remaining ${r.remaining??''}`;render()}catch(e){$('replicaStatus').textContent='同步失败：'+e.message;render()}};
 $('exportBtn').onclick=()=>ResearchData.downloadBundle({participantData:ParticipantManager.exportAllData()});
+function exportTable(tableId,build){const t=build();if(!ResearchExport.downloadCSV(`psy-exp-${tableId}-${new Date().toISOString().replace(/[:.]/g,'-')}.csv`,t)){$('exportStatus').textContent='导出失败：当前环境不支持文件下载。';return}const rec=ResearchExport.recordExportAudit({table:tableId,rows:t.rows.length,operatorId:ResearchStorage.getConfig().operatorId});$('exportStatus').textContent=rec.recorded?`已导出 ${tableId}（${t.rows.length} 行）；审计已记录（${rec.entryId}）。`:`已导出 ${tableId}（${t.rows.length} 行）；审计记录失败：${rec.reason}。`}
+$('exportParticipantWideBtn').onclick=()=>exportTable('participant_wide',()=>ResearchExport.buildParticipantWide({participantData:ParticipantManager.exportAllData(),researchData:ResearchData.snapshot()}));
+$('exportAttemptsBtn').onclick=()=>exportTable('attempts',()=>ResearchExport.buildAttempts({participantData:ParticipantManager.exportAllData()}));
+$('exportProvenanceBtn').onclick=()=>exportTable('provenance',()=>ResearchExport.buildProvenance({researchData:ResearchData.snapshot()}));
+$('exportAuditBtn').onclick=()=>exportTable('audit_log',()=>ResearchExport.buildAudit({researchData:ResearchData.snapshot()}));
 $('importFile').onchange=async e=>{pendingBundle=null;$('mergeImportBtn').disabled=true;$('replaceImportBtn').disabled=true;const f=e.target.files&&e.target.files[0];if(!f)return;try{const text=await f.text(),v=ResearchGovernance.validateBundle(text);if(!v.ok){$('importPreview').textContent='校验失败：'+v.errors.join('；');return}pendingBundle=v.bundle;$('importPreview').textContent=`校验通过 · study ${v.summary.studyId} · participants ${v.summary.participants} · sessions ${v.summary.sessions} · attempts ${v.summary.attempts}${v.warnings.length?' · warnings: '+v.warnings.join('；'):''}`;$('mergeImportBtn').disabled=false;$('replaceImportBtn').disabled=false}catch(err){$('importPreview').textContent='读取失败：'+err.message}};
 $('mergeImportBtn').onclick=()=>{if(!pendingBundle)return;try{ResearchGovernance.importBundle(pendingBundle,{mode:'merge',restoreParticipants:true});$('importPreview').textContent='合并导入完成。';render()}catch(e){$('importPreview').textContent='导入失败：'+e.message}};
 $('replaceImportBtn').onclick=()=>{if(!pendingBundle)return;if(prompt('完全替换会覆盖本地研究数据。请输入 REPLACE 确认：')!=='REPLACE')return;try{ResearchGovernance.importBundle(pendingBundle,{mode:'replace',restoreParticipants:true});$('importPreview').textContent='本地数据已替换。';render()}catch(e){$('importPreview').textContent='替换失败：'+e.message}};
