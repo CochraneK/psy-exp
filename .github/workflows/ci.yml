@@ -29,6 +29,7 @@ jobs:
           node --check research-data.js
           node --check research-governance.js
           node --check research-export.js
+          node --check research-auth.js
           node --check research-session.js
           node --check original-ui-controller.js
           node --check demo-data.js
@@ -41,6 +42,7 @@ jobs:
           node --check tests/verify-governance.cjs
           node --check tests/verify-backend.cjs
           node --check tests/verify-export.cjs
+          node --check tests/verify-auth.cjs
           node --check tests/verify-manifest.cjs
           node --check tests/verify-protocol-lock.cjs
           node --check tests/verify-original-ui-core.cjs
@@ -88,6 +90,7 @@ jobs:
           test -f research-data.js
           test -f research-governance.js
           test -f research-export.js
+          test -f research-auth.js
           test -f research-session.js
           test -f original-ui-controller.js
           test -f demo-data.js
@@ -131,6 +134,8 @@ jobs:
           grep -q "MODEL_VERSION='research-data-model-1.2.0'" research-data.js
           grep -q "STORAGE_ARCH_VERSION='local-primary-http-replica-1.1.0'" research-storage.js
           grep -q "EXPORT_VERSION='research-table-export-1.0.0'" research-export.js
+          grep -q "AUTH_VERSION='research-auth-1.0.0'" research-auth.js
+          grep -q '"researchAuthVersion": "research-auth-1.0.0"' task-manifest.json
           grep -q "Research Data Model v1.2" docs/RESEARCH_DATA_MODEL.md
           grep -q "SCORING_VERSION = 'research-scoring-0.5.0'" mccb-scoring.js
           grep -q "cohort-t-0.1.0" mccb-norms.js
@@ -162,6 +167,13 @@ jobs:
           grep -q 'id="hardDeleteBtn"' data-governance.html
           grep -q 'id="exportParticipantWideBtn"' data-governance.html
           grep -q "research-export.js" data-governance.html
+          for f in index.html data-governance.html research-report.html research-comparison.html research-review.html; do
+            grep -q "research-auth.js" "$f" && grep -q "mountGate" "$f" || { echo "Research page missing access gate: $f"; exit 1; }
+          done
+          grep -q "console_participant_delete" index.html
+          grep -q "console_clear_all" index.html
+          grep -q "participant-runner.html?p=" index.html
+          grep -q "不是真实安全" research-auth.js
           grep -q ".psy-exp-data/" .gitignore
           grep -q "PSY_EXP_API_TOKEN" server/research-backend.cjs
           grep -q "127.0.0.1" server/research-backend.cjs

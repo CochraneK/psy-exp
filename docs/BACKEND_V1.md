@@ -124,7 +124,7 @@ The included server is a contract/reference implementation and CI target. It is 
 
 - TLS termination and secure headers;
 - an identity provider and short-lived credentials;
-- role/site/study authorization;
+- role/site/study authorization; (the browser-side `research-auth.js` passcode gate is a local access confirmation only — explicitly **not** real security — and does not replace this item)
 - managed secret storage and key rotation;
 - encrypted database/storage and encrypted backups;
 - backup/restore drills;

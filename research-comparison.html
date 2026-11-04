@@ -22,6 +22,7 @@ body{margin:0;background:var(--bg-page,#f0f2f5);min-height:100vh}#app{max-width:
 </div>
 <script src="mccb-participant.js"></script>
 <script src="mccb-scoring.js"></script>
+<script src="research-auth.js"></script>
 <script>
 'use strict';
 const MIN_REFERENCE_N=5;let bundle=null,selected=new Set();const $=id=>document.getElementById(id);const COLORS=['#5b5bd6','#168a73','#3976b8','#7a5ac8','#b16b2c','#b84f6f','#2b8c9b','#6d7c91'];
@@ -37,6 +38,10 @@ function render(){const profiles=bundle.profiles.filter(p=>selected.has(p.id)&&e
 function load(){bundle=MCCBScoring.getAllProfiles();$('reportCount').textContent=`(${bundle.profiles.length} 人)`;$('emptyState').style.display=bundle.profiles.length?'none':'block';$('mainContent').hidden=!bundle.profiles.length;selected=new Set(bundle.profiles.filter(eligible).map(p=>p.id));renderSelector();render()}
 function exportCsv(){const profiles=bundle.profiles.filter(p=>selected.has(p.id)&&eligible(p)),rows=groupedRows(profiles),esc=v=>{const s=String(v??'');return/[",\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s};const lines=[['domain','reference_n','reference_group',...profiles.map(p=>p.id)]];for(const g of rows)lines.push([g.def.label,g.referenceN,g.referenceKey,...profiles.map(p=>{const d=g.members.get(p.id);return d&&Number(g.referenceN)>=MIN_REFERENCE_N&&Number.isFinite(d.indexScore)?Math.round(d.indexScore*10)/10:''})]);const blob=new Blob(['\uFEFF'+lines.map(r=>r.map(esc).join(',')).join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`cognitive-comparison-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)}
 $('allBtn').onclick=()=>{selected=new Set(bundle.profiles.filter(eligible).map(p=>p.id));renderSelector();render()};$('clearBtn').onclick=()=>{selected.clear();renderSelector();render()};$('csvBtn').onclick=exportCsv;document.addEventListener('DOMContentLoaded',load);
+</script>
+<script>
+/* 研究区访问门 (research-auth 1.0.0)：本地访问确认，不是真实安全边界 */
+if(typeof ResearchAuth!=='undefined'){try{ResearchAuth.mountGate()}catch(e){console.warn('Research access gate failed to mount',e&&e.message||e)}}else{console.warn('research-auth.js not loaded; research access gate inactive.')}
 </script>
 </body>
 </html>

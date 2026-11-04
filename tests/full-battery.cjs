@@ -18,6 +18,7 @@ const checks=[
   ['cohort T + KW math (portable)','tests/verify-cohort-t.cjs'],
   ['open-item review contract','tests/verify-review.cjs'],
   ['research table export','tests/verify-export.cjs'],
+  ['research access auth','tests/verify-auth.cjs'],
   ['synthetic demo dataset','tests/verify-demo-data.cjs'],
   ['task manifest/material policy','tests/verify-manifest.cjs'],
   ['protocol freeze/version governance','tests/verify-protocol-lock.cjs'],

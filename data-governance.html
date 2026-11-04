@@ -101,6 +101,7 @@
 <script src="research-data.js"></script>
 <script src="research-governance.js"></script>
 <script src="research-export.js"></script>
+<script src="research-auth.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);let pendingBundle=null;
@@ -132,6 +133,10 @@ $('mergeImportBtn').onclick=()=>{if(!pendingBundle)return;try{ResearchGovernance
 $('replaceImportBtn').onclick=()=>{if(!pendingBundle)return;if(prompt('完全替换会覆盖本地研究数据。请输入 REPLACE 确认：')!=='REPLACE')return;try{ResearchGovernance.importBundle(pendingBundle,{mode:'replace',restoreParticipants:true});$('importPreview').textContent='本地数据已替换。';render()}catch(e){$('importPreview').textContent='替换失败：'+e.message}};
 $('hardDeleteBtn').onclick=async()=>{const pid=currentParticipant();if(!pid)return;if(prompt(`硬删除本地 ${pid} 的任务结果与研究 provenance。请输入参与者编号确认：`)!==pid)return;const cfg=ResearchStorage.getConfig();ParticipantManager.deleteParticipant(pid);const local=ResearchData.deleteParticipant(pid,{operatorId:cfg.operatorId,reason:'researcher_hard_delete'});let remote='未请求';if(cfg.replica.enabled&&confirm('是否同时请求远端 replica 删除该参与者？')){try{ResearchStorage.setSessionToken($('replicaToken').value);await ResearchStorage.deleteRemoteParticipant(pid);remote='远端删除成功'}catch(e){remote='远端删除失败：'+e.message}}$('deleteStatus').textContent=`本地删除：${local.deleted?'完成':'无记录'}；${remote}`;render()};
 document.addEventListener('DOMContentLoaded',()=>{const pid=currentParticipant();if(pid)ResearchData.ensureParticipant(pid,{siteId:ResearchStorage.getConfig().siteId});if(ResearchStorage.startAutoSync)ResearchStorage.startAutoSync({onSettled:render});render()});
+</script>
+<script>
+/* 研究区访问门 (research-auth 1.0.0)：本地访问确认，不是真实安全边界 */
+if(typeof ResearchAuth!=='undefined'){try{ResearchAuth.mountGate()}catch(e){console.warn('Research access gate failed to mount',e&&e.message||e)}}else{console.warn('research-auth.js not loaded; research access gate inactive.')}
 </script>
 </body>
 </html>

@@ -33,6 +33,7 @@ body{margin:0;background:var(--bg-page,#f0f2f5);min-height:100vh}#app{max-width:
 </div>
 <script src="mccb-participant.js"></script>
 <script src="mccb-scoring.js"></script>
+<script src="research-auth.js"></script>
 <script>
 'use strict';
 const FLU_KEY='mccb-fluency-result',BW_KEY='mccb-bwais-result',BW_MAX={knowledge:29,similarities:26,pictureCompletion:21};
@@ -167,6 +168,10 @@ function load(){
 $('participantSelect').addEventListener('change',render);
 $('refreshBtn').onclick=load;
 document.addEventListener('DOMContentLoaded',load);
+</script>
+<script>
+/* 研究区访问门 (research-auth 1.0.0)：本地访问确认，不是真实安全边界 */
+if(typeof ResearchAuth!=='undefined'){try{ResearchAuth.mountGate()}catch(e){console.warn('Research access gate failed to mount',e&&e.message||e)}}else{console.warn('research-auth.js not loaded; research access gate inactive.')}
 </script>
 </body>
 </html>
