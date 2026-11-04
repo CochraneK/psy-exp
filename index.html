@@ -398,6 +398,9 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="mccb-participant.js"></script>
+<script src="research-storage.js"></script>
+<script src="research-data.js"></script>
+<script src="research-auth.js"></script>
 </head>
 <body>
 <div class="container">
@@ -480,6 +483,21 @@
       <div id="pmContent" style="min-height:120px;">
         <div style="text-align:center;color:#94a3b8;padding:40px 0;">加载中...</div>
       </div>
+      <section id="authCard" aria-label="研究区访问确认" style="margin-top:18px;border:1px solid #e2e8f0;border-radius:10px;padding:16px;">
+        <h4 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1e293b;">🔒 研究区访问确认</h4>
+        <p id="authStateText" style="margin:0 0 8px;font-size:12px;color:#64748b;"></p>
+        <p style="margin:0 0 10px;font-size:11px;color:#94a3b8;line-height:1.5;">本地访问确认（不是真实安全）：启用后，研究者页面（控制台 / 数据治理 / 研究报告 / 对比分析 / 开放题审查）每个浏览器会话需输入访问码。仅阻止偶然进入，不能阻止使用开发者工具的用户访问数据。</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input id="authPasscodeInput" type="password" placeholder="访问码（4–64 字符）" aria-label="研究区访问码" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;">
+          <input id="authCurrentInput" type="password" placeholder="当前访问码（更换/停用时必填）" aria-label="当前访问码" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" id="authEnableBtn" onclick="authConfigure()">启用 / 更换</button>
+          <button class="btn btn-outline btn-sm" id="authDisableBtn" onclick="authDisable()" style="color:#dc2626;border-color:#fecaca;">停用</button>
+          <button class="btn btn-outline btn-sm" id="authReverifyBtn" onclick="authReverify()">本会话重新确认</button>
+        </div>
+        <p id="authMsg" style="margin:10px 0 0;font-size:12px;color:#64748b;"></p>
+      </section>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid #f1f5f9;">
         <button class="btn btn-outline btn-sm" onclick="closeParticipantManager()">关闭</button>
         <button class="btn btn-primary btn-sm" onclick="exportAllParticipants()" title="导出全部被试数据为 JSON">📦 导出全部</button>
@@ -1263,16 +1281,36 @@ function openParticipantManager() {
   const overlay = document.getElementById('participantManagerOverlay');
   overlay.style.display = 'flex';
   renderParticipantList();
+  authRefreshState();
 }
 
 function closeParticipantManager() {
   document.getElementById('participantManagerOverlay').style.display = 'none';
 }
 
+function researchStatusHtml(id, snap) {
+  if (typeof ResearchData === 'undefined' || !snap) return '<span style="color:#94a3b8;font-size:12px;">—</span>';
+  try {
+    const p = snap.participants[id] || null;
+    const elig = ResearchData.sessionEligibility(id);
+    const active = ResearchData.getActiveSession(id);
+    const ok = !!(elig && elig.eligible);
+    const reasonMap = { consent_required: '需同意', consent_version_mismatch: '同意版本不符', consent_not_required: '无需同意', participant_withdrawn: '已撤回', participant_declined: '已拒绝', participant_missing: '未登记' };
+    const reasonText = ok ? '可施测' : ((elig && (reasonMap[elig.reason] || elig.reason)) || '未知');
+    const consent = p && p.consent ? (p.consent.status === 'granted' ? `同意 v${p.consent.version || '?'}` : p.consent.status === 'withdrawn' ? '同意已撤回' : '同意已拒绝') : '未记录同意';
+    const sessionText = active ? `活动会话（${new Date(active.startedAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })} 起）` : '无活动会话';
+    return `<div style="font-size:12px;line-height:1.6;"><span style="display:inline-block;padding:1px 6px;border-radius:6px;background:${ok ? '#dcfce7' : '#fef2f2'};color:${ok ? '#16a34a' : '#dc2626'};font-size:11px;font-weight:600;">${reasonText}</span><div style="color:#64748b;margin-top:2px;">${consent}</div><div style="color:#94a3b8;margin-top:1px;">${sessionText}</div></div>`;
+  } catch (e) {
+    return '<span style="color:#94a3b8;font-size:12px;">—</span>';
+  }
+}
+
 function renderParticipantList() {
   const content = document.getElementById('pmContent');
   const summaries = ParticipantManager.getAllSummaries();
   const allParticipants = ParticipantManager.getAllParticipants();
+  let researchSnap = null;
+  if (typeof ResearchData !== 'undefined') { try { researchSnap = ResearchData.snapshot(); } catch (e) { researchSnap = null; } }
 
   if (allParticipants.length === 0) {
     content.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:40px 0;"><div style="font-size:40px;margin-bottom:12px;">📋</div><p>尚无被试记录。请输入队列编号登录后自动创建。</p></div>';
@@ -1285,6 +1323,7 @@ function renderParticipantList() {
   html += '<thead><tr style="background:#f8fafc;text-align:left;">' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">被试编号</th>' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">进度</th>' +
+    '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">研究状态</th>' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">最近更新</th>' +
     '<th style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:160px;"></th>' +
     '</tr></thead><tbody>';
@@ -1305,6 +1344,7 @@ function renderParticipantList() {
           <span style="font-size:12px;color:#64748b;white-space:nowrap;">${s.done}/${s.total}</span>
         </div>
       </td>
+      <td style="padding:10px 14px;">${researchStatusHtml(s.id, researchSnap)}</td>
       <td style="padding:10px 14px;color:#64748b;font-size:12px;">${dateStr}</td>
       <td style="padding:10px 14px;text-align:right;white-space:nowrap;">
         <button onclick="viewParticipantReport('${s.id}')" title="查看该被试的综合认知报告" style="background:none;border:1px solid #bfdbfe;color:#2563eb;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s;margin-right:8px;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">报告</button>
@@ -1314,7 +1354,8 @@ function renderParticipantList() {
   });
 
   html += '</tbody></table></div>';
-  html += '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">⚠️ 删除被试将清除其所有测验数据，不可恢复</div>';
+  html += '<div style="font-size:12px;color:#94a3b8;margin-top:8px;">⚠️ 删除被试将同步清除其任务数据与研究溯源记录（会话 / 尝试 / 审计），不可恢复</div>';
+  html += '<div id="pmStatus" style="font-size:12px;color:#2563eb;margin-top:6px;"></div>';
   content.innerHTML = html;
 }
 
@@ -1323,10 +1364,24 @@ function viewParticipantReport(cohortId) {
 }
 
 function deleteParticipant(cohortId) {
-  if (!confirm(`确定删除被试 "${cohortId}" 的所有数据？此操作不可恢复。`)) return;
+  if (!confirm(`确定删除被试 "${cohortId}" 的所有数据（含研究溯源记录）？此操作不可恢复。`)) return;
   const isCurrent = ParticipantManager.getCurrent() === cohortId;
   ParticipantManager.deleteParticipant(cohortId);
+  let researchNote = '';
+  if (typeof ResearchData !== 'undefined') {
+    try {
+      const operatorId = (typeof ResearchStorage !== 'undefined' && ResearchStorage.getConfig().operatorId) || 'local-researcher';
+      const r = ResearchData.deleteParticipant(cohortId, { operatorId, reason: 'console_participant_delete' });
+      researchNote = r.deleted
+        ? `研究溯源已同步删除（${r.sessions} 个会话、${r.attempts} 条尝试），审计已记录。`
+        : '该被试无研究溯源记录，仅删除了任务数据。';
+    } catch (e) {
+      researchNote = '研究溯源同步删除失败：' + ((e && e.message) || e) + '；请前往数据治理页核对。';
+    }
+  }
   renderParticipantList();
+  const pmStatus = document.getElementById('pmStatus');
+  if (pmStatus) pmStatus.textContent = researchNote;
   // 如果删除的是当前登录，刷新主界面
   if (isCurrent) {
     document.getElementById('participantInput').value = '';
@@ -1354,15 +1409,29 @@ function exportAllParticipants() {
 
 function clearAllData() {
   const pNow = ParticipantManager.getCurrent();
-  let msg = '确定清除所有本地测评数据？此操作不可恢复。';
+  let msg = '确定清除所有本地数据？此操作不可恢复。';
   if (pNow) {
-    msg = `当前被试 "${pNow}" 的测评数据将被清除。\n\n此操作将删除所有被试的全部数据，不可恢复。\n如需仅删除单个被试，请使用「被试管理」面板。`;
+    msg = `当前被试 "${pNow}" 的数据将被清除。\n\n此操作将删除所有被试的任务数据与研究溯源记录（研究设置保留），不可恢复。\n如需仅删除单个被试，请使用「被试管理」面板。`;
   }
   if (!confirm(msg)) return;
 
   // 清所有被试数据
   const all = ParticipantManager.getAllParticipants();
   all.forEach(id => ParticipantManager.deleteParticipant(id));
+
+  // 同步清除研究溯源（两层 ID 并集；研究设置/构建指纹保留）
+  const allIds = new Set(all);
+  if (typeof ResearchData !== 'undefined') { try { Object.keys(ResearchData.snapshot().participants || {}).forEach(id => allIds.add(id)); } catch (e) {} }
+  let rDeleted = 0, rSessions = 0, rAttempts = 0;
+  if (typeof ResearchData !== 'undefined') {
+    const operatorId = (typeof ResearchStorage !== 'undefined' && ResearchStorage.getConfig().operatorId) || 'local-researcher';
+    allIds.forEach(id => {
+      try {
+        const r = ResearchData.deleteParticipant(id, { operatorId, reason: 'console_clear_all' });
+        if (r.deleted) { rDeleted++; rSessions += r.sessions; rAttempts += r.attempts; }
+      } catch (e) { console.warn('ResearchData cascade clear failed for', id, e); }
+    });
+  }
 
   // 再清 global 残留
   TEST_META.forEach(meta => {
@@ -1379,6 +1448,7 @@ function clearAllData() {
   document.getElementById('resumeBtn').style.display = 'none';
   loadDashboard();
   updateCardStatuses();
+  alert(`已清除 ${all.length} 位被试的任务数据${rDeleted ? `，以及 ${rDeleted} 位被试的研究溯源记录（${rSessions} 个会话、${rAttempts} 条尝试）` : ''}。`);
 }
 
 // 修复 importData 中引用的 KEY_TO_RESULT 缺失
@@ -1506,11 +1576,59 @@ function logoutParticipant() {
 }
 
 function resumeTesting() {
-  const first = ParticipantManager.getFirstIncomplete();
-  if (!first) { alert('所有测验已完成！'); return; }
-  const mode = getMode();
-  const url = ParticipantManager.getTestUrl(first.key, mode);
-  location.href = url;
+  if (!ParticipantManager.getFirstIncomplete()) { alert('所有测验已完成！'); return; }
+  const current = ParticipantManager.getCurrent();
+  if (!current) { alert('请先登录被试队列编号'); return; }
+  // 走施测运行页：fail-closed 会话/同意门 + 设备 preflight，再进入任务（任务链接恒为 USER 模式）
+  location.href = 'participant-runner.html?p=' + encodeURIComponent(current);
+}
+
+// === 研究区访问确认 (research-auth 1.0.0)：本地访问确认，不是真实安全边界 ===
+function authSetMsg(text, color) {
+  const el = document.getElementById('authMsg');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = color || '#64748b';
+}
+function authRefreshState() {
+  const stateEl = document.getElementById('authStateText');
+  const curEl = document.getElementById('authCurrentInput');
+  if (typeof ResearchAuth === 'undefined') { if (stateEl) stateEl.textContent = '访问确认模块未加载。'; return; }
+  try {
+    const s = ResearchAuth.getAuthState();
+    if (stateEl) stateEl.textContent = s.enabled
+      ? (s.locked ? `已启用 · 当前锁定（约 ${Math.ceil(s.retryAfterMs / 1000)} 秒后可重试）` : `已启用${s.sessionActive ? ' · 本会话已确认' : ' · 本会话待确认'}`)
+      : '未启用（研究者页面当前无需访问码）';
+    if (curEl) curEl.style.visibility = s.configured ? 'visible' : 'hidden';
+  } catch (e) { if (stateEl) stateEl.textContent = '状态读取失败。'; }
+}
+async function authConfigure() {
+  if (typeof ResearchAuth === 'undefined') { authSetMsg('访问确认模块未加载。', '#dc2626'); return; }
+  const code = document.getElementById('authPasscodeInput').value;
+  const cur = document.getElementById('authCurrentInput').value;
+  const r = await ResearchAuth.configure({ passcode: code, currentPasscode: cur || null });
+  if (r.ok) {
+    authSetMsg(r.changed ? '访问码已更换，访问确认保持启用。' : '访问确认已启用：5 个研究者页面现在需要访问码（每个浏览器会话一次）。', '#16a34a');
+    document.getElementById('authPasscodeInput').value = '';
+    document.getElementById('authCurrentInput').value = '';
+  } else {
+    authSetMsg('操作失败：' + ({ invalid_passcode: '访问码需 4–64 个字符', invalid_current_passcode: '当前访问码不正确', persist_failed: '本地存储不可用' }[r.reason] || r.reason), '#dc2626');
+  }
+  authRefreshState();
+}
+async function authDisable() {
+  if (typeof ResearchAuth === 'undefined') { authSetMsg('访问确认模块未加载。', '#dc2626'); return; }
+  const cur = document.getElementById('authCurrentInput').value;
+  const r = await ResearchAuth.disable({ currentPasscode: cur || null });
+  authSetMsg(r.ok ? '访问确认已停用，本地访问码状态已清除。' : '操作失败：' + ({ invalid_current_passcode: '当前访问码不正确' }[r.reason] || r.reason), r.ok ? '#16a34a' : '#dc2626');
+  if (r.ok) document.getElementById('authCurrentInput').value = '';
+  authRefreshState();
+}
+function authReverify() {
+  if (typeof ResearchAuth === 'undefined') { authSetMsg('访问确认模块未加载。', '#dc2626'); return; }
+  ResearchAuth.clearSession();
+  authSetMsg('本会话确认已清除：重新打开研究者页面时将再次要求访问码。', '#64748b');
+  authRefreshState();
 }
 
 // === Wide Mode Toggle ===
@@ -1521,6 +1639,10 @@ b.onclick=function(){document.body.classList.toggle('wide-mode');
 b.classList.toggle('wm-on');localStorage.setItem('mccb-wide',
 document.body.classList.contains('wide-mode')?'1':'0');};
 document.body.appendChild(b);})();
+</script>
+<script>
+/* 研究区访问门 (research-auth 1.0.0)：本地访问确认，不是真实安全边界 */
+if(typeof ResearchAuth!=='undefined'){try{ResearchAuth.mountGate()}catch(e){console.warn('Research access gate failed to mount',e&&e.message||e)}}else{console.warn('research-auth.js not loaded; research access gate inactive.')}
 </script>
 </body>
 </html>

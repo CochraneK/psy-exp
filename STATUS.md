@@ -18,6 +18,7 @@ The repository is engineering-mature enough to run its browser research workflow
 - guarded Fluency semantic review plus a BWAIS open-item review console (`research-review.html`, backed by `reviewFluency`/`reviewBwais` primitives);
 - raw/report/comparison/export research surfaces;
 - research-grade CSV table export on the data-governance page (`participant_wide` / `attempts` / `provenance` / `audit_log`, `research-table-export-1.0.0`) with a `table_exported` audit trail — counts and scores only, free-text responses never enter a table;
+- opt-in local research access gate (`research-auth-1.0.0`) on the five researcher pages — salted SHA-256 passcode + per-tab session + 5-strike lockout, explicitly a local access confirmation rather than real security; the console participant list shows research status (eligibility/consent/session), participant deletion cascades into research-layer provenance with audit entries, and resume routes through the runner's fail-closed session gate;
 - automated static, UI/accessibility, desktop browser-smoke, mobile layout (390x844), protocol, privacy/material and scoring regression checks.
 
 ## Current limitations / external gates

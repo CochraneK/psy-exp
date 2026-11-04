@@ -68,6 +68,14 @@ Format: UTF-8 with BOM; RFC 4180 (CRLF; fields containing commas/quotes/newlines
 
 Privacy boundary: tables carry counts and scores only — free-text responses (fluency entries, BWAIS open-item answers) and private material content never enter a table and remain in the JSON bundle. Each table export appends a `table_exported` audit entry (table, row count, operator, export version) via the existing research-data persistence path, so the audit trail travels with the bundle. BIDS-style TSV output is deliberately deferred to a v1.1.0 candidate until a concrete consumer exists.
 
+## Research access gate (research-auth 1.0.0)
+
+`research-auth.js` (registered in `task-manifest.json` as `researchAuthVersion`) adds an opt-in local passcode gate to the five researcher pages (console / governance / report / comparison / review): salted SHA-256 passcode in `localStorage`, per-tab session in `sessionStorage`, 5-strike / 30-second lockout, and a pure-JS SHA-256 fallback for non-secure contexts (contract cross-checked against WebCrypto). Stored state is salt + hash + metadata only — never a plaintext passcode.
+
+Honest boundary: this is a **local access confirmation, not real security**. It is client-side only — it stops casual entry, not a user with developer tools — and it is opt-in (off by default; a fresh profile is unaffected). Real authorization (identity provider, role/site/study scoping) remains a production gap (see `docs/BACKEND_V1.md`). The participant path (`participant-runner.html`) is deliberately not passcode-gated: its protection is the fail-closed consent/session gate.
+
+Console admin effects: the participant list shows research status (eligibility / consent version / active session); participant deletion (single and clear-all) cascades into the research layer via the atomic `ResearchData.deleteParticipant` (sessions + attempts removed, `console_participant_delete` / `console_clear_all` audit entries, 1000-entry cap inherited); resume routes through the participant runner's session gate + preflight instead of linking task pages directly.
+
 ## Production boundary
 
 The included JSON-file backend is a contract/reference implementation, not production research infrastructure. A formal deployment still needs institution-appropriate authentication/authorization, TLS, encrypted managed storage and backups, secret rotation, retention/deletion enforcement, centralized audit, monitoring, recovery testing and validated migrations. None of those controls establish MCCB psychometric equivalence or clinical suitability.

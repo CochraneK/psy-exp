@@ -29,6 +29,7 @@ body{margin:0;background:var(--bg-page,#f0f2f5);min-height:100vh}#app{max-width:
 </div>
 <script src="mccb-participant.js"></script>
 <script src="mccb-scoring.js"></script>
+<script src="research-auth.js"></script>
 <script>
 'use strict';
 const DOMAIN_DISPLAY_COLORS={
@@ -52,6 +53,10 @@ function load(){bundle=MCCBScoring.getAllProfiles();const s=$('participantSelect
 function exportJson(){if(!currentProfile)return;const payload={reportType:'research-safe-original-ui',generatedAt:new Date().toISOString(),scoringVersion:bundle.scoringVersion,norm:bundle.norm,profile:currentProfile};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`cognitive-report-${currentProfile.id}.json`;a.click();URL.revokeObjectURL(url)}
 function copySummary(){if(!currentProfile)return;const ds=MCCBScoring.getDomainSummary(currentProfile).filter(d=>Number(d.referenceN)>=MIN_REFERENCE_N&&Number.isFinite(d.indexScore));const text=[`被试: ${currentProfile.id}`,`QC valid: ${(currentProfile.qcSummary||{}).valid||0}`, ...ds.map(d=>`${d.label}: 项目内排名指数 ${Math.round(d.indexScore*10)/10} (N=${d.referenceN})`),'注：非 MCCB T 分/临床百分位。'].join('\n');navigator.clipboard.writeText(text).then(()=>alert('摘要已复制'))}
 $('participantSelect').addEventListener('change',render);$('refreshBtn').onclick=load;$('jsonBtn').onclick=exportJson;$('copyBtn').onclick=copySummary;document.addEventListener('DOMContentLoaded',load);
+</script>
+<script>
+/* 研究区访问门 (research-auth 1.0.0)：本地访问确认，不是真实安全边界 */
+if(typeof ResearchAuth!=='undefined'){try{ResearchAuth.mountGate()}catch(e){console.warn('Research access gate failed to mount',e&&e.message||e)}}else{console.warn('research-auth.js not loaded; research access gate inactive.')}
 </script>
 </body>
 </html>
