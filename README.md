@@ -34,7 +34,13 @@
 - `research-auth.js` — 研究区访问确认（`research-auth-1.0.0`）：五个研究者页面的可选本地访问码门（加盐 SHA-256 + 每标签页会话 + 5 次失败锁定 30 秒）。明确声明为本地访问确认、不是真实安全；默认关闭，仅阻止偶然进入。
 - `pages/` — 11 个具体研究任务（其中 10 项为 MCCB-related 认知任务，1 项为独立补充电池）。
 
-Researcher Console / 报告使用 `research-ui.css` 的长页面应用 shell；实验任务继续使用 `mccb-common.css` 的全屏任务 shell。两者故意分离，避免管理/报告页面被实验页的 `100vh + overflow:hidden` 布局截断。
+当前 UI 不是单一全局 shell，而是按用途分层：
+- Researcher Console 保留原始页面结构，并由 `research-session.js` 可逆加载 `original-ui-polish.css`；
+- Participant Runner 与 Data Governance 使用 `research-ui.css` 的长页面研究应用 shell；
+- 两个研究报告使用 `mccb-common.css` 作为基础样式，并由 `research-color-system.css` 与页面级长页面样式约束展示；
+- `pages/` 下实验任务继续使用 `mccb-common.css` 的任务 shell。
+
+这种分离是刻意的：研究工作台可以演进 UI，而实验刺激、交互几何和 timing-critical 页面不会因为全局视觉重构被意外改变。
 
 详见 [`docs/UI_UX_V2.md`](docs/UI_UX_V2.md)。
 
@@ -93,7 +99,7 @@ python -m http.server 8000 --bind 127.0.0.1
 http://127.0.0.1:8000/
 ```
 
-首次访问默认是 **USER mode**。研究者可在 Console 的高级区域显式选择 DEV mode 做单项调试；Participant Runner 始终使用 USER mode。
+首次访问默认是 **USER mode**。Researcher Console 提供显式 DEV/USER 切换用于研究者调试；Participant Runner 始终强制 USER mode，不向参与者暴露 DEV 选择。
 
 ## Participant Runner 与预检
 

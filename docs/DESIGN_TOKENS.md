@@ -82,8 +82,12 @@ Do not introduce a webfont into timing-critical task pages without measuring its
 
 ## Source of truth
 
-- Original console polish: `original-ui-polish.css`
-- Research app shell: `research-ui.css`
-- Report override: `research-color-system.css`
+Current surface mapping is canonicalized in [`UI_UX_V2.md`](UI_UX_V2.md).
 
-If these files diverge, semantic meaning wins over pixel-perfect color matching. Consolidation into shared CSS variables can happen later without changing experimental behavior.
+- Original console structure: `index.html`
+- Original console polish: `original-ui-polish.css` (loaded by `research-session.js`, reversible with `?ui=classic`)
+- Participant Runner / governance shell: `research-ui.css`
+- Report base + semantic override: `mccb-common.css` + `research-color-system.css`
+- Timing-critical task presentation: `mccb-common.css` plus task-local styles under `pages/`
+
+If these files diverge, semantic meaning wins over pixel-perfect color matching. Do not consolidate task-page styling merely to reduce CSS duplication; experimental stability has higher priority than design-system purity.
